@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    /* Shadcn base colors */
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
@@ -29,9 +30,27 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+
+    /* Loom Design System - Colorful theme */
+    --loom-bg: 250 100% 98%;
+    --loom-surface: 0 0% 100%;
+    --loom-primary: 263 85% 65%;
+    --loom-primary-dark: 263 85% 55%;
+    --loom-secondary: 195 100% 70%;
+    --loom-accent: 45 100% 70%;
+    --loom-success: 120 60% 50%;
+    --loom-warning: 35 100% 60%;
+    --loom-danger: 0 70% 60%;
+    --loom-text: 240 10% 15%;
+    --loom-text-muted: 240 5% 50%;
+    --loom-border: 240 20% 90%;
+    --loom-radius-sm: 4px;
+    --loom-radius-md: 8px;
+    --loom-radius-lg: 12px;
   }
 
   .dark {
+    /* Shadcn dark colors */
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
     --card: 240 10% 3.9%;
@@ -56,6 +75,23 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+
+    /* Loom Design System - Dark theme */
+    --loom-bg: 240 15% 8%;
+    --loom-surface: 240 10% 12%;
+    --loom-primary: 263 85% 70%;
+    --loom-primary-dark: 263 85% 60%;
+    --loom-secondary: 195 100% 75%;
+    --loom-accent: 45 100% 75%;
+    --loom-success: 120 60% 55%;
+    --loom-warning: 35 100% 65%;
+    --loom-danger: 0 70% 65%;
+    --loom-text: 0 0% 95%;
+    --loom-text-muted: 240 5% 70%;
+    --loom-border: 240 15% 20%;
+    --loom-radius-sm: 4px;
+    --loom-radius-md: 8px;
+    --loom-radius-lg: 12px;
   }
 }
 
