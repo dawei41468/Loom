@@ -35,7 +35,7 @@ const AppRoutes = () => {
   const { isOnboarded, isAuthenticated, setUser, setPartner } = useAuth();
 
   useEffect(() => {
-    // Initialize app data only once
+    // Initialize app data only once when component mounts
     const initializeApp = async () => {
       try {
         // Load user data
@@ -50,11 +50,9 @@ const AppRoutes = () => {
       }
     };
 
-    // Only initialize if we don't have user data yet
-    if (!isAuthenticated) {
-      initializeApp();
-    }
-  }, [isAuthenticated]); // Store actions are stable, don't include in deps
+    // Only initialize once on mount - no dependencies to avoid loops
+    initializeApp();
+  }, []); // Empty dependency array - run only once on mount
 
   // Show onboarding if not completed
   if (!isOnboarded) {
