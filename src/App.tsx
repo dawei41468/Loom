@@ -54,7 +54,7 @@ const AppRoutes = () => {
     if (!isAuthenticated) {
       initializeApp();
     }
-  }, [isAuthenticated, setUser, setPartner]); // Proper dependencies
+  }, [isAuthenticated]); // Store actions are stable, don't include in deps
 
   // Show onboarding if not completed
   if (!isOnboarded) {
