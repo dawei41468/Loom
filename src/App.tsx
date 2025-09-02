@@ -5,7 +5,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 
 // Pages
 import Onboarding from './pages/Onboarding';
-import Today from './pages/Today';
+import Index from './pages/Index';
 import Calendar from './pages/Calendar';
 import Add from './pages/Add';
 import Tasks from './pages/Tasks';
@@ -70,7 +70,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<Layout />}>
-        <Route index element={<Today />} />
+        <Route index element={<Index />} />
         <Route path="calendar" element={<Calendar />} />
         <Route path="add" element={<Add />} />
         <Route path="tasks" element={<Tasks />} />
