@@ -1,10 +1,10 @@
-// Toast Container Component
-import { useUI } from '../store';
+// Toast Container Component - Updated to use new architecture
+import { useToastContext } from '../contexts/ToastContext';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const ToastContainer = () => {
-  const { toasts, removeToast } = useUI();
+  const { toasts, removeToast } = useToastContext();
 
   if (toasts.length === 0) return null;
 

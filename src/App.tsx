@@ -19,7 +19,8 @@ import LoadingScreen from './components/LoadingScreen';
 import ToastContainer from './components/ToastContainer';
 
 // Store & API
-import { useAuth } from './store';
+import { useUser, useIsOnboarded, useAuthActions } from './stores';
+import { ToastProvider } from './contexts/ToastContext';
 import { apiClient } from './api/client';
 
 const queryClient = new QueryClient({
@@ -32,7 +33,9 @@ const queryClient = new QueryClient({
 });
 
 const AppRoutes = () => {
-  const { isOnboarded, isAuthenticated, setUser, setPartner } = useAuth();
+  const isOnboarded = useIsOnboarded();
+  const user = useUser();
+  const { setUser, setPartner } = useAuthActions();
 
   useEffect(() => {
     // Initialize app data only once when component mounts
@@ -84,12 +87,14 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <BrowserRouter>
-          <div className="min-h-screen bg-[hsl(var(--loom-bg))] text-[hsl(var(--loom-text))]">
-            <AppRoutes />
-            <ToastContainer />
-          </div>
-        </BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
+            <div className="min-h-screen bg-[hsl(var(--loom-bg))] text-[hsl(var(--loom-text))]">
+              <AppRoutes />
+              <ToastContainer />
+            </div>
+          </BrowserRouter>
+        </ToastProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

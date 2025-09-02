@@ -2,14 +2,16 @@
 import { useState, useEffect } from 'react';
 import { format, isToday, isTomorrow, parseISO, isPast } from 'date-fns';
 import { Plus, Check, Trash2, Calendar } from 'lucide-react';
-import { useTasks, useAuth, useUI } from '../store';
+import { useTasks, useTasksActions, useUser } from '../stores';
+import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
 import { cn } from '@/lib/utils';
 
 const Tasks = () => {
-  const { tasks, addTask, updateTask, removeTask, setTasks } = useTasks();
-  const { user } = useAuth();
-  const { addToast } = useUI();
+  const tasks = useTasks();
+  const { addTask, updateTask, removeTask, setTasks } = useTasksActions();
+  const user = useUser();
+  const { addToast } = useToastContext();
 
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [showCompleted, setShowCompleted] = useState(false);

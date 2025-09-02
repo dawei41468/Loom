@@ -2,7 +2,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Users, QrCode, Check } from 'lucide-react';
-import { useAuth, useUI } from '../store';
+import { useAuthActions } from '../stores';
+import { useToastContext } from '../contexts/ToastContext';
 import { MOCK_USER } from '../api/client';
 
 const steps = [
@@ -19,8 +20,8 @@ const Onboarding = () => {
   const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
   
   const navigate = useNavigate();
-  const { setUser, setOnboarded } = useAuth();
-  const { addToast } = useUI();
+  const { setUser, setOnboarded } = useAuthActions();
+  const { addToast } = useToastContext();
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {

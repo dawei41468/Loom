@@ -2,14 +2,16 @@
 import { useState, useMemo } from 'react';
 import { format, startOfWeek, addDays, isSameDay, parseISO, addWeeks, subWeeks } from 'date-fns';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
-import { useEvents } from '../store';
+import { useEvents, useEventFilter, useEventsActions } from '../stores';
 import { Event } from '../types';
 import { cn } from '@/lib/utils';
 
 type ViewType = '3day' | 'week' | 'agenda';
 
 const Calendar = () => {
-  const { events, filter, setEventFilter } = useEvents();
+  const events = useEvents();
+  const filter = useEventFilter();
+  const { setEventFilter } = useEventsActions();
   const [viewType, setViewType] = useState<ViewType>('3day');
   const [currentDate, setCurrentDate] = useState(new Date());
 

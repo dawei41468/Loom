@@ -16,16 +16,19 @@ import {
   EyeOff,
   Share
 } from 'lucide-react';
-import { useEvents, useAuth, useUI } from '../store';
+import { useEvents, useEventsActions, useUser, usePartner } from '../stores';
+import { useToastContext } from '../contexts/ToastContext';
 import { Event } from '../types';
 import { cn } from '@/lib/utils';
 
 const EventDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { events, removeEvent } = useEvents();
-  const { user, partner } = useAuth();
-  const { addToast } = useUI();
+  const events = useEvents();
+  const { removeEvent } = useEventsActions();
+  const user = useUser();
+  const partner = usePartner();
+  const { addToast } = useToastContext();
   
   const [activeTab, setActiveTab] = useState<'details' | 'chat' | 'checklist'>('details');
   const [showFullDetails, setShowFullDetails] = useState(true);

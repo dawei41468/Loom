@@ -13,12 +13,18 @@ import {
   Copy,
   Check
 } from 'lucide-react';
-import { useAuth, useUI } from '../store';
+import { useUser, usePartner, useAuthActions, useTheme, useLanguage, useUIActions } from '../stores';
+import { useToastContext } from '../contexts/ToastContext';
 import { cn } from '@/lib/utils';
 
 const Settings = () => {
-  const { user, partner, setUser } = useAuth();
-  const { theme, language, setTheme, setLanguage, addToast } = useUI();
+  const user = useUser();
+  const partner = usePartner();
+  const { setUser } = useAuthActions();
+  const theme = useTheme();
+  const language = useLanguage();
+  const { setTheme, setLanguage } = useUIActions();
+  const { addToast } = useToastContext();
   const [copiedInvite, setCopiedInvite] = useState(false);
 
   const handleCopyInvite = async () => {

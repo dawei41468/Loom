@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format, addDays, addHours } from 'date-fns';
 import { X, MapPin, Clock, Users, Bell } from 'lucide-react';
-import { useEvents, useAuth, useUI } from '../store';
+import { useEventsActions, useUser, usePartner } from '../stores';
+import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
 import { cn } from '@/lib/utils';
 
@@ -12,9 +13,10 @@ type VisibilityType = 'shared' | 'private' | 'title_only';
 const Add = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { addEvent, addProposal } = useEvents();
-  const { user, partner } = useAuth();
-  const { addToast } = useUI();
+  const { addEvent, addProposal } = useEventsActions();
+  const user = useUser();
+  const partner = usePartner();
+  const { addToast } = useToastContext();
 
   const isProposal = searchParams.get('type') === 'proposal';
 

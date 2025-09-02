@@ -3,15 +3,19 @@ import { useEffect, useMemo } from 'react';
 import { format, isToday, isTomorrow, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { Plus, Clock, MapPin, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useEvents, useAuth, useUI } from '../store';
+import { useEvents, useProposals, useEventsActions, useUser, usePartner } from '../stores';
+import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
-import { Event } from '../types';
+import { Event as LoomEvent } from '../types';
 
 const Today = () => {
   const navigate = useNavigate();
-  const { events, proposals, setEvents, setProposals } = useEvents();
-  const { user, partner } = useAuth();
-  const { addToast } = useUI();
+  const events = useEvents();
+  const proposals = useProposals();
+  const { setEvents, setProposals } = useEventsActions();
+  const user = useUser();
+  const partner = usePartner();
+  const { addToast } = useToastContext();
 
   useEffect(() => {
     const loadData = async () => {
@@ -56,19 +60,19 @@ const Today = () => {
 
   const pendingProposals = proposals.filter(p => p.status === 'pending');
 
-  const getEventType = (event: Event): 'user' | 'partner' | 'shared' => {
+  const getEventType = (event: LoomEvent): 'user' | 'partner' | 'shared' => {
     if (event.attendees.length > 1) return 'shared';
     if (event.created_by === user?.id) return 'user';
     return 'partner';
   };
 
-  const formatEventTime = (event: Event) => {
+  const formatEventTime = (event: LoomEvent) => {
     const start = parseISO(event.start_time);
     const end = parseISO(event.end_time);
     return `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`;
   };
 
-  const getNextUpText = (event: Event) => {
+  const getNextUpText = (event: LoomEvent) => {
     const start = parseISO(event.start_time);
     if (isToday(start)) return 'Today';
     if (isTomorrow(start)) return 'Tomorrow';
