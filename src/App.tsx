@@ -35,7 +35,7 @@ const AppRoutes = () => {
   const { isOnboarded, isAuthenticated, setUser, setPartner } = useAuth();
 
   useEffect(() => {
-    // Initialize app data
+    // Initialize app data only once
     const initializeApp = async () => {
       try {
         // Load user data
@@ -50,8 +50,11 @@ const AppRoutes = () => {
       }
     };
 
-    initializeApp();
-  }, []); // Remove setUser, setPartner from dependencies to prevent infinite loop
+    // Only initialize if we don't have user data yet
+    if (!isAuthenticated) {
+      initializeApp();
+    }
+  }, [isAuthenticated, setUser, setPartner]); // Proper dependencies
 
   // Show onboarding if not completed
   if (!isOnboarded) {
