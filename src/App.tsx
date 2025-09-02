@@ -37,6 +37,7 @@ const AppRoutes = () => {
   const { setUser, setPartner } = useAuthActions();
 
   useEffect(() => {
+    console.log('App useEffect running - initializing data');
     // Initialize app data only once when component mounts
     const initializeApp = async () => {
       try {

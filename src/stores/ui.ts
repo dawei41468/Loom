@@ -36,8 +36,8 @@ export const useUIStore = create<UIStore>()(
 export const useTheme = () => useUIStore((state) => state.theme);
 export const useLanguage = () => useUIStore((state) => state.language);
 
-// Action selectors
-export const useUIActions = () => useUIStore((state) => ({
-  setTheme: state.setTheme,
-  setLanguage: state.setLanguage,
-}));
+// Action selectors - stable references to prevent re-renders
+export const useUIActions = () => ({
+  setTheme: useUIStore.getState().setTheme,
+  setLanguage: useUIStore.getState().setLanguage,
+});

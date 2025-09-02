@@ -6,6 +6,7 @@ export const useToasts = () => {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const addToast = useCallback((toast: Omit<Toast, 'id'>) => {
+    console.log('addToast called', toast);
     const id = Date.now().toString();
     const newToast = { ...toast, id };
     

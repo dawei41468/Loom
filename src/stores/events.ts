@@ -64,17 +64,17 @@ export const useEventsLoading = () => useEventsStore((state) => state.isLoading)
 export const useEventFilter = () => useEventsStore((state) => state.filter);
 export const useCalendarView = () => useEventsStore((state) => state.calendarView);
 
-// Action selectors
-export const useEventsActions = () => useEventsStore((state) => ({
-  setEvents: state.setEvents,
-  addEvent: state.addEvent,
-  updateEvent: state.updateEvent,
-  removeEvent: state.removeEvent,
-  setEventsLoading: state.setEventsLoading,
-  setEventFilter: state.setEventFilter,
-  setCalendarView: state.setCalendarView,
-  setProposals: state.setProposals,
-  addProposal: state.addProposal,
-  updateProposal: state.updateProposal,
-  removeProposal: state.removeProposal,
-}));
+// Action selectors - stable references to prevent re-renders
+export const useEventsActions = () => ({
+  setEvents: useEventsStore.getState().setEvents,
+  addEvent: useEventsStore.getState().addEvent,
+  updateEvent: useEventsStore.getState().updateEvent,
+  removeEvent: useEventsStore.getState().removeEvent,
+  setEventsLoading: useEventsStore.getState().setEventsLoading,
+  setEventFilter: useEventsStore.getState().setEventFilter,
+  setCalendarView: useEventsStore.getState().setCalendarView,
+  setProposals: useEventsStore.getState().setProposals,
+  addProposal: useEventsStore.getState().addProposal,
+  updateProposal: useEventsStore.getState().updateProposal,
+  removeProposal: useEventsStore.getState().removeProposal,
+});

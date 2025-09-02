@@ -37,11 +37,11 @@ export const useTasksStore = create<TasksStore>((set) => ({
 export const useTasks = () => useTasksStore((state) => state.tasks);
 export const useTasksLoading = () => useTasksStore((state) => state.isLoading);
 
-// Action selectors
-export const useTasksActions = () => useTasksStore((state) => ({
-  setTasks: state.setTasks,
-  addTask: state.addTask,
-  updateTask: state.updateTask,
-  removeTask: state.removeTask,
-  setTasksLoading: state.setTasksLoading,
-}));
+// Action selectors - stable references to prevent re-renders
+export const useTasksActions = () => ({
+  setTasks: useTasksStore.getState().setTasks,
+  addTask: useTasksStore.getState().addTask,
+  updateTask: useTasksStore.getState().updateTask,
+  removeTask: useTasksStore.getState().removeTask,
+  setTasksLoading: useTasksStore.getState().setTasksLoading,
+});
