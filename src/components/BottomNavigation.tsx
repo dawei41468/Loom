@@ -49,7 +49,7 @@ const BottomNavigation = () => {
   };
 
   return (
-    <nav className="bottom-nav">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[hsl(var(--loom-surface))] border-t border-[hsl(var(--loom-border))] safe-area-bottom">
       <div className="flex items-center justify-around px-2 py-2">
         {navItems.map(({ to, icon: Icon, label, exact }) => {
           const active = isActive(to, exact);
@@ -59,17 +59,15 @@ const BottomNavigation = () => {
               key={to}
               to={to}
               className={cn(
-                'flex flex-col items-center justify-center min-w-0 flex-1 py-2 px-1 rounded-lg transition-colors duration-200 tap-scale',
+                'flex flex-col items-center justify-center min-w-0 flex-1 py-2 px-1 rounded-lg transition-all duration-200',
                 active 
                   ? 'text-[hsl(var(--loom-primary))]' 
                   : 'text-[hsl(var(--loom-text-muted))] hover:text-[hsl(var(--loom-text))]'
               )}
             >
               <Icon 
-                className={cn(
-                  'w-6 h-6 mb-1',
-                  active && 'fill-current'
-                )} 
+                className="w-6 h-6 mb-1"
+                strokeWidth={active ? 2.5 : 2}
               />
               <span 
                 className={cn(
