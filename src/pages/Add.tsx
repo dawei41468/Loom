@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format, addDays, addHours } from 'date-fns';
 import { X, MapPin, Clock, Users, Bell, Calendar } from 'lucide-react';
-import { useEventsActions, useUser, usePartner } from '../stores';
+import { useEventsActions } from '../contexts/EventsContext';
+import { useAuthState } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
 import { cn } from '@/lib/utils';
@@ -15,8 +16,7 @@ const Add = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { addEvent, addProposal } = useEventsActions();
-  const user = useUser();
-  const partner = usePartner();
+  const { user, partner } = useAuthState();
   const { addToast } = useToastContext();
 
   const isProposal = searchParams.get('type') === 'proposal';

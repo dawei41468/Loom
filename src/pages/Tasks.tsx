@@ -1,8 +1,9 @@
 // Lightweight Tasks Page
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format, isToday, isTomorrow, parseISO, isPast } from 'date-fns';
 import { Plus, Check, Trash2, Calendar } from 'lucide-react';
-import { useTasks, useTasksActions, useUser } from '../stores';
+import { useTasks, useTasksActions } from '../contexts/TasksContext';
+import { useAuthState } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
 import { cn } from '@/lib/utils';
@@ -10,7 +11,7 @@ import { cn } from '@/lib/utils';
 const Tasks = () => {
   const tasks = useTasks();
   const { addTask, updateTask, removeTask, setTasks } = useTasksActions();
-  const user = useUser();
+  const { user } = useAuthState();
   const { addToast } = useToastContext();
 
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -31,7 +32,8 @@ const Tasks = () => {
     };
 
     loadTasks();
-  }, []); // Store actions are stable, don't include in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addToast]); // setTasks is stable (dispatch-based) but would cause infinite loop if added
 
   const handleAddTask = async () => {
     if (!newTaskTitle.trim()) return;
@@ -90,7 +92,7 @@ const Tasks = () => {
   const activeTasks = tasks.filter(task => !task.completed);
   const completedTasks = tasks.filter(task => task.completed);
 
-  const getTaskTimeText = (task: any) => {
+  const getTaskTimeText = (task: { due_date?: string; completed: boolean }) => {
     if (!task.due_date) return null;
     
     const dueDate = parseISO(task.due_date);
@@ -100,7 +102,7 @@ const Tasks = () => {
     return format(dueDate, 'MM/dd/yyyy');
   };
 
-  const isOverdue = (task: any) => {
+  const isOverdue = (task: { due_date?: string; completed: boolean }) => {
     if (!task.due_date || task.completed) return false;
     return isPast(parseISO(task.due_date));
   };

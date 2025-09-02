@@ -1,5 +1,5 @@
 // Event Detail Page (iOS-style bottom sheet)
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { 
@@ -16,7 +16,8 @@ import {
   EyeOff,
   Share
 } from 'lucide-react';
-import { useEvents, useEventsActions, useUser, usePartner } from '../stores';
+import { useEvents, useEventsActions } from '../contexts/EventsContext';
+import { useAuthState } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { Event } from '../types';
 import { cn } from '@/lib/utils';
@@ -26,8 +27,7 @@ const EventDetail = () => {
   const navigate = useNavigate();
   const events = useEvents();
   const { removeEvent } = useEventsActions();
-  const user = useUser();
-  const partner = usePartner();
+  const { user, partner } = useAuthState();
   const { addToast } = useToastContext();
   
   const [activeTab, setActiveTab] = useState<'details' | 'chat' | 'checklist'>('details');
@@ -44,7 +44,7 @@ const EventDetail = () => {
       });
       navigate('/');
     }
-  }, [event, navigate]); // Store actions are stable, don't include addToast
+  }, [event, navigate, addToast]);
 
   if (!event) {
     return (
@@ -135,7 +135,7 @@ const EventDetail = () => {
       {/* Event Header */}
       <div className={`event-block-${eventType} p-6`}>
         <div className="flex items-start justify-between mb-2">
-          <h1 className="text-xl font-semibold text-white">{event.title}</h1>
+          <h1 className="text-xl font-semibold text-[hsl(var(--loom-text))]">{event.title}</h1>
           <div className="flex items-center space-x-2">
             {isShared && <Users className="w-5 h-5 text-white" />}
             <button
@@ -151,7 +151,7 @@ const EventDetail = () => {
           </div>
         </div>
         
-        <div className="space-y-2 text-white/90">
+        <div className="space-y-2 text-[hsl(var(--loom-text))]">
           <div className="flex items-center space-x-2">
             <Clock className="w-4 h-4" />
             <span className="text-sm">{time}</span>
@@ -193,7 +193,7 @@ const EventDetail = () => {
           {event.description && (
             <div className="loom-card">
               <h3 className="font-medium mb-3">Notes</h3>
-              <p className="text-sm text-[hsl(var(--loom-text-muted))]">
+              <p className="text-sm text-[hsl(var(--loom-text))]">
                 {event.description}
               </p>
             </div>
@@ -233,7 +233,7 @@ const EventDetail = () => {
                 {event.reminders.map((minutes) => (
                   <span
                     key={minutes}
-                    className="loom-chip bg-[hsl(var(--loom-border))] text-[hsl(var(--loom-text-muted))]"
+                    className="loom-chip bg-[hsl(var(--loom-border))] text-[hsl(var(--loom-text))]"
                   >
                     {minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} hour${Math.floor(minutes / 60) > 1 ? 's' : ''}`}
                   </span>
@@ -309,7 +309,7 @@ const EventDetail = () => {
         ].map(({ id, label, icon: Icon }) => (
           <button
             key={id}
-            onClick={() => setActiveTab(id as any)}
+            onClick={() => setActiveTab(id as 'details' | 'chat' | 'checklist')}
             className={cn(
               'flex-1 flex items-center justify-center space-x-2 py-4 transition-colors',
               activeTab === id
@@ -324,7 +324,10 @@ const EventDetail = () => {
       </div>
 
       {/* Content */}
-      <div className="container py-6">
+      <div className={cn(
+        "container py-6",
+        isOwner ? "pb-24" : "pb-6"
+      )}>
         {activeTab === 'details' && renderDetailsTab()}
         {activeTab === 'chat' && renderChatTab()}
         {activeTab === 'checklist' && renderChecklistTab()}

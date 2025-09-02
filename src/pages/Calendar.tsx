@@ -1,8 +1,8 @@
 // Calendar View with 3-Day, Week, and Agenda modes
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { format, startOfWeek, addDays, isSameDay, parseISO, addWeeks, subWeeks } from 'date-fns';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
-import { useEvents, useEventFilter, useEventsActions } from '../stores';
+import { useEvents, useEventFilter, useEventsActions } from '../contexts/EventsContext';
 import { Event } from '../types';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '../components/ui/page-header';
@@ -68,7 +68,7 @@ const Calendar = () => {
       ].map(({ type, label }) => (
         <button
           key={type}
-          onClick={() => setEventFilter({ type: type as any })}
+          onClick={() => setEventFilter({ type: type as 'all' | 'mine' | 'partner' | 'shared' })}
           className={cn(
             'loom-chip whitespace-nowrap hover-scale',
             filter.type === type

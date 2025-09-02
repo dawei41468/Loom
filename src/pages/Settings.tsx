@@ -1,5 +1,5 @@
 // Settings Page
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   User, 
   Globe, 
@@ -11,16 +11,17 @@ import {
   Info,
   ChevronRight,
   Copy,
-  Check
+  Check,
+  LogOut
 } from 'lucide-react';
-import { useUser, usePartner, useAuthActions, useTheme, useLanguage, useUIActions } from '../stores';
+import { useAuthState, useAuthDispatch } from '../contexts/AuthContext';
+import { useTheme, useLanguage, useUIActions } from '../contexts/UIContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { cn } from '@/lib/utils';
 
 const Settings = () => {
-  const user = useUser();
-  const partner = usePartner();
-  const { setUser } = useAuthActions();
+  const { user, partner } = useAuthState();
+  const authDispatch = useAuthDispatch();
   const theme = useTheme();
   const language = useLanguage();
   const { setTheme, setLanguage } = useUIActions();
@@ -49,12 +50,24 @@ const Settings = () => {
     }
   };
 
-  const handleUpdateProfile = (field: string, value: any) => {
+  const handleLogout = () => {
+    authDispatch({ type: 'LOGOUT' });
+    addToast({
+      type: 'info',
+      title: 'Logged out',
+      description: 'You have been successfully logged out.',
+    });
+  };
+
+  const handleUpdateProfile = (field: string, value: string) => {
     if (user) {
-      setUser({
-        ...user,
-        [field]: value,
-        updated_at: new Date().toISOString(),
+      authDispatch({
+        type: 'SET_USER',
+        payload: {
+          ...user,
+          [field]: value,
+          updated_at: new Date().toISOString(),
+        },
       });
       
       addToast({
@@ -261,6 +274,17 @@ const Settings = () => {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Logout Button */}
+      <div className="pt-4">
+        <button
+          onClick={handleLogout}
+          className="w-full loom-btn-danger flex items-center justify-center space-x-2"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>Log Out</span>
+        </button>
       </div>
     </div>
   );

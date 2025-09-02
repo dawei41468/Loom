@@ -78,25 +78,25 @@ self.addEventListener('fetch', (event) => {
         .then((response) => {
           // Clone response for cache
           const responseClone = response.clone();
-          
-          // Cache successful responses for 7 days
-          if (response.status === 200) {
+
+          // Only cache GET requests (POST, PUT, DELETE can't be cached)
+          if (response.status === 200 && request.method === 'GET') {
             caches.open(DATA_CACHE)
               .then((cache) => {
                 // Set cache expiry (7 days)
                 const headers = new Headers(responseClone.headers);
                 headers.set('sw-cache-timestamp', Date.now().toString());
-                
+
                 const cachedResponse = new Response(responseClone.body, {
                   status: responseClone.status,
                   statusText: responseClone.statusText,
                   headers: headers
                 });
-                
+
                 cache.put(request, cachedResponse);
               });
           }
-          
+
           return response;
         })
         .catch(() => {

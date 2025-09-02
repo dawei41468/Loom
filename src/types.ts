@@ -7,6 +7,7 @@ export interface User {
   color_preference: 'user' | 'partner';
   timezone: string;
   language: 'en' | 'zh';
+  is_onboarded: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -92,11 +93,50 @@ export interface Toast {
 
 // API Response Types
 export interface ApiResponse<T> {
-  data: T;
+  data?: T;
   message?: string;
 }
 
 export interface ApiError {
   error: string;
   details?: string;
+}
+
+// Authentication Types
+export interface Token {
+  access_token: string;
+  token_type: string;
+}
+
+export interface UserLogin {
+  email: string;
+  password: string;
+}
+
+export interface UserCreate {
+  email: string;
+  display_name: string;
+  password: string;
+  color_preference: 'user' | 'partner';
+  timezone: string;
+  language: 'en' | 'zh';
+}
+
+export interface UserUpdate {
+  display_name?: string;
+  color_preference?: 'user' | 'partner';
+  timezone?: string;
+  language?: 'en' | 'zh';
+}
+
+export interface AvailabilityRequest {
+  duration_minutes: number;
+  date_range_days: number;
+}
+
+export interface BusyTimeSlot {
+  start_time: string;
+  end_time: string;
+  title: string;
+  visibility: string;
 }

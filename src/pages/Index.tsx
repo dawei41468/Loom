@@ -4,7 +4,8 @@ import { useEffect, useMemo } from 'react';
 import { format, isToday, isTomorrow, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { Plus, Clock, MapPin, Users, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useEvents, useProposals, useEventsActions, useUser, usePartner } from '../stores';
+import { useEvents, useProposals, useEventsActions } from '../contexts/EventsContext';
+import { useAuthState } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
 import { Event as LoomEvent } from '../types';
@@ -17,8 +18,7 @@ const Index = () => {
   const events = useEvents();
   const proposals = useProposals();
   const { setEvents, setProposals } = useEventsActions();
-  const user = useUser();
-  const partner = usePartner();
+  const { user, partner } = useAuthState();
   const { addToast } = useToastContext();
 
   useEffect(() => {
