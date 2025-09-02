@@ -1,0 +1,102 @@
+// Loom Types - API compatible with FastAPI backend
+
+export interface User {
+  id: string;
+  email: string;
+  display_name: string;
+  color_preference: 'user' | 'partner';
+  timezone: string;
+  language: 'en' | 'zh';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Partner {
+  id: string;
+  display_name: string;
+  color_preference: 'user' | 'partner';
+  timezone: string;
+  invite_status: 'pending' | 'accepted';
+  connected_at?: string;
+}
+
+export interface Event {
+  id: string;
+  title: string;
+  description?: string;
+  start_time: string; // ISO string
+  end_time: string; // ISO string
+  location?: string;
+  visibility: 'shared' | 'private' | 'title_only';
+  attendees: string[]; // User IDs
+  created_by: string; // User ID
+  reminders: number[]; // Minutes before event
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Proposal {
+  id: string;
+  title: string;
+  description?: string;
+  proposed_times: {
+    start_time: string;
+    end_time: string;
+  }[];
+  location?: string;
+  proposed_by: string; // User ID
+  proposed_to: string; // User ID
+  status: 'pending' | 'accepted' | 'declined';
+  accepted_time_slot?: {
+    start_time: string;
+    end_time: string;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  due_date?: string; // ISO string
+  completed: boolean;
+  created_by: string; // User ID
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AvailabilitySlot {
+  start_time: string;
+  end_time: string;
+  duration_minutes: number;
+}
+
+// UI State Types
+export interface EventFilter {
+  type: 'all' | 'mine' | 'partner' | 'shared';
+}
+
+export interface CalendarView {
+  type: '3day' | 'week' | 'agenda';
+  date: string; // ISO date string
+}
+
+export interface Toast {
+  id: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+  title: string;
+  description?: string;
+  duration?: number;
+}
+
+// API Response Types
+export interface ApiResponse<T> {
+  data: T;
+  message?: string;
+}
+
+export interface ApiError {
+  error: string;
+  details?: string;
+}

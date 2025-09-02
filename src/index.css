@@ -1,96 +1,65 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Loom Design System - Tailwind v4 CSS-first approach */
 
-@layer base {
+@layer theme {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Loom Brand Colors (HSL) */
+    --loom-primary: 238 81% 64%; /* indigo-600 */
+    --loom-primary-fg: 0 0% 100%;
+    --loom-partner: 24 95% 60%; /* orange-500 peach tone */
+    --loom-partner-fg: 0 0% 100%;
+    --loom-user: 173 58% 50%; /* teal-500 */
+    --loom-user-fg: 0 0% 100%;
+    --loom-shared: 258 87% 65%; /* violet-500 */
+    --loom-shared-fg: 0 0% 100%;
+    
+    /* Neutrals */
+    --loom-bg: 0 0% 99%; /* zinc-50 */
+    --loom-surface: 0 0% 98%; /* zinc-100 */
+    --loom-border: 240 5% 92%; /* zinc-200 */
+    --loom-text: 240 6% 10%; /* zinc-800 */
+    --loom-text-muted: 240 5% 46%;
+    
+    /* System Colors */
+    --loom-success: 142 71% 45%;
+    --loom-warning: 45 93% 47%;
+    --loom-danger: 0 84% 60%;
+    
+    /* Gradients */
+    --loom-gradient-woven: linear-gradient(45deg, 
+      hsl(var(--loom-user)), 
+      hsl(var(--loom-partner)), 
+      hsl(var(--loom-shared))
+    );
+    --loom-gradient-hero: linear-gradient(135deg, 
+      hsl(var(--loom-primary)), 
+      hsl(var(--loom-shared))
+    );
+    
+    /* Shadows */
+    --loom-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --loom-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --loom-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    
+    /* Radius */
+    --loom-radius-sm: 0.5rem;
+    --loom-radius-md: 1rem;
+    --loom-radius-lg: 1.5rem;
+    --loom-radius-xl: 2rem;
+    
+    /* Transitions */
+    --loom-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --loom-transition-slow: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --loom-bg: 240 6% 6%;
+    --loom-surface: 240 6% 8%;
+    --loom-border: 240 6% 12%;
+    --loom-text: 0 0% 95%;
+    --loom-text-muted: 240 5% 65%;
   }
 }
 
@@ -99,7 +68,160 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: 'cv11', 'ss01';
+    font-variation-settings: 'opsz' 32;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-[hsl(var(--loom-bg))] text-[hsl(var(--loom-text))] antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Mobile-first responsive containers */
+  .container {
+    @apply mx-auto px-4 max-w-md;
+  }
+
+  @media (min-width: 768px) {
+    .container {
+      @apply max-w-2xl px-6;
+    }
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Loom Component Styles */
+  .loom-card {
+    @apply bg-[hsl(var(--loom-surface))] border border-[hsl(var(--loom-border))] rounded-[var(--loom-radius-xl)] p-4 shadow-[var(--loom-shadow-sm)];
+  }
+
+  .loom-btn {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-[var(--loom-radius-md)] font-medium transition-[var(--loom-transition)] focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .loom-btn-primary {
+    @apply loom-btn bg-[hsl(var(--loom-primary))] text-[hsl(var(--loom-primary-fg))] hover:opacity-90 focus:ring-[hsl(var(--loom-primary))] shadow-[var(--loom-shadow-md)];
+  }
+
+  .loom-btn-ghost {
+    @apply loom-btn text-[hsl(var(--loom-text))] hover:bg-[hsl(var(--loom-border))] focus:ring-[hsl(var(--loom-border))];
+  }
+
+  .loom-chip {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium transition-[var(--loom-transition)];
+  }
+
+  .loom-chip-user {
+    @apply loom-chip bg-[hsl(var(--loom-user)/0.1)] text-[hsl(var(--loom-user))] border border-[hsl(var(--loom-user)/0.2)];
+  }
+
+  .loom-chip-partner {
+    @apply loom-chip bg-[hsl(var(--loom-partner)/0.1)] text-[hsl(var(--loom-partner))] border border-[hsl(var(--loom-partner)/0.2)];
+  }
+
+  .loom-chip-shared {
+    @apply loom-chip bg-[hsl(var(--loom-shared)/0.1)] text-[hsl(var(--loom-shared))] border border-[hsl(var(--loom-shared)/0.2)];
+  }
+
+  .loom-gradient-woven {
+    background: var(--loom-gradient-woven);
+  }
+
+  .loom-gradient-hero {
+    background: var(--loom-gradient-hero);
+  }
+
+  /* Event blocks with woven effect */
+  .event-block {
+    @apply relative overflow-hidden rounded-[var(--loom-radius-md)] p-3 text-white;
+  }
+
+  .event-block-shared {
+    @apply event-block loom-gradient-woven;
+  }
+
+  .event-block-user {
+    @apply event-block bg-[hsl(var(--loom-user))];
+  }
+
+  .event-block-partner {
+    @apply event-block bg-[hsl(var(--loom-partner))];
+  }
+
+  /* Bottom navigation */
+  .bottom-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-[hsl(var(--loom-surface))] border-t border-[hsl(var(--loom-border))] backdrop-blur-lg bg-opacity-95;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Timeline styles */
+  .timeline-hour {
+    @apply text-xs text-[hsl(var(--loom-text-muted))] w-12 flex-shrink-0;
+  }
+
+  .timeline-content {
+    @apply flex-1 relative min-h-[60px] border-b border-[hsl(var(--loom-border)/0.3)];
+  }
+
+  /* Micro animations */
+  .tap-scale {
+    @apply active:scale-95 transition-transform duration-100;
+  }
+
+  .slide-up {
+    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .fade-in {
+    animation: fadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+@layer utilities {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
