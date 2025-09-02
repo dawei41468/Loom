@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 @layer base {
   :root {
@@ -47,6 +45,9 @@
     --loom-warning-light: 32 95% 95%;
     --loom-danger: 0 84% 60%;
     --loom-danger-light: 0 84% 95%;
+    --loom-user: 180 70% 45%;
+    --loom-partner: 30 85% 55%;
+    --loom-shared: 270 60% 50%;
     --loom-text: 240 10% 8%;
     --loom-text-light: 240 5% 35%;
     --loom-text-muted: 240 4% 46%;
@@ -110,6 +111,9 @@
     --loom-warning-light: 32 95% 15%;
     --loom-danger: 0 84% 70%;
     --loom-danger-light: 0 84% 15%;
+    --loom-user: 180 70% 55%;
+    --loom-partner: 30 85% 65%;
+    --loom-shared: 270 60% 60%;
     --loom-text: 0 0% 98%;
     --loom-text-light: 240 5% 75%;
     --loom-text-muted: 240 4% 65%;
@@ -131,179 +135,240 @@
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
+/* Animation keyframes */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
-}
-
-@layer utilities {
-  /* Safe area utilities for mobile */
-  .safe-area-top {
-    padding-top: env(safe-area-inset-top);
-  }
-
-  .safe-area-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
-  /* Animation utilities */
-  .slide-up {
-    animation: slide-up 0.3s ease-out;
-  }
-
-  @keyframes slide-up {
-    from {
-      transform: translateY(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }
 
+/* Loom Design System Components */
 @layer components {
-  /* Enhanced Loom Card Component */
+  /* Cards */
   .loom-card {
-    @apply bg-[hsl(var(--loom-surface))] border border-[hsl(var(--loom-border))] rounded-[var(--loom-radius-lg)] p-6 shadow-[var(--loom-shadow-sm)] hover:shadow-[var(--loom-shadow-md)] transition-all duration-200;
+    @apply bg-[hsl(var(--loom-surface))] border border-[hsl(var(--loom-border))] rounded-[var(--loom-radius-lg)] p-6 shadow-[var(--loom-shadow-sm)];
   }
 
   .loom-card-compact {
-    @apply bg-[hsl(var(--loom-surface))] border border-[hsl(var(--loom-border))] rounded-[var(--loom-radius-md)] p-4 shadow-[var(--loom-shadow-sm)] hover:shadow-[var(--loom-shadow-md)] transition-all duration-200;
+    @apply bg-[hsl(var(--loom-surface))] border border-[hsl(var(--loom-border))] rounded-[var(--loom-radius-md)] p-4;
   }
 
   .loom-card-elevated {
-    @apply bg-[hsl(var(--loom-surface))] border border-[hsl(var(--loom-border))] rounded-[var(--loom-radius-lg)] p-6 shadow-[var(--loom-shadow-lg)] hover:shadow-[var(--loom-shadow-xl)] transition-all duration-300;
+    @apply bg-[hsl(var(--loom-surface))] border border-[hsl(var(--loom-border))] rounded-[var(--loom-radius-lg)] p-6 shadow-[var(--loom-shadow-lg)];
   }
 
-  /* Enhanced Loom Gradient Utilities */
-  .loom-gradient-hero {
-    background: linear-gradient(135deg, hsl(var(--loom-primary)), hsl(var(--loom-secondary)));
-    box-shadow: var(--loom-shadow-md);
+  /* Typography */
+  .loom-heading-2 {
+    @apply text-2xl font-semibold text-[hsl(var(--loom-text))];
   }
 
-  .loom-gradient-subtle {
-    background: linear-gradient(180deg, hsl(var(--loom-surface)), hsl(var(--loom-bg)));
+  .loom-heading-3 {
+    @apply text-xl font-semibold text-[hsl(var(--loom-text))];
   }
 
+  .loom-text-muted {
+    @apply text-[hsl(var(--loom-text-muted))];
+  }
+
+  /* Buttons */
+  .loom-btn-primary {
+    @apply bg-[hsl(var(--loom-primary))] text-white font-medium px-4 py-2 rounded-[var(--loom-radius-md)] hover:bg-[hsl(var(--loom-primary-dark))] transition-colors focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:ring-offset-2 disabled:opacity-50;
+  }
+
+  .loom-btn-secondary {
+    @apply bg-[hsl(var(--loom-secondary))] text-white font-medium px-4 py-2 rounded-[var(--loom-radius-md)] hover:bg-[hsl(var(--loom-secondary))]/90 transition-colors focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-secondary))] focus:ring-offset-2 disabled:opacity-50;
+  }
+
+  .loom-btn-ghost {
+    @apply text-[hsl(var(--loom-text))] font-medium px-4 py-2 rounded-[var(--loom-radius-md)] hover:bg-[hsl(var(--loom-border))] transition-colors focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:ring-offset-2;
+  }
+
+  .loom-btn-icon {
+    @apply p-2 rounded-full hover:bg-[hsl(var(--loom-border))] transition-colors focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:ring-offset-2;
+  }
+
+  /* Chips/Badges */
+  .loom-chip {
+    @apply inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-medium;
+  }
+
+  .loom-chip-primary {
+    @apply bg-[hsl(var(--loom-primary))] text-white;
+  }
+
+  .loom-chip-shared {
+    @apply bg-[hsl(var(--loom-shared))] text-white;
+  }
+
+  /* Gradients */
   .loom-gradient-primary {
     background: linear-gradient(135deg, hsl(var(--loom-primary)), hsl(var(--loom-primary-dark)));
   }
 
-  /* Enhanced Loom Button Components */
-  .loom-btn-primary {
-    @apply bg-[hsl(var(--loom-primary))] text-white hover:bg-[hsl(var(--loom-primary-dark))] px-6 py-3 rounded-[var(--loom-radius-lg)] font-semibold text-sm transition-all duration-200 shadow-[var(--loom-shadow-sm)] hover:shadow-[var(--loom-shadow-md)] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:ring-offset-2 active:scale-[0.98];
+  .loom-gradient-subtle {
+    background: linear-gradient(135deg, hsl(var(--loom-primary-light)), hsl(var(--loom-secondary-light)));
   }
 
-  .loom-btn-secondary {
-    @apply bg-[hsl(var(--loom-secondary))] text-white hover:bg-[hsl(var(--loom-secondary))] hover:opacity-90 px-6 py-3 rounded-[var(--loom-radius-lg)] font-semibold text-sm transition-all duration-200 shadow-[var(--loom-shadow-sm)] hover:shadow-[var(--loom-shadow-md)] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-secondary))] focus:ring-offset-2 active:scale-[0.98];
+  .loom-gradient-hero {
+    background: linear-gradient(135deg, hsl(var(--loom-primary)), hsl(var(--loom-secondary)));
   }
 
-  .loom-btn-ghost {
-    @apply bg-transparent text-[hsl(var(--loom-text))] hover:bg-[hsl(var(--loom-border))] px-6 py-3 rounded-[var(--loom-radius-lg)] font-medium text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-border))] focus:ring-offset-2 active:scale-[0.98];
+  /* Hover Effects */
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-105;
   }
 
-  .loom-btn-danger {
-    @apply bg-[hsl(var(--loom-danger))] text-white hover:bg-[hsl(var(--loom-danger))] hover:opacity-90 px-6 py-3 rounded-[var(--loom-radius-lg)] font-semibold text-sm transition-all duration-200 shadow-[var(--loom-shadow-sm)] hover:shadow-[var(--loom-shadow-md)] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-danger))] focus:ring-offset-2 active:scale-[0.98];
+  .hover-lift {
+    @apply transition-all duration-200 hover:shadow-[var(--loom-shadow-lg)] hover:-translate-y-1;
   }
 
-  .loom-btn-icon {
-    @apply bg-transparent text-[hsl(var(--loom-text-muted))] hover:text-[hsl(var(--loom-text))] hover:bg-[hsl(var(--loom-border))] p-3 rounded-[var(--loom-radius-md)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-border))] focus:ring-offset-1 active:scale-[0.95];
-  }
-
-  /* Enhanced Loom Input Components */
-  .loom-input {
-    @apply w-full px-4 py-3 rounded-[var(--loom-radius-lg)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] placeholder:text-[hsl(var(--loom-text-muted))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:border-[hsl(var(--loom-primary))] transition-all duration-200;
-  }
-
-  .loom-textarea {
-    @apply w-full px-4 py-3 rounded-[var(--loom-radius-lg)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] placeholder:text-[hsl(var(--loom-text-muted))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:border-[hsl(var(--loom-primary))] resize-none transition-all duration-200;
-  }
-
-  /* Chip Components */
-  .loom-chip {
-    @apply px-3 py-1.5 rounded-[var(--loom-radius-md)] text-sm font-medium transition-all duration-200 border;
-  }
-
-  .loom-chip-primary {
-    @apply bg-[hsl(var(--loom-primary-light))] text-[hsl(var(--loom-primary))] border-[hsl(var(--loom-primary))] border-opacity-20;
-  }
-
-  .loom-chip-secondary {
-    @apply bg-[hsl(var(--loom-secondary-light))] text-[hsl(var(--loom-secondary))] border-[hsl(var(--loom-secondary))] border-opacity-20;
-  }
-
-  .loom-chip-shared {
-    @apply bg-[hsl(var(--loom-accent-light))] text-[hsl(var(--loom-accent))] border-[hsl(var(--loom-accent))] border-opacity-20;
-  }
-
-  /* Event Block Components */
-  .event-block-base {
-    @apply p-4 rounded-[var(--loom-radius-md)] border transition-all duration-200 hover:shadow-[var(--loom-shadow-sm)];
-  }
-
+  /* Event Blocks */
   .event-block-user {
-    @apply event-block-base bg-[hsl(var(--loom-primary-light))] border-[hsl(var(--loom-primary))] border-opacity-20 text-[hsl(var(--loom-primary))];
+    @apply border-l-4 border-[hsl(var(--loom-user))] pl-4;
   }
 
   .event-block-partner {
-    @apply event-block-base bg-[hsl(var(--loom-secondary-light))] border-[hsl(var(--loom-secondary))] border-opacity-20 text-[hsl(var(--loom-secondary))];
+    @apply border-l-4 border-[hsl(var(--loom-partner))] pl-4;
   }
 
   .event-block-shared {
-    @apply event-block-base bg-[hsl(var(--loom-accent-light))] border-[hsl(var(--loom-accent))] border-opacity-20 text-[hsl(var(--loom-accent))];
+    @apply border-l-4 border-[hsl(var(--loom-shared))] pl-4;
   }
 
-  /* Typography Components */
-  .loom-heading-1 {
-    @apply text-3xl font-bold text-[hsl(var(--loom-text))] leading-tight;
-  }
-
-  .loom-heading-2 {
-    @apply text-2xl font-semibold text-[hsl(var(--loom-text))] leading-tight;
-  }
-
-  .loom-heading-3 {
-    @apply text-xl font-semibold text-[hsl(var(--loom-text))] leading-snug;
-  }
-
-  .loom-text-body {
-    @apply text-base text-[hsl(var(--loom-text))] leading-relaxed;
-  }
-
-  .loom-text-muted {
-    @apply text-sm text-[hsl(var(--loom-text-muted))] leading-relaxed;
-  }
-
-  .loom-text-light {
-    @apply text-sm text-[hsl(var(--loom-text-light))] leading-relaxed;
-  }
-
-  /* Enhanced Interactive Effects */
-  .hover-lift {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--loom-shadow-lg)];
-  }
-
-  .hover-scale {
-    @apply transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98];
-  }
-
-  .hover-glow {
-    @apply transition-all duration-300 hover:shadow-[0_0_20px_hsl(var(--loom-primary)/0.3)];
-  }
-
-  /* Timeline Component */
+  /* Timeline */
   .timeline-hour {
-    @apply text-xs font-medium text-[hsl(var(--loom-text-muted))] min-w-[60px] text-right;
+    @apply text-sm font-medium text-[hsl(var(--loom-text-muted))] min-w-[60px];
   }
 
-  /* Focus States */
-  .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:ring-offset-2;
+  /* Mobile Optimizations for 361px width */
+  @media (max-width: 361px) {
+    /* Container adjustments */
+    .container {
+      @apply px-4;
+    }
+
+    /* Card optimizations */
+    .loom-card {
+      @apply p-4 mx-0;
+    }
+
+    .loom-card-compact {
+      @apply p-3 mx-0;
+    }
+
+    /* Button optimizations */
+    .loom-btn-primary,
+    .loom-btn-secondary,
+    .loom-btn-ghost {
+      @apply px-3 py-2 text-sm;
+    }
+
+    /* Typography adjustments */
+    .loom-heading-2 {
+      @apply text-xl;
+    }
+
+    .loom-heading-3 {
+      @apply text-lg;
+    }
+
+    /* Quick actions grid - single column on very small screens */
+    .mobile-quick-actions {
+      @apply grid-cols-1 gap-3;
+    }
+
+    /* Event timeline optimizations */
+    .mobile-event-item {
+      @apply flex-col space-x-0 space-y-2 p-3;
+    }
+
+    .mobile-event-time {
+      @apply min-w-full text-center pb-2 border-b border-[hsl(var(--loom-border))];
+    }
+
+    /* Chip optimizations */
+    .loom-chip {
+      @apply px-2 py-1 text-xs;
+    }
+
+    /* Bottom navigation optimizations */
+    .mobile-nav-item {
+      @apply py-1 px-1 min-h-[48px];
+    }
+
+    .mobile-nav-icon {
+      @apply w-5 h-5;
+    }
+
+    .mobile-nav-label {
+      @apply text-[10px];
+    }
+  }
+
+  /* General mobile improvements */
+  @media (max-width: 640px) {
+    /* Reduce padding on main content */
+    main {
+      @apply pb-20;
+    }
+
+    /* Optimize spacing */
+    .space-y-8 > * + * {
+      @apply mt-6;
+    }
+
+    .space-y-4 > * + * {
+      @apply mt-3;
+    }
+
+    /* Better touch targets */
+    button {
+      @apply min-h-[44px];
+    }
+
+    /* Optimize text sizes */
+    .text-sm {
+      @apply text-[13px];
+    }
+
+    .text-xs {
+      @apply text-[11px];
+    }
+
+    /* Mobile-specific utilities */
+    .mobile-touch-target {
+      @apply min-h-[44px] min-w-[44px];
+    }
+
+    .mobile-text-truncate {
+      @apply truncate;
+    }
+
+    .mobile-flex-wrap {
+      @apply flex-wrap;
+    }
+
+    /* Safe area adjustments for very small screens */
+    .safe-area-top {
+      padding-top: env(safe-area-inset-top);
+    }
+
+    .safe-area-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* Improved mobile spacing */
+    .mobile-space-y-2 > * + * {
+      @apply mt-2;
+    }
+
+    .mobile-space-y-3 > * + * {
+      @apply mt-3;
+    }
   }
 }

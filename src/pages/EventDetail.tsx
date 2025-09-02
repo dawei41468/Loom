@@ -77,7 +77,7 @@ const EventDetail = () => {
     const end = parseISO(event.end_time);
     
     return {
-      date: format(start, 'EEEE, MMMM d, yyyy'),
+      date: format(start, 'MM/dd/yyyy'),
       time: `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`,
       duration: Math.round((end.getTime() - start.getTime()) / (1000 * 60)),
     };

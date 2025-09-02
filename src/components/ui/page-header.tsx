@@ -15,16 +15,16 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   className
 }) => {
   return (
-    <div className={cn("space-y-2", className)}>
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <h1 className="loom-heading-2">{title}</h1>
+    <div className={cn("space-y-1 sm:space-y-2", className)}>
+      <div className="flex items-start sm:items-center justify-between">
+        <div className="flex-1 min-w-0">
+          <h1 className="loom-heading-2 line-clamp-2">{title}</h1>
           {subtitle && (
-            <p className="loom-text-muted mt-1">{subtitle}</p>
+            <p className="loom-text-muted mt-1 text-sm sm:text-base line-clamp-1">{subtitle}</p>
           )}
         </div>
         {action && (
-          <div className="ml-4">
+          <div className="ml-2 sm:ml-4 flex-shrink-0">
             {action}
           </div>
         )}

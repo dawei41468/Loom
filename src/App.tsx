@@ -88,7 +88,12 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <ToastProvider>
-          <BrowserRouter>
+          <BrowserRouter
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true
+            }}
+          >
             <div className="min-h-screen bg-[hsl(var(--loom-bg))] text-[hsl(var(--loom-text))]">
               <AppRoutes />
               <ToastContainer />

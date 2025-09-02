@@ -1,4 +1,5 @@
 // Main Today View - Dashboard
+import * as React from 'react';
 import { useEffect, useMemo } from 'react';
 import { format, isToday, isTomorrow, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { Plus, Clock, MapPin, Users, Calendar } from 'lucide-react';
@@ -39,6 +40,7 @@ const Index = () => {
     };
 
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Store actions are stable, don't include in deps
 
   const todayEvents = useMemo(() => {
@@ -79,14 +81,14 @@ const Index = () => {
     const start = parseISO(event.start_time);
     if (isToday(start)) return 'Today';
     if (isTomorrow(start)) return 'Tomorrow';
-    return format(start, 'MMM d');
+    return format(start, 'MM/dd/yyyy');
   };
 
   return (
-    <div className="container py-8 space-y-8">
+    <div className="container py-4 sm:py-8 space-y-6 sm:space-y-8">
       {/* Enhanced Header */}
       <PageHeader
-        title={format(new Date(), 'EEEE, MMM d')}
+        title={format(new Date(), 'MM/dd/yyyy')}
         subtitle={partner ? `You and ${partner.display_name}` : 'Your schedule'}
       />
 
@@ -94,27 +96,27 @@ const Index = () => {
       {nextEvent && (
         <Section variant="elevated" className="loom-gradient-subtle">
           <div className="flex items-center space-x-3 mb-4">
-            <div className="w-10 h-10 rounded-full loom-gradient-primary flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full loom-gradient-primary flex items-center justify-center flex-shrink-0">
               <Clock className="w-5 h-5 text-white" />
             </div>
-            <div>
-              <h3 className="font-semibold text-[hsl(var(--loom-text))]">Next up</h3>
-              <p className="text-sm text-[hsl(var(--loom-text-muted))]">{getNextUpText(nextEvent)}</p>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-[hsl(var(--loom-text))] truncate">Next up</h3>
+              <p className="text-sm text-[hsl(var(--loom-text-muted))] truncate">{getNextUpText(nextEvent)}</p>
             </div>
           </div>
           <div className={`event-block-${getEventType(nextEvent)} mb-4`}>
-            <h3 className="font-semibold text-lg mb-1">{nextEvent.title}</h3>
-            <p className="loom-text-muted mb-2">{formatEventTime(nextEvent)}</p>
+            <h3 className="font-semibold text-base sm:text-lg mb-1 line-clamp-2">{nextEvent.title}</h3>
+            <p className="loom-text-muted mb-2 text-sm">{formatEventTime(nextEvent)}</p>
             {nextEvent.location && (
               <div className="flex items-center space-x-2 mt-2">
-                <MapPin className="w-4 h-4" />
-                <span className="text-sm">{nextEvent.location}</span>
+                <MapPin className="w-4 h-4 flex-shrink-0" />
+                <span className="text-sm truncate">{nextEvent.location}</span>
               </div>
             )}
           </div>
           <button
             onClick={() => navigate(`/event/${nextEvent.id}`)}
-            className="loom-btn-ghost text-sm hover-scale"
+            className="loom-btn-ghost text-sm hover-scale w-full sm:w-auto"
           >
             View details
           </button>
@@ -131,20 +133,20 @@ const Index = () => {
             {pendingProposals.map((proposal) => (
               <div
                 key={proposal.id}
-                className="loom-card-compact hover-scale bg-[hsl(var(--loom-warning-light))] border-[hsl(var(--loom-warning))] border-opacity-20"
+                className="loom-card-compact hover-scale bg-[hsl(var(--loom-warning-light))] border-[hsl(var(--loom-warning)/0.2)]"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-sm mb-1">{proposal.title}</h3>
-                    <p className="loom-text-muted">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-sm mb-1 line-clamp-2">{proposal.title}</h3>
+                    <p className="loom-text-muted text-xs sm:text-sm">
                       from {proposal.proposed_by === user?.id ? 'you' : partner?.display_name}
                     </p>
                   </div>
-                  <div className="flex space-x-2 ml-4">
-                    <button className="loom-chip loom-chip-primary text-xs hover-scale">
+                  <div className="flex space-x-2 sm:ml-4">
+                    <button className="loom-chip loom-chip-primary text-xs hover-scale flex-1 sm:flex-initial">
                       Accept
                     </button>
-                    <button className="loom-chip text-xs hover-scale border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))]">
+                    <button className="loom-chip text-xs hover-scale border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] flex-1 sm:flex-initial">
                       Decline
                     </button>
                   </div>
@@ -176,29 +178,31 @@ const Index = () => {
             }
           />
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {todayEvents.map((event) => {
               const eventType = getEventType(event);
               return (
                 <div
                   key={event.id}
-                  className="flex items-center space-x-4 cursor-pointer hover:bg-[hsl(var(--loom-border)/0.3)] rounded-[var(--loom-radius-lg)] p-3 -m-3 transition-all duration-200 hover-scale"
+                  className="mobile-event-item flex items-start space-x-3 sm:space-x-4 cursor-pointer hover:bg-[hsl(var(--loom-border)/0.3)] rounded-[var(--loom-radius-lg)] p-3 -m-3 transition-all duration-200 hover-scale"
                   onClick={() => navigate(`/event/${event.id}`)}
                 >
-                  <div className="timeline-hour font-medium">
+                  <div className="timeline-hour font-medium flex-shrink-0">
                     {format(parseISO(event.start_time), 'h:mm a')}
                   </div>
-                  <div className={`event-block-${eventType} flex-1`}>
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold">{event.title}</h3>
+                  <div className={`event-block-${eventType} flex-1 min-w-0`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm sm:text-base line-clamp-1">{event.title}</h3>
+                        <p className="text-xs sm:text-sm opacity-90 mt-1 line-clamp-1">
+                          {format(parseISO(event.end_time), 'h:mm a')}
+                          {event.location && ` • ${event.location}`}
+                        </p>
+                      </div>
                       {event.attendees.length > 1 && (
-                        <Users className="w-5 h-5 opacity-70" />
+                        <Users className="w-4 h-4 sm:w-5 sm:h-5 opacity-70 flex-shrink-0 ml-2" />
                       )}
                     </div>
-                    <p className="text-sm opacity-90 mt-1">
-                      {format(parseISO(event.end_time), 'h:mm a')}
-                      {event.location && ` • ${event.location}`}
-                    </p>
                   </div>
                 </div>
               );
@@ -209,33 +213,33 @@ const Index = () => {
 
       {/* Quick Actions - Enhanced */}
       <Section title="Quick Actions">
-        <div className="grid grid-cols-3 gap-4">
+        <div className="mobile-quick-actions grid grid-cols-3 gap-3 sm:gap-4">
           <button
             onClick={() => navigate('/add')}
-            className="loom-btn-primary flex flex-col items-center space-y-3 py-6 hover-lift"
+            className="loom-btn-primary flex flex-col items-center space-y-2 sm:space-y-3 py-4 sm:py-6 hover-lift min-h-[80px] sm:min-h-[100px]"
           >
-            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-              <Plus className="w-6 h-6" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/20 flex items-center justify-center">
+              <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <span className="font-semibold">Add Event</span>
+            <span className="font-semibold text-sm sm:text-base">Add Event</span>
           </button>
           <button
             onClick={() => navigate('/add?type=proposal')}
-            className="loom-btn-secondary flex flex-col items-center space-y-3 py-6 hover-lift"
+            className="loom-btn-secondary flex flex-col items-center space-y-2 sm:space-y-3 py-4 sm:py-6 hover-lift min-h-[80px] sm:min-h-[100px]"
           >
-            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-              <Users className="w-6 h-6" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/20 flex items-center justify-center">
+              <Users className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <span className="font-semibold">Propose</span>
+            <span className="font-semibold text-sm sm:text-base">Propose</span>
           </button>
           <button
             onClick={() => navigate('/calendar')}
-            className="loom-btn-ghost flex flex-col items-center space-y-3 py-6 hover-lift border border-[hsl(var(--loom-border))]"
+            className="loom-btn-ghost flex flex-col items-center space-y-2 sm:space-y-3 py-4 sm:py-6 hover-lift border border-[hsl(var(--loom-border))] min-h-[80px] sm:min-h-[100px]"
           >
-            <div className="w-12 h-12 rounded-full bg-[hsl(var(--loom-primary-light))] flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-[hsl(var(--loom-primary))]" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[hsl(var(--loom-primary-light))] flex items-center justify-center">
+              <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-[hsl(var(--loom-primary))]" />
             </div>
-            <span className="font-semibold">Calendar</span>
+            <span className="font-semibold text-sm sm:text-base">Calendar</span>
           </button>
         </div>
       </Section>

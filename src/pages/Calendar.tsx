@@ -96,7 +96,7 @@ const Calendar = () => {
             <div key={day.toISOString()} className="loom-card">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-medium">
-                  {format(day, 'EEEE, MMM d')}
+                  {format(day, 'MM/dd/yyyy')}
                 </h3>
                 <span className="text-sm text-[hsl(var(--loom-text-muted))]">
                   {dayEvents.length} events
@@ -146,7 +146,7 @@ const Calendar = () => {
           {days.map((day) => (
             <div key={day.toISOString()} className="text-center">
               <div className="text-xs text-[hsl(var(--loom-text-muted))] mb-1">
-                {format(day, 'EEE')}
+                {format(day, 'MM/dd')}
               </div>
               <div className={cn(
                 'w-8 h-8 rounded-full flex items-center justify-center text-sm',
@@ -154,7 +154,7 @@ const Calendar = () => {
                   ? 'bg-[hsl(var(--loom-primary))] text-white'
                   : ''
               )}>
-                {format(day, 'd')}
+                {format(day, 'dd')}
               </div>
             </div>
           ))}
@@ -210,13 +210,13 @@ const Calendar = () => {
               <div className="flex items-start space-x-3">
                 <div className="text-center min-w-[60px]">
                   <div className="text-xs text-[hsl(var(--loom-text-muted))]">
-                    {format(eventDate, 'MMM')}
+                    {format(eventDate, 'MM')}
                   </div>
                   <div className="text-lg font-semibold">
-                    {format(eventDate, 'd')}
+                    {format(eventDate, 'dd')}
                   </div>
                   <div className="text-xs text-[hsl(var(--loom-text-muted))]">
-                    {format(eventDate, 'EEE')}
+                    {format(eventDate, 'MM/dd')}
                   </div>
                 </div>
                 
@@ -278,8 +278,8 @@ const Calendar = () => {
           <div className="text-center">
             <h2 className="loom-heading-3">
               {viewType === 'week' 
-                ? `${format(weekStart, 'MMM d')} - ${format(addDays(weekStart, 6), 'MMM d, yyyy')}`
-                : format(currentDate, 'MMMM yyyy')
+                ? `${format(weekStart, 'MM/dd/yyyy')} - ${format(addDays(weekStart, 6), 'MM/dd/yyyy')}`
+                : format(currentDate, 'MM/yyyy')
               }
             </h2>
           </div>

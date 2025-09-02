@@ -1,8 +1,9 @@
 // Add Event/Proposal Page
+import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format, addDays, addHours } from 'date-fns';
-import { X, MapPin, Clock, Users, Bell } from 'lucide-react';
+import { X, MapPin, Clock, Users, Bell, Calendar } from 'lucide-react';
 import { useEventsActions, useUser, usePartner } from '../stores';
 import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
@@ -221,12 +222,18 @@ const Add = () => {
           <div className="space-y-3">
             <div>
               <label className="block text-sm font-medium mb-2">Date</label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))]"
-              />
+              <div className="relative">
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] opacity-0 absolute inset-0 z-10 cursor-pointer"
+                />
+                <div className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] flex items-center justify-between">
+                  <span>{format(new Date(date), 'MM/dd/yyyy')}</span>
+                  <Calendar className="w-4 h-4 text-[hsl(var(--loom-text-muted))]" />
+                </div>
+              </div>
             </div>
             
             <div className="grid grid-cols-2 gap-3">

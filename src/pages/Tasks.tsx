@@ -97,7 +97,7 @@ const Tasks = () => {
     if (isToday(dueDate)) return 'Today';
     if (isTomorrow(dueDate)) return 'Tomorrow';
     if (isPast(dueDate)) return 'Overdue';
-    return format(dueDate, 'MMM d');
+    return format(dueDate, 'MM/dd/yyyy');
   };
 
   const isOverdue = (task: any) => {

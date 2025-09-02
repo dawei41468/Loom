@@ -12,7 +12,7 @@ import { addDays, addHours, format, startOfWeek } from 'date-fns';
 
 // Configuration
 const USE_REAL_API = import.meta.env.VITE_USE_REAL_API === 'true';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7000/api';
 
 // Mock delay to simulate network
 const mockDelay = (ms = 300) => new Promise(resolve => setTimeout(resolve, ms));
