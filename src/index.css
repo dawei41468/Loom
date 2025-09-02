@@ -5,20 +5,20 @@
 @layer theme {
   :root {
     /* Loom Brand Colors (HSL) */
-    --loom-primary: 238 81% 64%; /* indigo-600 */
+    --loom-primary: 238 81% 64%;
     --loom-primary-fg: 0 0% 100%;
-    --loom-partner: 24 95% 60%; /* orange-500 peach tone */
+    --loom-partner: 24 95% 60%;
     --loom-partner-fg: 0 0% 100%;
-    --loom-user: 173 58% 50%; /* teal-500 */
+    --loom-user: 173 58% 50%;
     --loom-user-fg: 0 0% 100%;
-    --loom-shared: 258 87% 65%; /* violet-500 */
+    --loom-shared: 258 87% 65%;
     --loom-shared-fg: 0 0% 100%;
     
     /* Neutrals */
-    --loom-bg: 0 0% 99%; /* zinc-50 */
-    --loom-surface: 0 0% 98%; /* zinc-100 */
-    --loom-border: 240 5% 92%; /* zinc-200 */
-    --loom-text: 240 6% 10%; /* zinc-800 */
+    --loom-bg: 0 0% 99%;
+    --loom-surface: 0 0% 98%;
+    --loom-border: 240 5% 92%;
+    --loom-text: 240 6% 10%;
     --loom-text-muted: 240 5% 46%;
     
     /* System Colors */
@@ -74,19 +74,26 @@
   }
 
   body {
-    @apply bg-[hsl(var(--loom-bg))] text-[hsl(var(--loom-text))] antialiased;
+    background-color: hsl(var(--loom-bg));
+    color: hsl(var(--loom-text));
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   /* Mobile-first responsive containers */
   .container {
-    @apply mx-auto px-4 max-w-md;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    max-width: 28rem;
   }
 
   @media (min-width: 768px) {
     .container {
-      @apply max-w-2xl px-6;
+      max-width: 42rem;
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
     }
   }
 
@@ -106,27 +113,92 @@
 @layer components {
   /* Loom Component Styles */
   .loom-card {
-    @apply bg-[hsl(var(--loom-surface))] border border-[hsl(var(--loom-border))] rounded-[var(--loom-radius-xl)] p-4 shadow-[var(--loom-shadow-sm)];
+    background-color: hsl(var(--loom-surface));
+    border: 1px solid hsl(var(--loom-border));
+    border-radius: var(--loom-radius-xl);
+    padding: 1rem;
+    box-shadow: var(--loom-shadow-sm);
   }
 
   .loom-btn-primary {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-[var(--loom-radius-md)] font-medium transition-[var(--loom-transition)] focus:outline-none focus:ring-2 focus:ring-offset-2 bg-[hsl(var(--loom-primary))] text-[hsl(var(--loom-primary-fg))] hover:opacity-90 focus:ring-[hsl(var(--loom-primary))] shadow-[var(--loom-shadow-md)];
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    border-radius: var(--loom-radius-md);
+    font-weight: 500;
+    transition: var(--loom-transition);
+    background-color: hsl(var(--loom-primary));
+    color: hsl(var(--loom-primary-fg));
+    box-shadow: var(--loom-shadow-md);
+  }
+
+  .loom-btn-primary:hover {
+    opacity: 0.9;
+  }
+
+  .loom-btn-primary:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--loom-primary));
   }
 
   .loom-btn-ghost {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-[var(--loom-radius-md)] font-medium transition-[var(--loom-transition)] focus:outline-none focus:ring-2 focus:ring-offset-2 text-[hsl(var(--loom-text))] hover:bg-[hsl(var(--loom-border))] focus:ring-[hsl(var(--loom-border))];
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    border-radius: var(--loom-radius-md);
+    font-weight: 500;
+    transition: var(--loom-transition);
+    color: hsl(var(--loom-text));
+  }
+
+  .loom-btn-ghost:hover {
+    background-color: hsl(var(--loom-border));
+  }
+
+  .loom-btn-ghost:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--loom-border));
   }
 
   .loom-chip-user {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium transition-[var(--loom-transition)] bg-[hsl(var(--loom-user)/0.1)] text-[hsl(var(--loom-user))] border border-[hsl(var(--loom-user)/0.2)];
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: var(--loom-transition);
+    background-color: hsl(var(--loom-user) / 0.1);
+    color: hsl(var(--loom-user));
+    border: 1px solid hsl(var(--loom-user) / 0.2);
   }
 
   .loom-chip-partner {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium transition-[var(--loom-transition)] bg-[hsl(var(--loom-partner)/0.1)] text-[hsl(var(--loom-partner))] border border-[hsl(var(--loom-partner)/0.2)];
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: var(--loom-transition);
+    background-color: hsl(var(--loom-partner) / 0.1);
+    color: hsl(var(--loom-partner));
+    border: 1px solid hsl(var(--loom-partner) / 0.2);
   }
 
   .loom-chip-shared {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium transition-[var(--loom-transition)] bg-[hsl(var(--loom-shared)/0.1)] text-[hsl(var(--loom-shared))] border border-[hsl(var(--loom-shared)/0.2)];
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: var(--loom-transition);
+    background-color: hsl(var(--loom-shared) / 0.1);
+    color: hsl(var(--loom-shared));
+    border: 1px solid hsl(var(--loom-shared) / 0.2);
   }
 
   .loom-gradient-woven {
@@ -139,36 +211,66 @@
 
   /* Event blocks with woven effect */
   .event-block-shared {
-    @apply relative overflow-hidden rounded-[var(--loom-radius-md)] p-3 text-white;
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--loom-radius-md);
+    padding: 0.75rem;
+    color: white;
     background: var(--loom-gradient-woven);
   }
 
   .event-block-user {
-    @apply relative overflow-hidden rounded-[var(--loom-radius-md)] p-3 text-white bg-[hsl(var(--loom-user))];
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--loom-radius-md);
+    padding: 0.75rem;
+    color: white;
+    background-color: hsl(var(--loom-user));
   }
 
   .event-block-partner {
-    @apply relative overflow-hidden rounded-[var(--loom-radius-md)] p-3 text-white bg-[hsl(var(--loom-partner))];
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--loom-radius-md);
+    padding: 0.75rem;
+    color: white;
+    background-color: hsl(var(--loom-partner));
   }
 
   /* Bottom navigation */
   .bottom-nav {
-    @apply fixed bottom-0 left-0 right-0 bg-[hsl(var(--loom-surface)/0.95)] border-t border-[hsl(var(--loom-border))] backdrop-blur-lg;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: hsl(var(--loom-surface) / 0.95);
+    border-top: 1px solid hsl(var(--loom-border));
+    backdrop-filter: blur(16px);
     padding-bottom: env(safe-area-inset-bottom);
   }
 
   /* Timeline styles */
   .timeline-hour {
-    @apply text-xs text-[hsl(var(--loom-text-muted))] w-12 flex-shrink-0;
+    font-size: 0.75rem;
+    color: hsl(var(--loom-text-muted));
+    width: 3rem;
+    flex-shrink: 0;
   }
 
   .timeline-content {
-    @apply flex-1 relative min-h-[60px] border-b border-[hsl(var(--loom-border)/0.3)];
+    flex: 1;
+    position: relative;
+    min-height: 60px;
+    border-bottom: 1px solid hsl(var(--loom-border) / 0.3);
   }
 
   /* Micro animations */
   .tap-scale {
-    @apply active:scale-95 transition-transform duration-100;
+    transition: transform 0.1s ease-out;
+  }
+
+  .tap-scale:active {
+    transform: scale(0.95);
   }
 
   .slide-up {
