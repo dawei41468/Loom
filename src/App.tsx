@@ -34,7 +34,6 @@ const queryClient = new QueryClient({
 
 const AppRoutes = () => {
   const isOnboarded = useIsOnboarded();
-  const user = useUser();
   const { setUser, setPartner } = useAuthActions();
 
   useEffect(() => {
@@ -55,7 +54,7 @@ const AppRoutes = () => {
 
     // Only initialize once on mount - no dependencies to avoid loops
     initializeApp();
-  }, []); // Empty dependency array - run only once on mount
+  }, [setUser, setPartner]); // These are stable from the action selectors
 
   // Show onboarding if not completed
   if (!isOnboarded) {
