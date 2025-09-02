@@ -44,9 +44,14 @@ export const usePartner = () => useAuthStore((state) => state.partner);
 export const useIsAuthenticated = () => useAuthStore((state) => !!state.user);
 export const useIsOnboarded = () => useAuthStore((state) => state.isOnboarded);
 
-// Action selectors
-export const useAuthActions = () => useAuthStore((state) => ({
-  setUser: state.setUser,
-  setPartner: state.setPartner,
-  setOnboarded: state.setOnboarded,
-}));
+// Individual action selectors - stable references
+export const useSetUser = () => useAuthStore((state) => state.setUser);
+export const useSetPartner = () => useAuthStore((state) => state.setPartner);
+export const useSetOnboarded = () => useAuthStore((state) => state.setOnboarded);
+
+// Combined action selectors - for convenience
+export const useAuthActions = () => ({
+  setUser: useAuthStore.getState().setUser,
+  setPartner: useAuthStore.getState().setPartner,
+  setOnboarded: useAuthStore.getState().setOnboarded,
+});
