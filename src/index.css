@@ -139,7 +139,8 @@
 
   /* Event blocks with woven effect */
   .event-block-shared {
-    @apply relative overflow-hidden rounded-[var(--loom-radius-md)] p-3 text-white loom-gradient-woven;
+    @apply relative overflow-hidden rounded-[var(--loom-radius-md)] p-3 text-white;
+    background: var(--loom-gradient-woven);
   }
 
   .event-block-user {

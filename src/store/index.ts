@@ -145,10 +145,14 @@ export const useLoomStore = create<LoomState>()(
         const newToast = { ...toast, id };
         set((state) => ({ toasts: [...state.toasts, newToast] }));
         
-        // Auto-remove toast after duration
-        setTimeout(() => {
-          get().removeToast(id);
-        }, toast.duration || 5000);
+        // Auto-remove toast after duration using a proper cleanup approach
+        if (toast.duration !== 0) {
+          setTimeout(() => {
+            set((state) => ({
+              toasts: state.toasts.filter(t => t.id !== id)
+            }));
+          }, toast.duration || 5000);
+        }
       },
       removeToast: (toastId) => set((state) => ({
         toasts: state.toasts.filter(toast => toast.id !== toastId)
