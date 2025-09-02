@@ -153,7 +153,7 @@
 
   /* Bottom navigation */
   .bottom-nav {
-    @apply fixed bottom-0 left-0 right-0 bg-[hsl(var(--loom-surface))] border-t border-[hsl(var(--loom-border))] backdrop-blur-lg bg-opacity-95;
+    @apply fixed bottom-0 left-0 right-0 bg-[hsl(var(--loom-surface)/0.95)] border-t border-[hsl(var(--loom-border))] backdrop-blur-lg;
     padding-bottom: env(safe-area-inset-bottom);
   }
 

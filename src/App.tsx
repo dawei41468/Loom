@@ -51,7 +51,7 @@ const AppRoutes = () => {
     };
 
     initializeApp();
-  }, [setUser, setPartner]);
+  }, []); // Remove setUser, setPartner from dependencies to prevent infinite loop
 
   // Show onboarding if not completed
   if (!isOnboarded) {
