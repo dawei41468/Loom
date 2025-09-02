@@ -1,12 +1,15 @@
 // Main Today View - Dashboard
 import { useEffect, useMemo } from 'react';
 import { format, isToday, isTomorrow, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
-import { Plus, Clock, MapPin, Users } from 'lucide-react';
+import { Plus, Clock, MapPin, Users, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useEvents, useProposals, useEventsActions, useUser, usePartner } from '../stores';
 import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
 import { Event as LoomEvent } from '../types';
+import { PageHeader } from '../components/ui/page-header';
+import { EmptyState } from '../components/ui/empty-state';
+import { Section } from '../components/ui/section';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -80,103 +83,119 @@ const Index = () => {
   };
 
   return (
-    <div className="container py-6 space-y-6">
-      {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold">
-          {format(new Date(), 'EEEE, MMM d')}
-        </h1>
-        <p className="text-[hsl(var(--loom-text-muted))]">
-          {partner ? `You and ${partner.display_name}` : 'Your schedule'}
-        </p>
-      </div>
+    <div className="container py-8 space-y-8">
+      {/* Enhanced Header */}
+      <PageHeader
+        title={format(new Date(), 'EEEE, MMM d')}
+        subtitle={partner ? `You and ${partner.display_name}` : 'Your schedule'}
+      />
 
-      {/* Next Up Card */}
+      {/* Next Up Card - Enhanced */}
       {nextEvent && (
-        <div className="loom-card">
-          <div className="flex items-center space-x-3 mb-3">
-            <Clock className="w-5 h-5 text-[hsl(var(--loom-primary))]" />
-            <span className="font-medium">Next up • {getNextUpText(nextEvent)}</span>
+        <Section variant="elevated" className="loom-gradient-subtle">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-10 h-10 rounded-full loom-gradient-primary flex items-center justify-center">
+              <Clock className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-[hsl(var(--loom-text))]">Next up</h3>
+              <p className="text-sm text-[hsl(var(--loom-text-muted))]">{getNextUpText(nextEvent)}</p>
+            </div>
           </div>
-          <div className={`event-block-${getEventType(nextEvent)} mb-3`}>
-            <h3 className="font-medium">{nextEvent.title}</h3>
-            <p className="text-sm opacity-90">{formatEventTime(nextEvent)}</p>
+          <div className={`event-block-${getEventType(nextEvent)} mb-4`}>
+            <h3 className="font-semibold text-lg mb-1">{nextEvent.title}</h3>
+            <p className="loom-text-muted mb-2">{formatEventTime(nextEvent)}</p>
             {nextEvent.location && (
-              <div className="flex items-center space-x-1 mt-1">
-                <MapPin className="w-3 h-3" />
-                <span className="text-xs">{nextEvent.location}</span>
+              <div className="flex items-center space-x-2 mt-2">
+                <MapPin className="w-4 h-4" />
+                <span className="text-sm">{nextEvent.location}</span>
               </div>
             )}
           </div>
           <button
             onClick={() => navigate(`/event/${nextEvent.id}`)}
-            className="text-sm text-[hsl(var(--loom-primary))] hover:underline"
+            className="loom-btn-ghost text-sm hover-scale"
           >
             View details
           </button>
-        </div>
+        </Section>
       )}
 
-      {/* Pending Proposals */}
+      {/* Pending Proposals - Enhanced */}
       {pendingProposals.length > 0 && (
-        <div className="loom-card">
-          <h2 className="font-medium mb-3">Pending Proposals</h2>
+        <Section
+          title="Pending Proposals"
+          variant="card"
+        >
           <div className="space-y-3">
             {pendingProposals.map((proposal) => (
               <div
                 key={proposal.id}
-                className="flex items-center justify-between p-3 rounded-[var(--loom-radius-md)] bg-[hsl(var(--loom-partner)/0.1)] border border-[hsl(var(--loom-partner)/0.2)]"
+                className="loom-card-compact hover-scale bg-[hsl(var(--loom-warning-light))] border-[hsl(var(--loom-warning))] border-opacity-20"
               >
-                <div>
-                  <h3 className="font-medium text-sm">{proposal.title}</h3>
-                  <p className="text-xs text-[hsl(var(--loom-text-muted))]">
-                    from {proposal.proposed_by === user?.id ? 'you' : partner?.display_name}
-                  </p>
-                </div>
-                <div className="flex space-x-2">
-                  <button className="loom-chip loom-chip-shared text-xs">
-                    Accept
-                  </button>
-                  <button className="loom-chip text-xs">
-                    Decline
-                  </button>
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-sm mb-1">{proposal.title}</h3>
+                    <p className="loom-text-muted">
+                      from {proposal.proposed_by === user?.id ? 'you' : partner?.display_name}
+                    </p>
+                  </div>
+                  <div className="flex space-x-2 ml-4">
+                    <button className="loom-chip loom-chip-primary text-xs hover-scale">
+                      Accept
+                    </button>
+                    <button className="loom-chip text-xs hover-scale border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))]">
+                      Decline
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </Section>
       )}
 
-      {/* Today's Timeline */}
-      <div className="loom-card">
-        <h2 className="font-medium mb-4">Today's Schedule</h2>
+      {/* Today's Timeline - Enhanced */}
+      <Section
+        title="Today's Schedule"
+        variant="card"
+      >
         {todayEvents.length === 0 ? (
-          <div className="text-center py-8 text-[hsl(var(--loom-text-muted))]">
-            <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p>No events today</p>
-            <p className="text-sm">Time to plan something together!</p>
-          </div>
+          <EmptyState
+            icon={Clock}
+            title="No events today"
+            description="Time to plan something together!"
+            action={
+              <button
+                onClick={() => navigate('/add')}
+                className="loom-btn-primary hover-scale"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Event
+              </button>
+            }
+          />
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {todayEvents.map((event) => {
               const eventType = getEventType(event);
               return (
                 <div
                   key={event.id}
-                  className="flex items-center space-x-3 cursor-pointer hover:bg-[hsl(var(--loom-border)/0.5)] rounded-[var(--loom-radius-md)] p-2 -m-2 transition-colors"
+                  className="flex items-center space-x-4 cursor-pointer hover:bg-[hsl(var(--loom-border)/0.3)] rounded-[var(--loom-radius-lg)] p-3 -m-3 transition-all duration-200 hover-scale"
                   onClick={() => navigate(`/event/${event.id}`)}
                 >
-                  <div className="timeline-hour text-xs">
+                  <div className="timeline-hour font-medium">
                     {format(parseISO(event.start_time), 'h:mm a')}
                   </div>
                   <div className={`event-block-${eventType} flex-1`}>
                     <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-sm">{event.title}</h3>
+                      <h3 className="font-semibold">{event.title}</h3>
                       {event.attendees.length > 1 && (
-                        <Users className="w-4 h-4" />
+                        <Users className="w-5 h-5 opacity-70" />
                       )}
                     </div>
-                    <p className="text-xs opacity-90">
+                    <p className="text-sm opacity-90 mt-1">
                       {format(parseISO(event.end_time), 'h:mm a')}
                       {event.location && ` • ${event.location}`}
                     </p>
@@ -186,32 +205,40 @@ const Index = () => {
             })}
           </div>
         )}
-      </div>
+      </Section>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-3 gap-3">
-        <button
-          onClick={() => navigate('/add')}
-          className="loom-btn-primary flex flex-col items-center space-y-2 py-4"
-        >
-          <Plus className="w-6 h-6" />
-          <span className="text-sm">Add Event</span>
-        </button>
-        <button
-          onClick={() => navigate('/add?type=proposal')}
-          className="loom-btn-ghost flex flex-col items-center space-y-2 py-4"
-        >
-          <Users className="w-6 h-6" />
-          <span className="text-sm">Propose</span>
-        </button>
-        <button
-          onClick={() => navigate('/tasks')}
-          className="loom-btn-ghost flex flex-col items-center space-y-2 py-4"
-        >
-          <Clock className="w-6 h-6" />
-          <span className="text-sm">Add Task</span>
-        </button>
-      </div>
+      {/* Quick Actions - Enhanced */}
+      <Section title="Quick Actions">
+        <div className="grid grid-cols-3 gap-4">
+          <button
+            onClick={() => navigate('/add')}
+            className="loom-btn-primary flex flex-col items-center space-y-3 py-6 hover-lift"
+          >
+            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+              <Plus className="w-6 h-6" />
+            </div>
+            <span className="font-semibold">Add Event</span>
+          </button>
+          <button
+            onClick={() => navigate('/add?type=proposal')}
+            className="loom-btn-secondary flex flex-col items-center space-y-3 py-6 hover-lift"
+          >
+            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+              <Users className="w-6 h-6" />
+            </div>
+            <span className="font-semibold">Propose</span>
+          </button>
+          <button
+            onClick={() => navigate('/calendar')}
+            className="loom-btn-ghost flex flex-col items-center space-y-3 py-6 hover-lift border border-[hsl(var(--loom-border))]"
+          >
+            <div className="w-12 h-12 rounded-full bg-[hsl(var(--loom-primary-light))] flex items-center justify-center">
+              <Calendar className="w-6 h-6 text-[hsl(var(--loom-primary))]" />
+            </div>
+            <span className="font-semibold">Calendar</span>
+          </button>
+        </div>
+      </Section>
     </div>
   );
 };

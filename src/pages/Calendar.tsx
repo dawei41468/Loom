@@ -5,6 +5,8 @@ import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { useEvents, useEventFilter, useEventsActions } from '../stores';
 import { Event } from '../types';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '../components/ui/page-header';
+import { Section } from '../components/ui/section';
 
 type ViewType = '3day' | 'week' | 'agenda';
 
@@ -38,16 +40,16 @@ const Calendar = () => {
   };
 
   const renderSegmentedControl = () => (
-    <div className="flex bg-[hsl(var(--loom-border))] rounded-[var(--loom-radius-md)] p-1">
+    <div className="flex bg-[hsl(var(--loom-border))] rounded-[var(--loom-radius-lg)] p-1.5 shadow-[var(--loom-shadow-sm)]">
       {(['3day', 'week', 'agenda'] as ViewType[]).map((type) => (
         <button
           key={type}
           onClick={() => setViewType(type)}
           className={cn(
-            'flex-1 py-2 px-4 text-sm font-medium rounded-[var(--loom-radius-sm)] transition-all',
+            'flex-1 py-3 px-6 text-sm font-semibold rounded-[var(--loom-radius-md)] transition-all duration-200',
             viewType === type
-              ? 'bg-white text-[hsl(var(--loom-text))] shadow-sm'
-              : 'text-[hsl(var(--loom-text-muted))] hover:text-[hsl(var(--loom-text))]'
+              ? 'bg-white text-[hsl(var(--loom-text))] shadow-[var(--loom-shadow-md)] transform scale-[1.02]'
+              : 'text-[hsl(var(--loom-text-muted))] hover:text-[hsl(var(--loom-text))] hover:bg-white/50'
           )}
         >
           {type === '3day' ? '3 Day' : type.charAt(0).toUpperCase() + type.slice(1)}
@@ -57,7 +59,7 @@ const Calendar = () => {
   );
 
   const renderFilterChips = () => (
-    <div className="flex space-x-2 overflow-x-auto">
+    <div className="flex space-x-3 overflow-x-auto pb-2">
       {[
         { type: 'all', label: 'All' },
         { type: 'mine', label: 'Mine' },
@@ -68,10 +70,10 @@ const Calendar = () => {
           key={type}
           onClick={() => setEventFilter({ type: type as any })}
           className={cn(
-            'loom-chip whitespace-nowrap',
+            'loom-chip whitespace-nowrap hover-scale',
             filter.type === type
-              ? 'loom-chip-shared'
-              : 'bg-[hsl(var(--loom-border))] text-[hsl(var(--loom-text-muted))]'
+              ? 'loom-chip-primary'
+              : 'bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text-muted))] border-[hsl(var(--loom-border))] hover:bg-[hsl(var(--loom-border))]'
           )}
         >
           {label}
@@ -244,53 +246,61 @@ const Calendar = () => {
   };
 
   return (
-    <div className="container py-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Calendar</h1>
-        <button className="loom-btn-ghost">
-          <Search className="w-5 h-5" />
-        </button>
-      </div>
+    <div className="container py-8 space-y-8">
+      {/* Enhanced Header */}
+      <PageHeader
+        title="Calendar"
+        action={
+          <button className="loom-btn-icon">
+            <Search className="w-5 h-5" />
+          </button>
+        }
+      />
 
-      {/* View Control */}
-      <div className="space-y-4">
-        {renderSegmentedControl()}
-        {renderFilterChips()}
-      </div>
+      {/* Enhanced View Controls */}
+      <Section>
+        <div className="space-y-6">
+          {renderSegmentedControl()}
+          {renderFilterChips()}
+        </div>
+      </Section>
 
-      {/* Navigation */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => navigateWeek('prev')}
-          className="loom-btn-ghost"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        
-        <h2 className="font-medium">
-          {viewType === 'week' 
-            ? `${format(weekStart, 'MMM d')} - ${format(addDays(weekStart, 6), 'MMM d, yyyy')}`
-            : format(currentDate, 'MMMM yyyy')
-          }
-        </h2>
-        
-        <button
-          onClick={() => navigateWeek('next')}
-          className="loom-btn-ghost"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
-      </div>
+      {/* Enhanced Navigation */}
+      <Section>
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => navigateWeek('prev')}
+            className="loom-btn-icon hover-scale"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          
+          <div className="text-center">
+            <h2 className="loom-heading-3">
+              {viewType === 'week' 
+                ? `${format(weekStart, 'MMM d')} - ${format(addDays(weekStart, 6), 'MMM d, yyyy')}`
+                : format(currentDate, 'MMMM yyyy')
+              }
+            </h2>
+          </div>
+          
+          <button
+            onClick={() => navigateWeek('next')}
+            className="loom-btn-icon hover-scale"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        </div>
+      </Section>
 
       {/* Calendar Content */}
       {viewType === '3day' && render3DayView()}
       {viewType === 'week' && renderWeekView()}
       {viewType === 'agenda' && renderAgendaView()}
 
-      {/* Floating Find Overlap Button */}
-      <button className="fixed bottom-24 right-4 w-14 h-14 bg-[hsl(var(--loom-shared))] text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 transition-transform">
-        <Search className="w-6 h-6" />
+      {/* Enhanced Floating Action Button */}
+      <button className="fixed bottom-24 right-6 w-16 h-16 loom-gradient-primary text-white rounded-full shadow-[var(--loom-shadow-xl)] hover:shadow-[var(--loom-shadow-xl)] hover-scale flex items-center justify-center z-40">
+        <Search className="w-7 h-7" />
       </button>
     </div>
   );
