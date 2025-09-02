@@ -29,7 +29,7 @@ const Tasks = () => {
     };
 
     loadTasks();
-  }, [setTasks, addToast]);
+  }, []); // Store actions are stable, don't include in deps
 
   const handleAddTask = async () => {
     if (!newTaskTitle.trim()) return;

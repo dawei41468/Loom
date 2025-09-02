@@ -41,7 +41,7 @@ const EventDetail = () => {
       });
       navigate('/');
     }
-  }, [event, navigate, addToast]);
+  }, [event, navigate]); // Store actions are stable, don't include addToast
 
   if (!event) {
     return (
