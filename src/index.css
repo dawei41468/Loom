@@ -1,317 +1,69 @@
-@import 'tailwindcss';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-/* Loom Design System - Tailwind v4 CSS-first approach */
-
-@layer theme {
+@layer base {
   :root {
-    /* Loom Brand Colors (HSL) */
-    --loom-primary: 238 81% 64%;
-    --loom-primary-fg: 0 0% 100%;
-    --loom-partner: 24 95% 60%;
-    --loom-partner-fg: 0 0% 100%;
-    --loom-user: 173 58% 50%;
-    --loom-user-fg: 0 0% 100%;
-    --loom-shared: 258 87% 65%;
-    --loom-shared-fg: 0 0% 100%;
-    
-    /* Neutrals */
-    --loom-bg: 0 0% 99%;
-    --loom-surface: 0 0% 98%;
-    --loom-border: 240 5% 92%;
-    --loom-text: 240 6% 10%;
-    --loom-text-muted: 240 5% 46%;
-    
-    /* System Colors */
-    --loom-success: 142 71% 45%;
-    --loom-warning: 45 93% 47%;
-    --loom-danger: 0 84% 60%;
-    
-    /* Gradients */
-    --loom-gradient-woven: linear-gradient(45deg, 
-      hsl(var(--loom-user)), 
-      hsl(var(--loom-partner)), 
-      hsl(var(--loom-shared))
-    );
-    --loom-gradient-hero: linear-gradient(135deg, 
-      hsl(var(--loom-primary)), 
-      hsl(var(--loom-shared))
-    );
-    
-    /* Shadows */
-    --loom-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --loom-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --loom-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    
-    /* Radius */
-    --loom-radius-sm: 0.5rem;
-    --loom-radius-md: 1rem;
-    --loom-radius-lg: 1.5rem;
-    --loom-radius-xl: 2rem;
-    
-    /* Transitions */
-    --loom-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    --loom-transition-slow: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.5rem;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
   }
 
   .dark {
-    --loom-bg: 240 6% 6%;
-    --loom-surface: 240 6% 8%;
-    --loom-border: 240 6% 12%;
-    --loom-text: 0 0% 95%;
-    --loom-text-muted: 240 5% 65%;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
   }
 }
 
 @layer base {
   * {
-    border-color: hsl(var(--loom-border));
+    @apply border-border;
   }
-
-  html {
-    font-family: 'Inter', system-ui, sans-serif;
-    font-feature-settings: 'cv11', 'ss01';
-    font-variation-settings: 'opsz' 32;
-  }
-
   body {
-    background-color: hsl(var(--loom-bg));
-    color: hsl(var(--loom-text));
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  /* Mobile-first responsive containers */
-  .container {
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 1rem;
-    padding-right: 1rem;
-    max-width: 28rem;
-  }
-
-  @media (min-width: 768px) {
-    .container {
-      max-width: 42rem;
-      padding-left: 1.5rem;
-      padding-right: 1.5rem;
-    }
-  }
-
-  /* Reduced motion support */
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
-    }
-  }
-}
-
-@layer components {
-  /* Loom Component Styles */
-  .loom-card {
-    background-color: hsl(var(--loom-surface));
-    border: 1px solid hsl(var(--loom-border));
-    border-radius: var(--loom-radius-xl);
-    padding: 1rem;
-    box-shadow: var(--loom-shadow-sm);
-  }
-
-  .loom-btn-primary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.5rem 1rem;
-    border-radius: var(--loom-radius-md);
-    font-weight: 500;
-    transition: var(--loom-transition);
-    background-color: hsl(var(--loom-primary));
-    color: hsl(var(--loom-primary-fg));
-    box-shadow: var(--loom-shadow-md);
-  }
-
-  .loom-btn-primary:hover {
-    opacity: 0.9;
-  }
-
-  .loom-btn-primary:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px hsl(var(--loom-primary));
-  }
-
-  .loom-btn-ghost {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.5rem 1rem;
-    border-radius: var(--loom-radius-md);
-    font-weight: 500;
-    transition: var(--loom-transition);
-    color: hsl(var(--loom-text));
-  }
-
-  .loom-btn-ghost:hover {
-    background-color: hsl(var(--loom-border));
-  }
-
-  .loom-btn-ghost:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px hsl(var(--loom-border));
-  }
-
-  .loom-chip-user {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    transition: var(--loom-transition);
-    background-color: hsl(var(--loom-user) / 0.1);
-    color: hsl(var(--loom-user));
-    border: 1px solid hsl(var(--loom-user) / 0.2);
-  }
-
-  .loom-chip-partner {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    transition: var(--loom-transition);
-    background-color: hsl(var(--loom-partner) / 0.1);
-    color: hsl(var(--loom-partner));
-    border: 1px solid hsl(var(--loom-partner) / 0.2);
-  }
-
-  .loom-chip-shared {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    transition: var(--loom-transition);
-    background-color: hsl(var(--loom-shared) / 0.1);
-    color: hsl(var(--loom-shared));
-    border: 1px solid hsl(var(--loom-shared) / 0.2);
-  }
-
-  .loom-gradient-woven {
-    background: var(--loom-gradient-woven);
-  }
-
-  .loom-gradient-hero {
-    background: var(--loom-gradient-hero);
-  }
-
-  /* Event blocks with woven effect */
-  .event-block-shared {
-    position: relative;
-    overflow: hidden;
-    border-radius: var(--loom-radius-md);
-    padding: 0.75rem;
-    color: white;
-    background: var(--loom-gradient-woven);
-  }
-
-  .event-block-user {
-    position: relative;
-    overflow: hidden;
-    border-radius: var(--loom-radius-md);
-    padding: 0.75rem;
-    color: white;
-    background-color: hsl(var(--loom-user));
-  }
-
-  .event-block-partner {
-    position: relative;
-    overflow: hidden;
-    border-radius: var(--loom-radius-md);
-    padding: 0.75rem;
-    color: white;
-    background-color: hsl(var(--loom-partner));
-  }
-
-  /* Bottom navigation */
-  .bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: hsl(var(--loom-surface) / 0.95);
-    border-top: 1px solid hsl(var(--loom-border));
-    backdrop-filter: blur(16px);
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
-  /* Timeline styles */
-  .timeline-hour {
-    font-size: 0.75rem;
-    color: hsl(var(--loom-text-muted));
-    width: 3rem;
-    flex-shrink: 0;
-  }
-
-  .timeline-content {
-    flex: 1;
-    position: relative;
-    min-height: 60px;
-    border-bottom: 1px solid hsl(var(--loom-border) / 0.3);
-  }
-
-  /* Micro animations */
-  .tap-scale {
-    transition: transform 0.1s ease-out;
-  }
-
-  .tap-scale:active {
-    transform: scale(0.95);
-  }
-
-  .slide-up {
-    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .fade-in {
-    animation: fadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-}
-
-@layer utilities {
-  .safe-area-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
-  .safe-area-top {
-    padding-top: env(safe-area-inset-top);
-  }
-
-  .touch-manipulation {
-    touch-action: manipulation;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
+    @apply bg-background text-foreground;
   }
 }
