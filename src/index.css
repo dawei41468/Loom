@@ -103,3 +103,81 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Safe area utilities for mobile */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Animation utilities */
+  .slide-up {
+    animation: slide-up 0.3s ease-out;
+  }
+
+  @keyframes slide-up {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+}
+
+@layer components {
+  /* Loom Card Component */
+  .loom-card {
+    @apply bg-[hsl(var(--loom-surface))] border border-[hsl(var(--loom-border))] rounded-[var(--loom-radius-md)] p-4 shadow-sm;
+  }
+
+  /* Loom Gradient Utilities */
+  .loom-gradient-hero {
+    background: linear-gradient(135deg, hsl(var(--loom-primary)), hsl(var(--loom-secondary)));
+  }
+
+  .loom-gradient-subtle {
+    background: linear-gradient(180deg, hsl(var(--loom-surface)), hsl(var(--loom-bg)));
+  }
+
+  /* Loom Button Components */
+  .loom-btn-primary {
+    @apply bg-[hsl(var(--loom-primary))] text-white hover:bg-[hsl(var(--loom-primary-dark))] px-4 py-2 rounded-[var(--loom-radius-md)] font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:ring-offset-2;
+  }
+
+  .loom-btn-secondary {
+    @apply bg-[hsl(var(--loom-secondary))] text-[hsl(var(--loom-text))] hover:bg-[hsl(var(--loom-secondary))] hover:opacity-90 px-4 py-2 rounded-[var(--loom-radius-md)] font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-secondary))] focus:ring-offset-2;
+  }
+
+  .loom-btn-ghost {
+    @apply bg-transparent text-[hsl(var(--loom-text))] hover:bg-[hsl(var(--loom-border))] px-4 py-2 rounded-[var(--loom-radius-md)] font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-border))] focus:ring-offset-2;
+  }
+
+  .loom-btn-danger {
+    @apply bg-[hsl(var(--loom-danger))] text-white hover:bg-[hsl(var(--loom-danger))] hover:opacity-90 px-4 py-2 rounded-[var(--loom-radius-md)] font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-danger))] focus:ring-offset-2;
+  }
+
+  /* Loom Input Components */
+  .loom-input {
+    @apply w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] placeholder:text-[hsl(var(--loom-text-muted))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] transition-all duration-200;
+  }
+
+  .loom-textarea {
+    @apply w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] placeholder:text-[hsl(var(--loom-text-muted))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] resize-none transition-all duration-200;
+  }
+
+  /* Hover effects */
+  .hover-lift {
+    @apply transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg;
+  }
+
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-105;
+  }
+}
