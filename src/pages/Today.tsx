@@ -32,7 +32,7 @@ const Today = () => {
     };
 
     loadData();
-  }, [setEvents, setProposals, addToast]);
+  }, []); // Store actions are stable, don't include in deps
 
   const todayEvents = useMemo(() => {
     const today = new Date();
