@@ -1,5 +1,5 @@
 // Settings Page
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User,
@@ -30,6 +30,25 @@ const Settings = () => {
   const { setTheme, setLanguage } = useUIActions();
   const { addToast } = useToastContext();
   const [copiedInvite, setCopiedInvite] = useState(false);
+  const [displayNameInput, setDisplayNameInput] = useState(user?.display_name || '');
+
+  // Debounced display name update
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (displayNameInput !== user?.display_name && displayNameInput.trim() !== '') {
+        handleUpdateProfile('display_name', displayNameInput);
+      }
+    }, 1000); // 1 second delay
+
+    return () => clearTimeout(timeoutId);
+  }, [displayNameInput, user?.display_name]);
+
+  // Update local state when user data changes
+  useEffect(() => {
+    if (user?.display_name && user.display_name !== displayNameInput) {
+      setDisplayNameInput(user.display_name);
+    }
+  }, [user?.display_name]);
 
   const handleCopyInvite = async () => {
     const inviteLink = 'https://loom.app/join/abc123';
@@ -103,10 +122,10 @@ const Settings = () => {
             'w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold',
             user?.color_preference === 'user' ? 'bg-[hsl(var(--loom-user))]' : 'bg-[hsl(var(--loom-partner))]'
           )}>
-            {user?.display_name.charAt(0).toUpperCase()}
+            {(displayNameInput || user?.display_name || '').charAt(0).toUpperCase()}
           </div>
           <div className="flex-1">
-            <h2 className="font-semibold">{user?.display_name}</h2>
+            <h2 className="font-semibold">{displayNameInput || user?.display_name}</h2>
             <p className="text-sm text-[hsl(var(--loom-text-muted))]">{user?.email}</p>
           </div>
           <ChevronRight className="w-5 h-5 text-[hsl(var(--loom-text))]" />
@@ -117,8 +136,8 @@ const Settings = () => {
             <label className="block text-sm font-medium mb-2">Display Name</label>
             <input
               type="text"
-              value={user?.display_name || ''}
-              onChange={(e) => handleUpdateProfile('display_name', e.target.value)}
+              value={displayNameInput}
+              onChange={(e) => setDisplayNameInput(e.target.value)}
               className="w-full px-3 py-2 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))]"
             />
           </div>

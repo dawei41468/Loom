@@ -52,29 +52,6 @@ const UserProfileMenu = React.memo(() => {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-[hsl(var(--loom-border))]" />
-        <DropdownMenuItem asChild>
-          <NavLink
-            to="/settings"
-            className="flex items-center cursor-pointer"
-          >
-            <Settings className="mr-2 h-4 w-4 text-[hsl(var(--loom-text))]" />
-            <span className="text-[hsl(var(--loom-text))]">Settings</span>
-          </NavLink>
-        </DropdownMenuItem>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Globe className="mr-2 h-4 w-4 text-[hsl(var(--loom-text))]" />
-            <span className="text-[hsl(var(--loom-text))]">Language</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="bg-[hsl(var(--loom-surface))] border-[hsl(var(--loom-border))]">
-            <DropdownMenuItem onClick={() => setLanguage('en')} className={language === 'en' ? 'bg-[hsl(var(--loom-accent))]' : ''}>
-              <span className="text-[hsl(var(--loom-text))]">English</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setLanguage('zh')} className={language === 'zh' ? 'bg-[hsl(var(--loom-accent))]' : ''}>
-              <span className="text-[hsl(var(--loom-text))]">中文</span>
-            </DropdownMenuItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             {theme === 'light' ? <Sun className="mr-2 h-4 w-4 text-[hsl(var(--loom-text))]" /> : <Moon className="mr-2 h-4 w-4 text-[hsl(var(--loom-text))]" />}
@@ -92,6 +69,29 @@ const UserProfileMenu = React.memo(() => {
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <Globe className="mr-2 h-4 w-4 text-[hsl(var(--loom-text))]" />
+            <span className="text-[hsl(var(--loom-text))]">Language</span>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="bg-[hsl(var(--loom-surface))] border-[hsl(var(--loom-border))]">
+            <DropdownMenuItem onClick={() => setLanguage('en')} className={language === 'en' ? 'bg-[hsl(var(--loom-accent))]' : ''}>
+              <span className="text-[hsl(var(--loom-text))]">English</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setLanguage('zh')} className={language === 'zh' ? 'bg-[hsl(var(--loom-accent))]' : ''}>
+              <span className="text-[hsl(var(--loom-text))]">中文</span>
+            </DropdownMenuItem>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+        <DropdownMenuItem asChild>
+          <NavLink
+            to="/settings"
+            className="flex items-center cursor-pointer"
+          >
+            <Settings className="mr-2 h-4 w-4 text-[hsl(var(--loom-text))]" />
+            <span className="text-[hsl(var(--loom-text))]">Settings</span>
+          </NavLink>
+        </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-[hsl(var(--loom-border))]" />
         <DropdownMenuItem onClick={() => dispatch({ type: 'LOGOUT' })}>
           <LogOut className="mr-2 h-4 w-4 text-[hsl(var(--loom-danger))]" />
