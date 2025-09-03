@@ -8,6 +8,7 @@ import { useEventsActions } from '../contexts/EventsContext';
 import { useAuthState } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
+import { TimePicker } from '../components/ui/TimePicker';
 import { cn } from '@/lib/utils';
 
 type VisibilityType = 'shared' | 'private' | 'title_only';
@@ -25,8 +26,8 @@ const Add = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [startTime, setStartTime] = useState(format(addHours(new Date(), 1), 'HH:mm'));
-  const [endTime, setEndTime] = useState(format(addHours(new Date(), 2), 'HH:mm'));
+  const [startTime, setStartTime] = useState(format(addHours(new Date(), 1), 'h:mm a'));
+  const [endTime, setEndTime] = useState(format(addHours(new Date(), 2), 'h:mm a'));
   const [location, setLocation] = useState('');
   const [visibility, setVisibility] = useState<VisibilityType>('shared');
   const [includePartner, setIncludePartner] = useState(true);
@@ -54,15 +55,46 @@ const Add = () => {
     // Look for time patterns
     const timeMatch = input.match(/(\d{1,2}):?(\d{0,2})\s*(am|pm)?/i);
     if (timeMatch) {
-      let hour = parseInt(timeMatch[1]);
+      const hour = parseInt(timeMatch[1]);
       const minute = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
       const ampm = timeMatch[3]?.toLowerCase();
-      
-      if (ampm === 'pm' && hour !== 12) hour += 12;
-      if (ampm === 'am' && hour === 12) hour = 0;
-      
-      setStartTime(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
-      setEndTime(`${(hour + 1).toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
+
+      // Convert to 12-hour format for display
+      let displayHour = hour;
+      let displayAmpm = ampm || 'am';
+
+      if (ampm === 'pm' && hour !== 12) {
+        displayHour = hour;
+        displayAmpm = 'pm';
+      } else if (ampm === 'am' && hour === 12) {
+        displayHour = 12;
+        displayAmpm = 'am';
+      } else if (!ampm) {
+        // No AM/PM specified, assume current time context
+        const now = new Date();
+        const currentHour = now.getHours();
+        if (hour < 12) {
+          displayAmpm = currentHour >= 12 ? 'pm' : 'am';
+        } else {
+          displayHour = hour > 12 ? hour - 12 : hour;
+          displayAmpm = hour >= 12 ? 'pm' : 'am';
+        }
+      }
+
+      const timeString = `${displayHour}:${minute.toString().padStart(2, '0')} ${displayAmpm.toUpperCase()}`;
+      setStartTime(timeString);
+
+      // Set end time to 1 hour later
+      let endHour = displayHour + 1;
+      let endAmpm = displayAmpm;
+      if (endHour > 12) {
+        endHour = 1;
+        endAmpm = displayAmpm === 'am' ? 'pm' : 'am';
+      } else if (endHour === 12) {
+        endAmpm = displayAmpm === 'am' ? 'pm' : 'am';
+      }
+
+      setEndTime(`${endHour}:${minute.toString().padStart(2, '0')} ${endAmpm.toUpperCase()}`);
     }
 
     // Look for day references
@@ -90,6 +122,24 @@ const Add = () => {
     );
   };
 
+  // Helper function to convert TimePicker format to ISO datetime
+  const convertTimeToISO = (timeString: string, dateString: string) => {
+    // Parse "9:00 AM" format
+    const match = timeString.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (!match) return new Date(`${dateString}T12:00:00`).toISOString();
+
+    let hour = parseInt(match[1]);
+    const minute = parseInt(match[2]);
+    const ampm = match[3].toUpperCase();
+
+    // Convert to 24-hour format
+    if (ampm === 'PM' && hour !== 12) hour += 12;
+    if (ampm === 'AM' && hour === 12) hour = 0;
+
+    const time24 = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    return new Date(`${dateString}T${time24}`).toISOString();
+  };
+
   const handleSubmit = async () => {
     if (!title.trim()) {
       addToast({
@@ -103,8 +153,8 @@ const Add = () => {
     setIsSubmitting(true);
 
     try {
-      const startDateTime = new Date(`${date}T${startTime}`).toISOString();
-      const endDateTime = new Date(`${date}T${endTime}`).toISOString();
+      const startDateTime = convertTimeToISO(startTime, date);
+      const endDateTime = convertTimeToISO(endTime, date);
 
       if (isProposal && partner) {
         // Create proposal
@@ -236,23 +286,19 @@ const Add = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium mb-2">Start</label>
-                <input
-                  type="time"
+                <TimePicker
+                  label="Start Time"
                   value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))]"
+                  onChange={setStartTime}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">End</label>
-                <input
-                  type="time"
+                <TimePicker
+                  label="End Time"
                   value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))]"
+                  onChange={setEndTime}
                 />
               </div>
             </div>

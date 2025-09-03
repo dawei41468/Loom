@@ -15,6 +15,7 @@ const Settings = React.lazy(() => import('./pages/Settings'));
 const Partner = React.lazy(() => import('./pages/Partner'));
 const EventDetail = React.lazy(() => import('./pages/EventDetail'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
+const TimePickerDemo = React.lazy(() => import('./components/TimePickerDemo'));
 
 // Components
 import Layout from './components/Layout';
@@ -123,6 +124,7 @@ const AppRoutes = React.memo(() => {
           <Route path="tasks" element={<Tasks />} />
           <Route path="partner" element={<Partner />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="timepicker-demo" element={<TimePickerDemo />} />
         </Route>
         <Route
           path="/event/:id"

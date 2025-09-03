@@ -1,18 +1,20 @@
 // Settings Page
 import React, { useState } from 'react';
-import { 
-  User, 
-  Globe, 
-  Moon, 
-  Sun, 
-  Monitor, 
-  Users, 
-  QrCode, 
+import { useNavigate } from 'react-router-dom';
+import {
+  User,
+  Globe,
+  Moon,
+  Sun,
+  Monitor,
+  Users,
+  QrCode,
   Info,
   ChevronRight,
   Copy,
   Check,
-  LogOut
+  LogOut,
+  Clock
 } from 'lucide-react';
 import { useAuthState, useAuthDispatch } from '../contexts/AuthContext';
 import { useTheme, useLanguage, useUIActions } from '../contexts/UIContext';
@@ -20,6 +22,7 @@ import { useToastContext } from '../contexts/ToastContext';
 import { cn } from '@/lib/utils';
 
 const Settings = () => {
+  const navigate = useNavigate();
   const { user, partner } = useAuthState();
   const authDispatch = useAuthDispatch();
   const theme = useTheme();
@@ -269,6 +272,16 @@ const Settings = () => {
             <span>2024.01.01</span>
           </div>
           <div className="pt-2 border-t border-[hsl(var(--loom-border))]">
+            <button
+              onClick={() => navigate('/timepicker-demo')}
+              className="w-full flex items-center justify-between p-3 rounded-[var(--loom-radius-md)] hover:bg-[hsl(var(--loom-border))] transition-colors mb-2"
+            >
+              <div className="flex items-center space-x-2">
+                <Clock className="w-4 h-4 text-[hsl(var(--loom-primary))]" />
+                <span className="text-sm">TimePicker Demo</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[hsl(var(--loom-text-muted))]" />
+            </button>
             <p className="italic text-center">
               "weave your days together"
             </p>
