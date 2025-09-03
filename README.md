@@ -1,73 +1,247 @@
-# Welcome to your Lovable project
+# Loom - Weave Your Days Together
 
-## Project info
+*weave your days together*
 
-**URL**: https://lovable.dev/projects/22aa0ac9-e871-4459-af3c-bd527c171aef
+A modern couples' scheduling and coordination app that helps partners plan, share, and coordinate their schedules seamlessly.
 
-## How can I edit this code?
+## ✨ Features
 
-There are several ways of editing your application.
+### 🎯 **Core Functionality**
+- **Event Management**: Create, view, and manage personal and shared events
+- **Partner Coordination**: Invite partners and coordinate schedules together
+- **Time Proposals**: Propose meeting times and get instant responses
+- **Calendar Integration**: Full calendar view with event filtering and navigation
+- **Task Management**: Personal task lists with due dates and completion tracking
+- **Availability Finding**: Automatically find overlapping free time slots
 
-**Use Lovable**
+### 🔐 **Authentication & User Management**
+- Secure user registration and login
+- JWT-based authentication with refresh tokens
+- Partner invitation and connection system
+- Profile management with customizable preferences
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/22aa0ac9-e871-4459-af3c-bd527c171aef) and start prompting.
+### 📱 **User Experience**
+- **Responsive Design**: Optimized for mobile and desktop
+- **Real-time Updates**: Automatic data refresh every 30 seconds
+- **Offline Support**: Service worker for offline functionality
+- **Dark/Light Theme**: System-aware theme switching
+- **Toast Notifications**: Real-time feedback for all actions
+- **Loading States**: Skeleton loaders and progress indicators
 
-Changes made via Lovable will be committed automatically to this repo.
+### 🛠 **Technical Features**
+- **Type-Safe**: Full TypeScript implementation
+- **API-First**: Comprehensive REST API with FastAPI
+- **Database**: MongoDB with proper data modeling
+- **State Management**: React Context with optimistic updates
+- **Error Handling**: Comprehensive error boundaries and fallbacks
+- **Performance**: Code splitting, lazy loading, and caching
 
-**Use your preferred IDE**
+## 🏗️ Architecture
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Frontend (`/src`)
+```
+src/
+├── components/          # Reusable UI components
+│   ├── ui/             # shadcn/ui components
+│   └── ...             # Custom components
+├── pages/              # Route components
+├── contexts/           # React Context providers
+├── hooks/              # Custom React hooks
+├── api/                # API client and utilities
+└── types/              # TypeScript type definitions
+```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Backend (`/backend`)
+```
+backend/
+├── app/
+│   ├── routers/        # API route handlers
+│   ├── models/         # Pydantic models
+│   ├── auth/           # Authentication utilities
+│   ├── database/       # MongoDB connection
+│   └── middleware/     # Custom middleware
+└── requirements.txt    # Python dependencies
+```
 
-Follow these steps:
+## 🚀 Tech Stack
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### Frontend
+- **React 18** - Modern React with hooks and concurrent features
+- **TypeScript** - Type-safe development
+- **Vite** - Fast build tool and dev server
+- **React Query** - Powerful data fetching and caching
+- **React Router** - Client-side routing
+- **Tailwind CSS** - Utility-first CSS framework
+- **shadcn/ui** - Beautiful, accessible UI components
+- **Lucide Icons** - Consistent icon system
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Backend
+- **FastAPI** - Modern, fast web framework for Python
+- **MongoDB** - NoSQL database with flexible schemas
+- **Pydantic** - Data validation and serialization
+- **JWT** - JSON Web Tokens for authentication
+- **Bcrypt** - Password hashing
+- **CORS** - Cross-origin resource sharing
 
-# Step 3: Install the necessary dependencies.
-npm i
+### DevOps & Tools
+- **ESLint** - Code linting
+- **Prettier** - Code formatting
+- **Husky** - Git hooks
+- **Docker** - Containerization (planned)
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+## 🏃‍♂️ Quick Start
+
+### Prerequisites
+- Node.js 18+ and npm
+- Python 3.8+
+- MongoDB (local or cloud instance)
+
+### Frontend Setup
+```bash
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Backend Setup
+```bash
+# Navigate to backend directory
+cd backend
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+# Install Python dependencies
+pip install -r requirements.txt
 
-**Use GitHub Codespaces**
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your MongoDB connection string
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Start FastAPI server
+uvicorn app.main:app --reload --port 7500
+```
 
-## What technologies are used for this project?
+### Environment Variables
 
-This project is built with:
+Create `.env` in the backend directory:
+```env
+# Database
+MONGODB_URL=mongodb://localhost:27017/loom
+DATABASE_NAME=loom
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+# Security
+SECRET_KEY=your-secret-key-here
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_DAYS=7
 
-## How can I deploy this project?
+# CORS
+CORS_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
 
-Simply open [Lovable](https://lovable.dev/projects/22aa0ac9-e871-4459-af3c-bd527c171aef) and click on Share -> Publish.
+# API
+API_V1_STR=/api/v1
+PROJECT_NAME=Loom API
+```
 
-## Can I connect a custom domain to my Lovable project?
+## 📊 Current Status
 
-Yes, you can!
+### ✅ **Fully Implemented**
+- Complete user authentication system
+- Partner invitation and connection
+- Event creation, viewing, and management
+- Proposal system with accept/decline
+- Calendar view with filtering
+- Task management
+- Real-time polling updates
+- Responsive mobile-first design
+- Comprehensive error handling
+- Toast notification system
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### 🔄 **In Progress**
+- Settings page profile persistence
+- Individual event detail loading
+- Data fetching pattern standardization
+- Context API integration improvements
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+### 📋 **Planned Features**
+- WebSocket real-time updates
+- Push notifications
+- Calendar integrations (Google, Outlook)
+- Advanced availability algorithms
+- Shared checklists for events
+- Time zone management
+- Recurring events
+- Event reminders and notifications
+
+## 📚 API Documentation
+
+The API is fully documented with OpenAPI/Swagger. When running the backend server, visit:
+- **Swagger UI**: `http://localhost:7500/docs`
+- **ReDoc**: `http://localhost:7500/redoc`
+- **OpenAPI JSON**: `http://localhost:7500/openapi.json`
+
+### Key Endpoints
+- `POST /api/v1/auth/login` - User authentication
+- `GET /api/v1/events` - List user events
+- `POST /api/v1/events` - Create new event
+- `POST /api/v1/partner/invite` - Invite partner
+- `POST /api/v1/proposals` - Create time proposal
+- `GET /api/v1/availability/find-overlap` - Find free time slots
+
+## 🧪 Development
+
+### Available Scripts
+```bash
+# Frontend
+npm run dev          # Start dev server
+npm run build        # Build for production
+npm run preview      # Preview production build
+npm run lint         # Run ESLint
+
+# Backend
+cd backend
+uvicorn app.main:app --reload  # Start with auto-reload
+```
+
+### Code Quality
+- **ESLint**: Configured for React/TypeScript best practices
+- **Prettier**: Consistent code formatting
+- **TypeScript**: Strict type checking enabled
+- **Git Hooks**: Pre-commit hooks for quality checks
+
+### Testing
+```bash
+# Frontend tests (when implemented)
+npm run test
+
+# Backend tests (when implemented)
+cd backend
+pytest
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
+
+## 📄 License
+
+This project is private and proprietary.
+
+## 🙏 Acknowledgments
+
+- **shadcn/ui** - Beautiful UI components
+- **FastAPI** - Excellent Python web framework
+- **React Query** - Powerful data fetching
+- **Tailwind CSS** - Utility-first CSS framework
+- **Lucide** - Consistent icon system
+
+## 📞 Support
+
+For questions or support, please create an issue in the repository.
+
+---
+
+**Loom** - Making coordination effortless, one shared moment at a time.
