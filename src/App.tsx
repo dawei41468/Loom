@@ -1,19 +1,20 @@
-import React from 'react';
+import React, { Suspense, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
-// Pages
-import Onboarding from './pages/Onboarding';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Index from './pages/Index';
-import Calendar from './pages/Calendar';
-import Add from './pages/Add';
-import Tasks from './pages/Tasks';
-import Settings from './pages/Settings';
-import EventDetail from './pages/EventDetail';
-import NotFound from './pages/NotFound';
+// Code-split page components for better performance
+const Onboarding = React.lazy(() => import('./pages/Onboarding'));
+const Login = React.lazy(() => import('./pages/Login'));
+const Register = React.lazy(() => import('./pages/Register'));
+const Index = React.lazy(() => import('./pages/Index'));
+const Calendar = React.lazy(() => import('./pages/Calendar'));
+const Add = React.lazy(() => import('./pages/Add'));
+const Tasks = React.lazy(() => import('./pages/Tasks'));
+const Settings = React.lazy(() => import('./pages/Settings'));
+const Partner = React.lazy(() => import('./pages/Partner'));
+const EventDetail = React.lazy(() => import('./pages/EventDetail'));
+const NotFound = React.lazy(() => import('./pages/NotFound'));
 
 // Components
 import Layout from './components/Layout';
@@ -27,6 +28,9 @@ import { EventsProvider } from './contexts/EventsContext';
 import { TasksProvider } from './contexts/TasksContext';
 import { UIProvider } from './contexts/UIContext';
 
+// Hooks
+import { usePolling } from './hooks/usePolling';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -36,7 +40,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = React.memo(({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isOnboarded, isLoading } = useAuthState();
 
   if (isLoading) {
@@ -55,9 +59,29 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   return <>{children}</>;
-};
+});
 
-const AppRoutes = () => {
+ProtectedRoute.displayName = 'ProtectedRoute';
+
+// Loading fallback for lazy-loaded components
+const PageFallback = React.memo(() => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
+));
+
+PageFallback.displayName = 'PageFallback';
+
+const PollingManager = React.memo(() => {
+  const { isAuthenticated } = useAuthState();
+
+  // Only poll when user is authenticated
+  usePolling(isAuthenticated ? 30000 : 0); // 30 seconds when authenticated, disabled when not
+
+  return null;
+});
+
+const AppRoutes = React.memo(() => {
   const { isAuthenticated, isOnboarded, isLoading } = useAuthState();
 
   if (isLoading) {
@@ -65,54 +89,60 @@ const AppRoutes = () => {
   }
 
   return (
-    <Routes>
-      {/* Public routes */}
-      <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
-      <Route path="/register" element={isAuthenticated ? <Navigate to="/" replace /> : <Register />} />
+    <Suspense fallback={<PageFallback />}>
+      <PollingManager />
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
+        <Route path="/register" element={isAuthenticated ? <Navigate to="/" replace /> : <Register />} />
 
-      {/* Onboarding route */}
-      <Route
-        path="/onboarding"
-        element={
-          isAuthenticated && !isOnboarded ? (
-            <Onboarding />
-          ) : (
-            <Navigate to={isAuthenticated ? "/" : "/login"} replace />
-          )
-        }
-      />
+        {/* Onboarding route */}
+        <Route
+          path="/onboarding"
+          element={
+            isAuthenticated && !isOnboarded ? (
+              <Onboarding />
+            ) : (
+              <Navigate to={isAuthenticated ? "/" : "/login"} replace />
+            )
+          }
+        />
 
-      {/* Protected routes */}
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Index />} />
-        <Route path="calendar" element={<Calendar />} />
-        <Route path="add" element={<Add />} />
-        <Route path="tasks" element={<Tasks />} />
-        <Route path="settings" element={<Settings />} />
-      </Route>
-      <Route
-        path="/event/:id"
-        element={
-          <ProtectedRoute>
-            <EventDetail />
-          </ProtectedRoute>
-        }
-      />
+        {/* Protected routes */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Index />} />
+          <Route path="calendar" element={<Calendar />} />
+          <Route path="add" element={<Add />} />
+          <Route path="tasks" element={<Tasks />} />
+          <Route path="partner" element={<Partner />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
+        <Route
+          path="/event/:id"
+          element={
+            <ProtectedRoute>
+              <EventDetail />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Not Found */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        {/* Not Found */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   );
-};
+});
 
-const App = () => {
+AppRoutes.displayName = 'AppRoutes';
+
+const App = React.memo(() => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -140,6 +170,8 @@ const App = () => {
       </TooltipProvider>
     </QueryClientProvider>
   );
-};
+});
+
+App.displayName = 'App';
 
 export default App;

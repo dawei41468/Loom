@@ -100,6 +100,25 @@ class ApiClient {
     return this.request<ApiResponse<Partner | null>>('/partner');
   }
 
+  async invitePartner(email: string): Promise<ApiResponse<{ partnership_id: string }>> {
+    return this.request<ApiResponse<{ partnership_id: string }>>('/partner/invite', {
+      method: 'POST',
+      body: JSON.stringify({ invited_user_email: email }),
+    });
+  }
+
+  async acceptPartnership(partnershipId: string): Promise<ApiResponse<void>> {
+    return this.request<ApiResponse<void>>(`/partner/accept/${partnershipId}`, {
+      method: 'POST',
+    });
+  }
+
+  async declinePartnership(partnershipId: string): Promise<ApiResponse<void>> {
+    return this.request<ApiResponse<void>>(`/partner/decline/${partnershipId}`, {
+      method: 'POST',
+    });
+  }
+
   // Events
   async getEvents(): Promise<ApiResponse<Event[]>> {
     return this.request<ApiResponse<Event[]>>('/events');

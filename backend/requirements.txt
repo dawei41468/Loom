@@ -8,3 +8,8 @@ pydantic
 pydantic-settings
 python-dotenv
 python-multipart
+slowapi
+python-jose[cryptography]
+bcrypt
+redis
+aiocache

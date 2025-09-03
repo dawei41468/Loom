@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from .config import settings
 from .database import connect_to_mongo, close_mongo_connection
+from .middleware import setup_middleware
+from .cache import cache_manager
 from .routers import auth, events, tasks, proposals, partner, availability
 
 
@@ -10,6 +12,7 @@ from .routers import auth, events, tasks, proposals, partner, availability
 async def lifespan(app: FastAPI):
     # Startup
     await connect_to_mongo()
+    await cache_manager.initialize()
     yield
     # Shutdown
     await close_mongo_connection()
@@ -28,6 +31,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Security middleware (rate limiting and logging)
+setup_middleware(app)
 
 # Include routers
 app.include_router(auth.router, prefix=settings.API_V1_STR)

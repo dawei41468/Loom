@@ -79,6 +79,24 @@ class Partner(MongoBaseModel, PartnerBase):
     connected_at: Optional[datetime] = None
 
 
+# Partnership Models
+class PartnershipBase(BaseModel):
+    user1_id: str
+    user2_id: str
+    status: Literal["pending", "accepted", "declined"] = "pending"
+    invited_by: str  # User ID who sent the invitation
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    accepted_at: Optional[datetime] = None
+
+
+class Partnership(MongoBaseModel, PartnershipBase):
+    pass
+
+
+class PartnershipCreate(BaseModel):
+    invited_user_email: str
+
+
 # Event Models
 class TimeSlot(BaseModel):
     start_time: datetime

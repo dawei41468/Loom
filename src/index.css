@@ -372,3 +372,231 @@
     }
   }
 }
+
+/* React Big Calendar Styles */
+.loom-calendar .rbc-calendar {
+  background: hsl(var(--loom-surface));
+  color: hsl(var(--loom-text));
+  font-family: inherit;
+}
+
+.loom-calendar .rbc-header {
+  background: hsl(var(--loom-primary-light));
+  color: hsl(var(--loom-primary));
+  padding: 8px;
+  font-weight: 600;
+  border-bottom: 1px solid hsl(var(--loom-border));
+}
+
+.loom-calendar .rbc-header + .rbc-header {
+  border-left: 1px solid hsl(var(--loom-border));
+}
+
+.loom-calendar .rbc-month-view,
+.loom-calendar .rbc-time-view {
+  border: 1px solid hsl(var(--loom-border));
+  border-radius: var(--loom-radius-lg);
+}
+
+.loom-calendar .rbc-date-cell {
+  padding: 4px;
+  text-align: center;
+  color: hsl(var(--loom-text));
+}
+
+.loom-calendar .rbc-date-cell > a {
+  color: hsl(var(--loom-text));
+  text-decoration: none;
+}
+
+.loom-calendar .rbc-date-cell.rbc-off-range {
+  color: hsl(var(--loom-text-muted));
+}
+
+.loom-calendar .rbc-date-cell.rbc-now {
+  background: hsl(var(--loom-primary-light));
+  color: hsl(var(--loom-primary));
+  font-weight: 600;
+}
+
+.loom-calendar .rbc-event {
+  background: hsl(var(--loom-primary));
+  color: white;
+  border-radius: var(--loom-radius-md);
+  padding: 2px 6px;
+  border: none;
+  font-size: 12px;
+}
+
+.loom-calendar .rbc-event.rbc-selected {
+  background: hsl(var(--loom-primary-dark));
+}
+
+.loom-calendar .rbc-today {
+  background: hsl(var(--loom-primary-light)) !important;
+}
+
+.loom-calendar .rbc-toolbar {
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding: 0;
+}
+
+.loom-calendar .rbc-toolbar button {
+  color: hsl(var(--loom-text));
+  background: hsl(var(--loom-surface));
+  border: 1px solid hsl(var(--loom-border));
+  border-radius: var(--loom-radius-md);
+  padding: 8px 16px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.loom-calendar .rbc-toolbar button:hover {
+  background: hsl(var(--loom-border));
+  color: hsl(var(--loom-text));
+}
+
+.loom-calendar .rbc-toolbar button.rbc-active {
+  background: hsl(var(--loom-primary));
+  color: white;
+  border-color: hsl(var(--loom-primary));
+}
+
+.loom-calendar .rbc-toolbar-label {
+  color: hsl(var(--loom-text));
+  font-weight: 600;
+  font-size: 18px;
+  margin: 0 20px;
+}
+
+.loom-calendar .rbc-time-slot {
+  border-top: 1px solid hsl(var(--loom-border));
+}
+
+.loom-calendar .rbc-time-view .rbc-header {
+  border-bottom: 1px solid hsl(var(--loom-border));
+}
+
+.loom-calendar .rbc-time-content {
+  border-top: 1px solid hsl(var(--loom-border));
+}
+
+.loom-calendar .rbc-current-time-indicator {
+  background: hsl(var(--loom-danger));
+  height: 2px;
+}
+
+.loom-calendar .rbc-slot-selection {
+  background: hsl(var(--loom-primary-light));
+}
+
+/* Mobile calendar adjustments */
+@media (max-width: 640px) {
+  .loom-calendar .rbc-toolbar {
+    margin-bottom: 10px;
+  }
+
+  .loom-calendar .rbc-toolbar button {
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+
+  .loom-calendar .rbc-toolbar-label {
+    font-size: 16px;
+    margin: 0 10px;
+  }
+
+  .loom-calendar .rbc-event {
+    font-size: 11px;
+    padding: 1px 4px;
+    min-height: 20px;
+    line-height: 1.2;
+  }
+
+  .loom-calendar .rbc-month-view {
+    border: none;
+  }
+
+  .loom-calendar .rbc-month-row {
+    min-height: 80px;
+  }
+
+  .loom-calendar .rbc-date-cell {
+    padding: 2px;
+    min-height: 60px;
+  }
+
+  .loom-calendar .rbc-date-cell > a {
+    font-size: 14px;
+    padding: 4px;
+    min-width: 24px;
+    min-height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .loom-calendar .rbc-header {
+    padding: 6px 2px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+}
+
+/* Extra small mobile (361px and below) */
+@media (max-width: 361px) {
+  .loom-calendar .rbc-month-row {
+    min-height: 70px;
+  }
+
+  .loom-calendar .rbc-date-cell {
+    padding: 1px;
+    min-height: 50px;
+  }
+
+  .loom-calendar .rbc-date-cell > a {
+    font-size: 12px;
+    padding: 2px;
+    min-width: 20px;
+    min-height: 20px;
+  }
+
+  .loom-calendar .rbc-header {
+    padding: 4px 1px;
+    font-size: 11px;
+  }
+
+  .loom-calendar .rbc-event {
+    font-size: 10px;
+    padding: 1px 2px;
+    min-height: 18px;
+  }
+
+  .loom-calendar .rbc-today {
+    background: hsl(var(--loom-primary-light)) !important;
+  }
+
+  .loom-calendar .rbc-off-range {
+    color: hsl(var(--loom-text-muted)) !important;
+    opacity: 0.5;
+  }
+}
+
+/* Touch-friendly interactions */
+@media (hover: none) and (pointer: coarse) {
+  .loom-calendar .rbc-date-cell > a {
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  .loom-calendar .rbc-event {
+    min-height: 24px;
+    cursor: pointer;
+  }
+
+  .loom-calendar .rbc-slot-selection {
+    background: hsl(var(--loom-primary-light));
+    opacity: 0.7;
+  }
+}

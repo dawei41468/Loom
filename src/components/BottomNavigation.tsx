@@ -1,12 +1,13 @@
 // iOS-style Bottom Navigation
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { 
-  CalendarDays, 
-  Calendar, 
-  Plus, 
-  CheckSquare, 
-  Settings 
+import {
+  CalendarDays,
+  Calendar,
+  Plus,
+  CheckSquare,
+  Heart,
+  Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,6 +32,11 @@ const navItems = [
     to: '/tasks',
     icon: CheckSquare,
     label: 'Tasks',
+  },
+  {
+    to: '/partner',
+    icon: Heart,
+    label: 'Partner',
   },
   {
     to: '/settings',

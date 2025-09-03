@@ -4,6 +4,7 @@ import { useEffect, useMemo } from 'react';
 import { format, isToday, isTomorrow, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { Plus, Clock, MapPin, Users, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEvents, useProposals, useEventsActions } from '../contexts/EventsContext';
 import { useAuthState } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
@@ -20,6 +21,49 @@ const Index = () => {
   const { setEvents, setProposals } = useEventsActions();
   const { user, partner } = useAuthState();
   const { addToast } = useToastContext();
+  const queryClient = useQueryClient();
+
+  const acceptProposalMutation = useMutation({
+    mutationFn: ({ proposalId, selectedTimeSlot }: {
+      proposalId: string;
+      selectedTimeSlot: { start_time: string; end_time: string }
+    }) => apiClient.acceptProposal(proposalId, selectedTimeSlot),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      addToast({
+        type: 'success',
+        title: 'Proposal accepted!',
+        description: 'A new event has been created.',
+      });
+    },
+    onError: (error: Error) => {
+      addToast({
+        type: 'error',
+        title: 'Failed to accept proposal',
+        description: error.message,
+      });
+    },
+  });
+
+  const declineProposalMutation = useMutation({
+    mutationFn: (proposalId: string) => apiClient.declineProposal(proposalId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      addToast({
+        type: 'info',
+        title: 'Proposal declined',
+        description: 'The proposal has been declined.',
+      });
+    },
+    onError: (error: Error) => {
+      addToast({
+        type: 'error',
+        title: 'Failed to decline proposal',
+        description: error.message,
+      });
+    },
+  });
 
   useEffect(() => {
     const loadData = async () => {
@@ -143,11 +187,31 @@ const Index = () => {
                     </p>
                   </div>
                   <div className="flex space-x-2 sm:ml-4">
-                    <button className="loom-chip loom-chip-primary text-xs hover-scale flex-1 sm:flex-initial">
-                      Accept
+                    <button
+                      onClick={() => {
+                        // For now, accept the first proposed time slot
+                        const firstTimeSlot = proposal.proposed_times[0];
+                        if (firstTimeSlot) {
+                          acceptProposalMutation.mutate({
+                            proposalId: proposal.id,
+                            selectedTimeSlot: {
+                              start_time: firstTimeSlot.start_time,
+                              end_time: firstTimeSlot.end_time,
+                            },
+                          });
+                        }
+                      }}
+                      disabled={acceptProposalMutation.isPending}
+                      className="loom-chip loom-chip-primary text-xs hover-scale flex-1 sm:flex-initial"
+                    >
+                      {acceptProposalMutation.isPending ? 'Accepting...' : 'Accept'}
                     </button>
-                    <button className="loom-chip text-xs hover-scale border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] flex-1 sm:flex-initial">
-                      Decline
+                    <button
+                      onClick={() => declineProposalMutation.mutate(proposal.id)}
+                      disabled={declineProposalMutation.isPending}
+                      className="loom-chip text-xs hover-scale border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] flex-1 sm:flex-initial"
+                    >
+                      {declineProposalMutation.isPending ? 'Declining...' : 'Decline'}
                     </button>
                   </div>
                 </div>

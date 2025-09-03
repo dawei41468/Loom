@@ -1,18 +1,25 @@
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from ..models import User, UserCreate, UserLogin, Token, ApiResponse
 from ..auth import authenticate_user, create_access_token, get_password_hash, get_current_user
 from ..database import get_database
 from ..config import settings
+from ..security import validate_password_strength, validate_email_format
 from bson import ObjectId
+
+# Rate limiter for auth endpoints
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 security = HTTPBearer()
 
 
 @router.post("/register", response_model=ApiResponse)
-async def register(user_data: UserCreate):
+@limiter.limit("5/minute")
+async def register(request: Request, user_data: UserCreate):
     """Register a new user"""
     db = get_database()
     if db is None:
@@ -21,6 +28,13 @@ async def register(user_data: UserCreate):
             detail="Database connection not available"
         )
     
+    # Validate email format
+    if not validate_email_format(user_data.email):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email format"
+        )
+
     # Check if user already exists
     existing_user = await db.users.find_one({"email": user_data.email})
     if existing_user:
@@ -28,7 +42,15 @@ async def register(user_data: UserCreate):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
-    
+
+    # Validate password strength
+    password_valid, password_error = validate_password_strength(user_data.password)
+    if not password_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=password_error
+        )
+
     # Create new user
     user_dict = user_data.dict(exclude={"password"})
     user_dict["password_hash"] = get_password_hash(user_data.password)
@@ -55,7 +77,8 @@ async def register(user_data: UserCreate):
 
 
 @router.post("/login", response_model=Token)
-async def login(user_credentials: UserLogin):
+@limiter.limit("10/minute")
+async def login(request: Request, user_credentials: UserLogin):
     """Login user and return access token"""
     user = await authenticate_user(user_credentials.email, user_credentials.password)
     if not user:
