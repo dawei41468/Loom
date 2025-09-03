@@ -1,5 +1,5 @@
 import React, { createContext, useReducer, useContext, useEffect } from 'react';
-import { User, Partner } from '../types';
+import { User, Partner, Token } from '../types';
 import { apiClient } from '../api/client';
 
  
@@ -9,6 +9,7 @@ interface AuthState {
   user: User | null;
   partner: Partner | null;
   token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   isOnboarded: boolean;
   isLoading: boolean;
@@ -16,7 +17,8 @@ interface AuthState {
 
 // 2. Define Action Types
 type AuthAction =
-  | { type: 'LOGIN'; payload: { token: string; user: User } }
+  | { type: 'LOGIN'; payload: { token: string; refreshToken: string; user: User } }
+  | { type: 'REFRESH_TOKENS'; payload: { token: string; refreshToken: string } }
   | { type: 'LOGOUT' }
   | { type: 'SET_USER'; payload: User | null }
   | { type: 'SET_PARTNER'; payload: Partner | null }
@@ -28,6 +30,7 @@ const initialState: AuthState = {
   user: null,
   partner: null,
   token: null,
+  refreshToken: null,
   isAuthenticated: false,
   isOnboarded: false,
   isLoading: true,
@@ -41,8 +44,15 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
         ...state,
         isAuthenticated: true,
         token: action.payload.token,
+        refreshToken: action.payload.refreshToken,
         user: action.payload.user,
         isOnboarded: action.payload.user.is_onboarded || false,
+      };
+    case 'REFRESH_TOKENS':
+      return {
+        ...state,
+        token: action.payload.token,
+        refreshToken: action.payload.refreshToken,
       };
     case 'LOGOUT':
       return {
@@ -84,14 +94,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [state, dispatch] = useReducer(authReducer, initialState, (initializer) => {
     try {
       const token = localStorage.getItem('loom-auth-token');
+      const refreshToken = localStorage.getItem('loom-auth-refresh-token');
       const userString = localStorage.getItem('loom-auth-user');
-      if (token && userString) {
+      if (token && refreshToken && userString) {
         const user: User = JSON.parse(userString);
         apiClient.setToken(token);
+        apiClient.setRefreshToken(refreshToken);
         return {
           ...initializer,
           isAuthenticated: true,
           token,
+          refreshToken,
           user,
           isOnboarded: user.is_onboarded,
         };
@@ -110,17 +123,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [state.isLoading]);
 
   useEffect(() => {
+    // Set up token refresh callback
+    apiClient.setOnTokensRefreshed((tokens: Token) => {
+      dispatch({
+        type: 'REFRESH_TOKENS',
+        payload: { token: tokens.access_token, refreshToken: tokens.refresh_token }
+      });
+    });
+  }, []);
+
+  useEffect(() => {
     // Persist token and user to localStorage
-    if (state.token && state.user) {
+    if (state.token && state.refreshToken && state.user) {
       localStorage.setItem('loom-auth-token', state.token);
+      localStorage.setItem('loom-auth-refresh-token', state.refreshToken);
       localStorage.setItem('loom-auth-user', JSON.stringify(state.user));
       apiClient.setToken(state.token);
+      apiClient.setRefreshToken(state.refreshToken);
     } else {
       localStorage.removeItem('loom-auth-token');
+      localStorage.removeItem('loom-auth-refresh-token');
       localStorage.removeItem('loom-auth-user');
       apiClient.setToken(null);
+      apiClient.setRefreshToken(null);
     }
-  }, [state.token, state.user]);
+  }, [state.token, state.refreshToken, state.user]);
 
   return (
     <AuthStateContext.Provider value={state}>

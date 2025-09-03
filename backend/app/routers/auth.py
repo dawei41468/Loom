@@ -4,7 +4,7 @@ from fastapi.security import HTTPBearer
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from ..models import User, UserCreate, UserLogin, Token, ApiResponse
-from ..auth import authenticate_user, create_access_token, get_password_hash, get_current_user
+from ..auth import authenticate_user, create_access_token, create_refresh_token, verify_refresh_token, get_password_hash, get_current_user
 from ..database import get_database
 from ..config import settings
 from ..security import validate_password_strength, validate_email_format
@@ -92,8 +92,38 @@ async def login(request: Request, user_credentials: UserLogin):
     access_token = create_access_token(
         data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
-    
-    return Token(access_token=access_token, token_type="bearer")
+    refresh_token = create_refresh_token(data={"sub": str(user.id)})
+
+    return Token(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
+
+
+@router.post("/refresh", response_model=Token)
+@limiter.limit("10/minute")
+async def refresh_token(request: Request, refresh_token_request: dict):
+    """Refresh access token using refresh token"""
+    refresh_token = refresh_token_request.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Refresh token required"
+        )
+
+    user_id = verify_refresh_token(refresh_token)
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Create new tokens
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user_id}, expires_delta=access_token_expires
+    )
+    new_refresh_token = create_refresh_token(data={"sub": user_id})
+
+    return Token(access_token=access_token, refresh_token=new_refresh_token, token_type="bearer")
 
 
 @router.get("/me", response_model=ApiResponse)

@@ -1,7 +1,8 @@
-// Main Layout with Bottom Navigation
+// Main Layout with TopBar and Bottom Navigation
 import React, { useMemo } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import BottomNavigation from './BottomNavigation';
+import TopBar from './TopBar';
 
 const Layout = React.memo(() => {
   const location = useLocation();
@@ -15,8 +16,11 @@ const Layout = React.memo(() => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[hsl(var(--loom-bg))]">
+      {/* TopBar */}
+      {!hideBottomNav && <TopBar />}
+
       {/* Main content area with proper spacing and safe areas */}
-      <main className="flex-1 pb-24 safe-area-top">
+      <main className="flex-1 pb-24 pt-3 safe-area-top">
         <Outlet />
       </main>
 

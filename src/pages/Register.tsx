@@ -6,6 +6,7 @@ import { useAuthDispatch } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
 import { UserCreate } from '../types';
+import LoomLogo from '../components/LoomLogo';
 
 const Register = () => {
   const [email, setEmail] = useState('');
@@ -50,14 +51,15 @@ const Register = () => {
         const loginResponse = await apiClient.login({ email, password });
         
         if (loginResponse) {
-          // Set the token on the API client before making authenticated requests
+          // Set the tokens on the API client before making authenticated requests
           apiClient.setToken(loginResponse.access_token);
+          apiClient.setRefreshToken(loginResponse.refresh_token);
           const userResponse = await apiClient.getMe();
 
           if (userResponse.data) {
             dispatch({
               type: 'LOGIN',
-              payload: { token: loginResponse.access_token, user: userResponse.data },
+              payload: { token: loginResponse.access_token, refreshToken: loginResponse.refresh_token, user: userResponse.data },
             });
             addToast({
               type: 'success',
@@ -92,23 +94,28 @@ const Register = () => {
 
   return (
     <div className="min-h-screen bg-[hsl(var(--loom-bg))] flex flex-col safe-area-top">
-      {/* Header */}
-      <div className="px-6 py-8 text-center">
-        <div className="w-20 h-20 mx-auto rounded-full loom-gradient-hero flex items-center justify-center mb-6">
-          <Users className="w-10 h-10 text-white" />
+      {/* Centered content container for desktop */}
+      <div className="w-full max-w-2xl mx-auto md:px-8">
+        {/* Header */}
+        <div className="px-6 py-8 text-center md:px-0 md:py-12">
+          <div className="mb-8 flex justify-center">
+            <div className="scale-125">
+              <LoomLogo size="lg" />
+            </div>
+          </div>
+          <h1 className="text-3xl font-semibold text-[hsl(var(--loom-text))] mb-2 md:text-4xl">
+            Join Loom
+          </h1>
+          <p className="text-lg text-[hsl(var(--loom-text-muted))] leading-relaxed md:text-xl">
+            <em>weave your days together</em>
+          </p>
         </div>
-        <h1 className="text-3xl font-semibold text-[hsl(var(--loom-text))] mb-2">
-          Join Loom
-        </h1>
-        <p className="text-lg text-[hsl(var(--loom-text-muted))] leading-relaxed">
-          <em>weave your days together</em>
-        </p>
-      </div>
 
-      {/* Registration Form */}
-      <div className="flex-1 px-6 pb-8">
-        <div className="loom-card max-w-md mx-auto">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Registration Form */}
+        <div className="flex-1 px-6 pb-8 md:px-0 md:pb-12">
+          <div className="max-w-md mx-auto md:max-w-lg">
+            <div className="loom-card">
+            <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium mb-2 text-[hsl(var(--loom-text))]">
                 Display Name
@@ -220,17 +227,12 @@ const Register = () => {
           >
             Sign in instead
           </button>
-        </div>
-
-        {/* Demo Note */}
-        <div className="mt-6 text-center">
-          <p className="text-sm text-[hsl(var(--loom-text-muted))]">
-            Demo: Use any email/password to test the registration flow
-          </p>
+          </div>
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default Register;

@@ -6,8 +6,7 @@ import {
   Calendar,
   Plus,
   CheckSquare,
-  Heart,
-  Settings
+  Heart
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -37,11 +36,6 @@ const navItems = [
     to: '/partner',
     icon: Heart,
     label: 'Partner',
-  },
-  {
-    to: '/settings',
-    icon: Settings,
-    label: 'Settings',
   },
 ];
 

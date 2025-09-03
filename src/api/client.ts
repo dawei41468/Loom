@@ -20,16 +20,60 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7500
 class ApiClient {
   private baseURL: string;
   private token: string | null = null;
+  private refreshToken: string | null = null;
+  private isRefreshing = false;
+  private refreshPromise: Promise<Token> | null = null;
+  private onTokensRefreshed?: (tokens: Token) => void;
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
+  }
+
+  public setOnTokensRefreshed(callback: (tokens: Token) => void) {
+    this.onTokensRefreshed = callback;
   }
 
   public setToken(token: string | null) {
     this.token = token;
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  public setRefreshToken(refreshToken: string | null) {
+    this.refreshToken = refreshToken;
+  }
+
+  private async refreshTokens(): Promise<Token> {
+    if (!this.refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    const response = await fetch(`${this.baseURL}/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refresh_token: this.refreshToken }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Refresh token expired. Please login again.');
+      }
+      throw new Error('Failed to refresh token');
+    }
+
+    const tokenData: Token = await response.json();
+    this.token = tokenData.access_token;
+    this.refreshToken = tokenData.refresh_token;
+
+    // Notify AuthContext of token refresh
+    if (this.onTokensRefreshed) {
+      this.onTokensRefreshed(tokenData);
+    }
+
+    return tokenData;
+  }
+
+  private async request<T>(endpoint: string, options: RequestInit = {}, isRetry = false): Promise<T> {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       ...options.headers,
@@ -40,7 +84,7 @@ class ApiClient {
     }
 
     const url = `${this.baseURL}${endpoint}`;
-    
+
     try {
       const response = await fetch(url, {
         ...options,
@@ -48,14 +92,41 @@ class ApiClient {
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          // The caller should handle this, e.g., by logging out the user.
+        if (response.status === 401 && !isRetry && this.refreshToken) {
+          // Attempt to refresh token and retry the request
+          try {
+            if (this.isRefreshing) {
+              // Wait for ongoing refresh to complete
+              await this.refreshPromise;
+            } else {
+              // Start refresh process
+              this.isRefreshing = true;
+              this.refreshPromise = this.refreshTokens();
+              const newTokens = await this.refreshPromise;
+
+              // Update AuthContext with new tokens
+              // This will be handled by the AuthContext when tokens are updated
+              this.isRefreshing = false;
+              this.refreshPromise = null;
+            }
+
+            // Retry the original request with new token
+            return this.request<T>(endpoint, options, true);
+          } catch (refreshError) {
+            this.isRefreshing = false;
+            this.refreshPromise = null;
+            // If refresh fails, throw the original 401 error
+            throw new Error('Authentication failed. Please login again.');
+          }
+        } else if (response.status === 401) {
+          // Either no refresh token or already retried
           throw new Error('Authentication failed. Please login again.');
         }
+
         const errorData = await response.json().catch(() => ({ detail: response.statusText }));
         throw new Error(errorData.detail || `API Error: ${response.statusText}`);
       }
-      
+
       // Handle cases with no content
       if (response.status === 204) {
         return {} as T;

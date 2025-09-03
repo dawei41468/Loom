@@ -43,7 +43,7 @@
       "purpose": "maskable any"
     },
     {
-      "src": "/icons/icon-192x192.svg",
+      "src": "/icons/loom-logo-192.svg",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "maskable any"
@@ -61,9 +61,9 @@
       "purpose": "maskable any"
     },
     {
-      "src": "/icons/apple-touch-icon.png",
+      "src": "/icons/loom-apple-touch-icon.svg",
       "sizes": "180x180",
-      "type": "image/png"
+      "type": "image/svg+xml"
     }
   ],
   "shortcuts": [

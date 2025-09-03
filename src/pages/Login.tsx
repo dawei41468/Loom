@@ -6,6 +6,7 @@ import { useAuthDispatch } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
 import { UserLogin } from '../types';
+import LoomLogo from '../components/LoomLogo';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -28,9 +29,10 @@ const Login = () => {
       console.log('Login response:', response);
 
       if (response) {
-        console.log('Login successful, setting token and fetching user data...');
-        // Set the token on the API client before making authenticated requests
+        console.log('Login successful, setting tokens and fetching user data...');
+        // Set the tokens on the API client before making authenticated requests
         apiClient.setToken(response.access_token);
+        apiClient.setRefreshToken(response.refresh_token);
         const userResponse = await apiClient.getMe();
         console.log('User response:', userResponse);
 
@@ -38,7 +40,7 @@ const Login = () => {
           console.log('User data received, dispatching LOGIN action...');
           dispatch({
             type: 'LOGIN',
-            payload: { token: response.access_token, user: userResponse.data },
+            payload: { token: response.access_token, refreshToken: response.refresh_token, user: userResponse.data },
           });
           addToast({
             type: 'success',
@@ -79,23 +81,28 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-[hsl(var(--loom-bg))] flex flex-col safe-area-top">
-      {/* Header */}
-      <div className="px-6 py-8 text-center">
-        <div className="w-20 h-20 mx-auto rounded-full loom-gradient-hero flex items-center justify-center mb-6">
-          <Users className="w-10 h-10 text-white" />
+      {/* Centered content container for desktop */}
+      <div className="w-full max-w-2xl mx-auto md:px-8">
+        {/* Header */}
+        <div className="px-6 py-8 text-center md:px-0 md:py-12">
+          <div className="mb-8 flex justify-center">
+            <div className="scale-125">
+              <LoomLogo size="lg" />
+            </div>
+          </div>
+          <h1 className="text-3xl font-semibold text-[hsl(var(--loom-text))] mb-2 md:text-4xl">
+            Welcome to Loom
+          </h1>
+          <p className="text-lg text-[hsl(var(--loom-text-muted))] leading-relaxed md:text-xl">
+            <em>weave your days together</em>
+          </p>
         </div>
-        <h1 className="text-3xl font-semibold text-[hsl(var(--loom-text))] mb-2">
-          Welcome to Loom
-        </h1>
-        <p className="text-lg text-[hsl(var(--loom-text-muted))] leading-relaxed">
-          <em>weave your days together</em>
-        </p>
-      </div>
 
-      {/* Login Form */}
-      <div className="flex-1 px-6 pb-8">
-        <div className="loom-card max-w-md mx-auto">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Login Form */}
+        <div className="flex-1 px-6 pb-8 md:px-0 md:pb-12">
+          <div className="max-w-md mx-auto md:max-w-lg">
+            <div className="loom-card">
+            <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium mb-2 text-[hsl(var(--loom-text))]">
                 Email Address
@@ -175,17 +182,12 @@ const Login = () => {
           >
             Create an account
           </button>
-        </div>
-
-        {/* Demo Note */}
-        <div className="mt-6 text-center">
-          <p className="text-sm text-[hsl(var(--loom-text-muted))]">
-            Demo: Use any email/password to test the login flow
-          </p>
+          </div>
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default Login;
