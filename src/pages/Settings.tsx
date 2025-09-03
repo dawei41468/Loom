@@ -109,7 +109,7 @@ const Settings = () => {
             <h2 className="font-semibold">{user?.display_name}</h2>
             <p className="text-sm text-[hsl(var(--loom-text-muted))]">{user?.email}</p>
           </div>
-          <ChevronRight className="w-5 h-5 text-[hsl(var(--loom-text-muted))]" />
+          <ChevronRight className="w-5 h-5 text-[hsl(var(--loom-text))]" />
         </div>
         
         <div className="space-y-3">
@@ -280,7 +280,7 @@ const Settings = () => {
                 <Clock className="w-4 h-4 text-[hsl(var(--loom-primary))]" />
                 <span className="text-sm">TimePicker Demo</span>
               </div>
-              <ChevronRight className="w-4 h-4 text-[hsl(var(--loom-text-muted))]" />
+              <ChevronRight className="w-4 h-4 text-[hsl(var(--loom-text))]" />
             </button>
             <p className="italic text-center">
               "weave your days together"
@@ -295,7 +295,7 @@ const Settings = () => {
           onClick={handleLogout}
           className="w-full loom-btn-danger flex items-center justify-center space-x-2"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-4 h-4 text-white" />
           <span>Log Out</span>
         </button>
       </div>

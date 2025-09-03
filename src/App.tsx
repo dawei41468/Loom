@@ -21,6 +21,7 @@ const TimePickerDemo = React.lazy(() => import('./components/TimePickerDemo'));
 import Layout from './components/Layout';
 import LoadingScreen from './components/LoadingScreen';
 import ToastContainer from './components/ToastContainer';
+import ThemeProvider from './components/ThemeProvider';
 
 // Contexts & API
 import { ToastProvider } from './contexts/ToastContext';
@@ -153,17 +154,19 @@ const App = React.memo(() => {
             <EventsProvider>
               <TasksProvider>
                 <UIProvider>
-                  <BrowserRouter
-                    future={{
-                      v7_startTransition: true,
-                      v7_relativeSplatPath: true
-                    }}
-                  >
-                    <div className="min-h-screen bg-[hsl(var(--loom-bg))] text-[hsl(var(--loom-text))]">
-                      <AppRoutes />
-                      <ToastContainer />
-                    </div>
-                  </BrowserRouter>
+                  <ThemeProvider>
+                    <BrowserRouter
+                      future={{
+                        v7_startTransition: true,
+                        v7_relativeSplatPath: true
+                      }}
+                    >
+                      <div className="min-h-screen bg-[hsl(var(--loom-bg))] text-[hsl(var(--loom-text))]">
+                        <AppRoutes />
+                        <ToastContainer />
+                      </div>
+                    </BrowserRouter>
+                  </ThemeProvider>
                 </UIProvider>
               </TasksProvider>
             </EventsProvider>

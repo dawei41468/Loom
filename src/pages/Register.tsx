@@ -225,7 +225,7 @@ const Register = () => {
             className="w-full text-center text-[hsl(var(--loom-primary))] hover:text-[hsl(var(--loom-primary-dark))] font-medium transition-colors"
             disabled={isLoading}
           >
-            Sign in instead
+            Sign in
           </button>
           </div>
         </div>

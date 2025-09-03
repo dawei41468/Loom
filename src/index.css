@@ -135,6 +135,39 @@
   }
 }
 
+/* Calendar dark mode medium gray colors */
+.dark .loom-calendar .rbc-calendar,
+.dark .loom-calendar .rbc-month-view,
+.dark .loom-calendar .rbc-time-view {
+  color: hsl(220 10% 65%);
+}
+
+.dark .loom-calendar .rbc-header {
+  color: hsl(220 10% 75%);
+  border-bottom: 1px solid hsl(220 15% 25%);
+}
+
+.dark .loom-calendar .rbc-header + .rbc-header {
+  border-left: 1px solid hsl(220 15% 25%);
+}
+
+.dark .loom-calendar .rbc-month-view,
+.dark .loom-calendar .rbc-time-view {
+  border: 1px solid hsl(220 15% 25%);
+}
+
+.dark .loom-calendar .rbc-time-slot {
+  border-top: 1px solid hsl(220 15% 20%);
+}
+
+.dark .loom-calendar .rbc-time-view .rbc-header {
+  border-bottom: 1px solid hsl(220 15% 25%);
+}
+
+.dark .loom-calendar .rbc-time-content {
+  border-top: 1px solid hsl(220 15% 25%);
+}
+
 /* Animation keyframes */
 @keyframes slide-up {
   from {
@@ -186,6 +219,10 @@
 
   .loom-btn-ghost {
     @apply text-[hsl(var(--loom-text))] font-medium px-4 py-2 rounded-[var(--loom-radius-md)] hover:bg-[hsl(var(--loom-border))] transition-colors focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:ring-offset-2;
+  }
+
+  .loom-btn-danger {
+    @apply bg-[hsl(var(--loom-danger))] text-white font-medium px-4 py-2 rounded-[var(--loom-radius-md)] hover:bg-[hsl(var(--loom-danger))]/90 transition-colors focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-danger))] focus:ring-offset-2 disabled:opacity-50;
   }
 
   .loom-btn-icon {
@@ -264,7 +301,8 @@
     /* Button optimizations */
     .loom-btn-primary,
     .loom-btn-secondary,
-    .loom-btn-ghost {
+    .loom-btn-ghost,
+    .loom-btn-danger {
       @apply px-3 py-2 text-sm;
     }
 
@@ -381,21 +419,22 @@
 }
 
 .loom-calendar .rbc-header {
-  background: hsl(var(--loom-primary-light));
-  color: hsl(var(--loom-primary));
+  background: hsl(var(--loom-surface));
+  color: hsl(var(--loom-text));
   padding: 8px;
   font-weight: 600;
-  border-bottom: 1px solid hsl(var(--loom-border));
+  border-bottom: 1px solid hsl(var(--loom-border) / 0.2);
 }
 
 .loom-calendar .rbc-header + .rbc-header {
-  border-left: 1px solid hsl(var(--loom-border));
+  border-left: 1px solid hsl(var(--loom-border) / 0.2);
 }
 
 .loom-calendar .rbc-month-view,
 .loom-calendar .rbc-time-view {
-  border: 1px solid hsl(var(--loom-border));
+  border: 1px solid hsl(var(--loom-border) / 0.2);
   border-radius: var(--loom-radius-lg);
+  background: hsl(var(--loom-surface));
 }
 
 .loom-calendar .rbc-date-cell {
@@ -414,14 +453,14 @@
 }
 
 .loom-calendar .rbc-date-cell.rbc-now {
-  background: hsl(var(--loom-primary-light));
-  color: hsl(var(--loom-primary));
+  background: hsl(var(--loom-border));
+  color: hsl(var(--loom-text));
   font-weight: 600;
 }
 
 .loom-calendar .rbc-event {
-  background: hsl(var(--loom-primary));
-  color: white;
+  background: hsl(var(--loom-primary) / 0.8);
+  color: hsl(var(--loom-text));
   border-radius: var(--loom-radius-md);
   padding: 2px 6px;
   border: none;
@@ -429,11 +468,11 @@
 }
 
 .loom-calendar .rbc-event.rbc-selected {
-  background: hsl(var(--loom-primary-dark));
+  background: hsl(var(--loom-primary) / 0.9);
 }
 
 .loom-calendar .rbc-today {
-  background: hsl(var(--loom-primary-light)) !important;
+  background: hsl(var(--loom-border) / 0.5) !important;
 }
 
 .loom-calendar .rbc-toolbar {
@@ -458,9 +497,9 @@
 }
 
 .loom-calendar .rbc-toolbar button.rbc-active {
-  background: hsl(var(--loom-primary));
-  color: white;
-  border-color: hsl(var(--loom-primary));
+  background: hsl(var(--loom-primary) / 0.8);
+  color: hsl(var(--loom-text));
+  border-color: hsl(var(--loom-primary) / 0.8);
 }
 
 .loom-calendar .rbc-toolbar-label {
@@ -471,24 +510,24 @@
 }
 
 .loom-calendar .rbc-time-slot {
-  border-top: 1px solid hsl(var(--loom-border));
+  border-top: 1px solid hsl(var(--loom-border) / 0.15);
 }
 
 .loom-calendar .rbc-time-view .rbc-header {
-  border-bottom: 1px solid hsl(var(--loom-border));
+  border-bottom: 1px solid hsl(var(--loom-border) / 0.2);
 }
 
 .loom-calendar .rbc-time-content {
-  border-top: 1px solid hsl(var(--loom-border));
+  border-top: 1px solid hsl(var(--loom-border) / 0.2);
 }
 
 .loom-calendar .rbc-current-time-indicator {
-  background: hsl(var(--loom-danger));
+  background: hsl(var(--loom-danger) / 0.7);
   height: 2px;
 }
 
 .loom-calendar .rbc-slot-selection {
-  background: hsl(var(--loom-primary-light));
+  background: hsl(var(--loom-primary-light) / 0.3);
 }
 
 /* Mobile calendar adjustments */
@@ -574,7 +613,7 @@
   }
 
   .loom-calendar .rbc-today {
-    background: hsl(var(--loom-primary-light)) !important;
+    background: hsl(var(--loom-border) / 0.5) !important;
   }
 
   .loom-calendar .rbc-off-range {
@@ -596,7 +635,7 @@
   }
 
   .loom-calendar .rbc-slot-selection {
-    background: hsl(var(--loom-primary-light));
+    background: hsl(var(--loom-primary-light) / 0.3);
     opacity: 0.7;
   }
 }
