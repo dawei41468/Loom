@@ -21,6 +21,9 @@ import { useAuthState } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { Event } from '../types';
 import { cn } from '@/lib/utils';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryKeys, eventQueries } from '../api/queries';
+import { apiClient } from '../api/client';
 
 const EventDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,14 +32,50 @@ const EventDetail = () => {
   const { removeEvent } = useEventsActions();
   const { user, partner } = useAuthState();
   const { addToast } = useToastContext();
-  
+
   const [activeTab, setActiveTab] = useState<'details' | 'chat' | 'checklist'>('details');
   const [showFullDetails, setShowFullDetails] = useState(true);
+  const queryClient = useQueryClient();
 
-  const event = events.find(e => e.id === id);
+  // First try to find event in context
+  const contextEvent = events.find(e => e.id === id);
+
+  // Use React Query for individual event loading if not in context
+  const { data: eventData, isLoading: isLoadingEvent } = useQuery({
+    queryKey: queryKeys.event(id!),
+    queryFn: () => eventQueries.getEvent(id!),
+    enabled: !contextEvent && !!id, // Only run if event not in context and id exists
+  });
+
+  // Use context event or individually loaded event
+  const event = contextEvent || eventData?.data || null;
+
+  // Delete event mutation
+  const deleteEventMutation = useMutation({
+    mutationFn: (eventId: string) => apiClient.deleteEvent(eventId),
+    onSuccess: () => {
+      // Invalidate and refetch events
+      queryClient.invalidateQueries({ queryKey: queryKeys.events });
+      addToast({
+        type: 'success',
+        title: 'Event deleted',
+        description: 'The event has been successfully deleted.',
+      });
+      navigate('/');
+    },
+    onError: (error) => {
+      console.error('Failed to delete event:', error);
+      addToast({
+        type: 'error',
+        title: 'Failed to delete event',
+        description: 'Please try again.',
+      });
+    },
+  });
+
 
   useEffect(() => {
-    if (!event) {
+    if (!event && !isLoadingEvent) {
       addToast({
         type: 'error',
         title: 'Event not found',
@@ -44,7 +83,18 @@ const EventDetail = () => {
       });
       navigate('/');
     }
-  }, [event, navigate, addToast]);
+  }, [event, isLoadingEvent, navigate, addToast]);
+
+  if (isLoadingEvent) {
+    return (
+      <div className="min-h-screen bg-[hsl(var(--loom-bg))] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(var(--loom-primary))] mx-auto mb-4"></div>
+          <h2 className="text-lg font-semibold mb-2">Loading event...</h2>
+        </div>
+      </div>
+    );
+  }
 
   if (!event) {
     return (
@@ -85,23 +135,11 @@ const EventDetail = () => {
 
   const { date, time, duration } = formatEventDateTime(event);
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
+    if (!event) return;
+
     if (window.confirm('Are you sure you want to delete this event?')) {
-      try {
-        // await apiClient.deleteEvent(event.id);
-        removeEvent(event.id);
-        addToast({
-          type: 'success',
-          title: 'Event deleted',
-        });
-        navigate('/');
-      } catch (error) {
-        addToast({
-          type: 'error',
-          title: 'Failed to delete event',
-          description: 'Please try again.',
-        });
-      }
+      deleteEventMutation.mutate(event.id);
     }
   };
 

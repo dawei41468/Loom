@@ -266,15 +266,15 @@
 
   /* Event Blocks */
   .event-block-user {
-    @apply border-l-4 border-[hsl(var(--loom-user))] pl-4 bg-[hsl(var(--loom-user))]/10;
+    @apply border-l-4 border-[hsl(var(--loom-user))] pl-4 py-2 bg-[hsl(var(--loom-user))]/10;
   }
 
   .event-block-partner {
-    @apply border-l-4 border-[hsl(var(--loom-partner))] pl-4 bg-[hsl(var(--loom-partner))]/10;
+    @apply border-l-4 border-[hsl(var(--loom-partner))] pl-4 py-2 bg-[hsl(var(--loom-partner))]/10;
   }
 
   .event-block-shared {
-    @apply border-l-4 border-[hsl(var(--loom-shared))] pl-4 bg-[hsl(var(--loom-shared))]/10;
+    @apply border-l-4 border-[hsl(var(--loom-shared))] pl-4 py-2 bg-[hsl(var(--loom-shared))]/10;
   }
 
   /* Timeline */

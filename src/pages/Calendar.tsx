@@ -8,6 +8,9 @@ import { Event } from '../types';
 import { PageHeader } from '../components/ui/page-header';
 import { Section } from '../components/ui/section';
 import CustomCalendar from '../components/CustomCalendar';
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys, eventQueries } from '../api/queries';
+import { useToastContext } from '../contexts/ToastContext';
 
 interface CalendarEventType {
   id: string;
@@ -22,11 +25,37 @@ const CalendarPage = () => {
   const navigate = useNavigate();
   const events = useEvents();
   const filter = useEventFilter();
-  const { setEventFilter } = useEventsActions();
+  const { setEventFilter, setEvents } = useEventsActions();
+  const { addToast } = useToastContext();
   const [currentView, setCurrentView] = useState<'month' | 'week' | 'day'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showFilters, setShowFilters] = useState(false);
   const [calendarHeight, setCalendarHeight] = useState('600px');
+
+  // Use React Query for events data
+  const { data: eventsData, isLoading, error } = useQuery({
+    queryKey: queryKeys.events,
+    queryFn: eventQueries.getEvents,
+  });
+
+  // Update context when data changes
+  useEffect(() => {
+    if (eventsData?.data) {
+      setEvents(eventsData.data);
+    }
+  }, [eventsData, setEvents]);
+
+  // Handle errors
+  useEffect(() => {
+    if (error) {
+      console.error('Failed to load events:', error);
+      addToast({
+        title: 'Error',
+        description: 'Failed to load events. Please try again.',
+        type: 'error',
+      });
+    }
+  }, [error, addToast]);
 
 
   // Handle responsive calendar height
@@ -40,6 +69,7 @@ const CalendarPage = () => {
     window.addEventListener('resize', updateHeight);
     return () => window.removeEventListener('resize', updateHeight);
   }, []);
+
 
   // Transform events for calendar
   const calendarEvents = useMemo(() => {
@@ -184,25 +214,40 @@ const CalendarPage = () => {
 
       {/* Mobile-Optimized Calendar */}
       <Section variant="card" className="p-2 sm:p-6">
-        <div
-          style={{
-            height: calendarHeight,
-            minHeight: '300px'
-          }}
-          className="w-full"
-        >
-          <CustomCalendar
-            events={calendarEvents}
-            view={currentView}
-            date={currentDate}
-            onViewChange={setCurrentView}
-            onNavigate={setCurrentDate}
-            onSelectEvent={handleEventClick}
-            onSelectSlot={handleSlotSelect}
-            height={calendarHeight}
-            className="loom-calendar"
-          />
-        </div>
+        {isLoading ? (
+          <div
+            style={{
+              height: calendarHeight,
+              minHeight: '300px'
+            }}
+            className="w-full flex items-center justify-center"
+          >
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(var(--loom-primary))] mx-auto mb-2"></div>
+              <p className="text-sm text-[hsl(var(--loom-text-muted))]">Loading events...</p>
+            </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              height: calendarHeight,
+              minHeight: '300px'
+            }}
+            className="w-full"
+          >
+            <CustomCalendar
+              events={calendarEvents}
+              view={currentView}
+              date={currentDate}
+              onViewChange={setCurrentView}
+              onNavigate={setCurrentDate}
+              onSelectEvent={handleEventClick}
+              onSelectSlot={handleSlotSelect}
+              height={calendarHeight}
+              className="loom-calendar"
+            />
+          </div>
+        )}
       </Section>
     </div>
   );

@@ -16,7 +16,7 @@ import {
   LogOut,
   Clock
 } from 'lucide-react';
-import { useAuthState, useAuthDispatch } from '../contexts/AuthContext';
+import { useAuthState, useAuthDispatch, useUpdateProfile } from '../contexts/AuthContext';
 import { useTheme, useLanguage, useUIActions } from '../contexts/UIContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { cn } from '@/lib/utils';
@@ -25,6 +25,7 @@ const Settings = () => {
   const navigate = useNavigate();
   const { user, partner } = useAuthState();
   const authDispatch = useAuthDispatch();
+  const { updateProfile, isUpdating, error } = useUpdateProfile();
   const theme = useTheme();
   const language = useLanguage();
   const { setTheme, setLanguage } = useUIActions();
@@ -34,14 +35,27 @@ const Settings = () => {
 
   // Debounced display name update
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (displayNameInput !== user?.display_name && displayNameInput.trim() !== '') {
-        handleUpdateProfile('display_name', displayNameInput);
+    const timeoutId = setTimeout(async () => {
+      if (displayNameInput !== user?.display_name && displayNameInput.trim() !== '' && !isUpdating) {
+        try {
+          await updateProfile({ display_name: displayNameInput });
+          addToast({
+            type: 'success',
+            title: 'Profile updated',
+            description: 'Display name has been saved.',
+          });
+        } catch (error) {
+          addToast({
+            type: 'error',
+            title: 'Update failed',
+            description: 'Failed to update display name. Please try again.',
+          });
+        }
       }
     }, 1000); // 1 second delay
 
     return () => clearTimeout(timeoutId);
-  }, [displayNameInput, user?.display_name]);
+  }, [displayNameInput, user?.display_name, updateProfile, isUpdating, addToast]);
 
   // Update local state when user data changes
   useEffect(() => {
@@ -81,21 +95,22 @@ const Settings = () => {
     });
   };
 
-  const handleUpdateProfile = (field: string, value: string) => {
-    if (user) {
-      authDispatch({
-        type: 'SET_USER',
-        payload: {
-          ...user,
-          [field]: value,
-          updated_at: new Date().toISOString(),
-        },
-      });
-      
-      addToast({
-        type: 'success',
-        title: 'Profile updated',
-      });
+  const handleUpdateProfile = async (field: string, value: string) => {
+    if (user && !isUpdating) {
+      try {
+        await updateProfile({ [field]: value });
+        addToast({
+          type: 'success',
+          title: 'Profile updated',
+          description: `${field === 'color_preference' ? 'Color preference' : 'Profile'} has been saved.`,
+        });
+      } catch (error) {
+        addToast({
+          type: 'error',
+          title: 'Update failed',
+          description: 'Failed to update profile. Please try again.',
+        });
+      }
     }
   };
 
@@ -138,7 +153,8 @@ const Settings = () => {
               type="text"
               value={displayNameInput}
               onChange={(e) => setDisplayNameInput(e.target.value)}
-              className="w-full px-3 py-2 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))]"
+              disabled={isUpdating}
+              className="w-full px-3 py-2 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
           
@@ -147,8 +163,9 @@ const Settings = () => {
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => handleUpdateProfile('color_preference', 'user')}
+                disabled={isUpdating}
                 className={cn(
-                  'p-3 rounded-[var(--loom-radius-md)] border transition-all flex items-center space-x-2',
+                  'p-3 rounded-[var(--loom-radius-md)] border transition-all flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed',
                   user?.color_preference === 'user'
                     ? 'border-[hsl(var(--loom-user))] bg-[hsl(var(--loom-user)/0.1)]'
                     : 'border-[hsl(var(--loom-border))]'
@@ -159,8 +176,9 @@ const Settings = () => {
               </button>
               <button
                 onClick={() => handleUpdateProfile('color_preference', 'partner')}
+                disabled={isUpdating}
                 className={cn(
-                  'p-3 rounded-[var(--loom-radius-md)] border transition-all flex items-center space-x-2',
+                  'p-3 rounded-[var(--loom-radius-md)] border transition-all flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed',
                   user?.color_preference === 'partner'
                     ? 'border-[hsl(var(--loom-partner))] bg-[hsl(var(--loom-partner)/0.1)]'
                     : 'border-[hsl(var(--loom-border))]'

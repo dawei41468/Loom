@@ -13,6 +13,8 @@ interface AuthState {
   isAuthenticated: boolean;
   isOnboarded: boolean;
   isLoading: boolean;
+  isUpdatingProfile: boolean;
+  profileUpdateError: string | null;
 }
 
 // 2. Define Action Types
@@ -23,7 +25,10 @@ type AuthAction =
   | { type: 'SET_USER'; payload: User | null }
   | { type: 'SET_PARTNER'; payload: Partner | null }
   | { type: 'SET_ONBOARDED'; payload: boolean }
-  | { type: 'SET_LOADING'; payload: boolean };
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'UPDATE_PROFILE_START' }
+  | { type: 'UPDATE_PROFILE_SUCCESS'; payload: User }
+  | { type: 'UPDATE_PROFILE_ERROR'; payload: string };
 
 // 3. Initial State
 const initialState: AuthState = {
@@ -34,6 +39,8 @@ const initialState: AuthState = {
   isAuthenticated: false,
   isOnboarded: false,
   isLoading: true,
+  isUpdatingProfile: false,
+  profileUpdateError: null,
 };
 
 // 4. Reducer Function
@@ -79,6 +86,25 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
       return {
         ...state,
         isLoading: action.payload,
+      };
+    case 'UPDATE_PROFILE_START':
+      return {
+        ...state,
+        isUpdatingProfile: true,
+        profileUpdateError: null,
+      };
+    case 'UPDATE_PROFILE_SUCCESS':
+      return {
+        ...state,
+        user: action.payload,
+        isUpdatingProfile: false,
+        profileUpdateError: null,
+      };
+    case 'UPDATE_PROFILE_ERROR':
+      return {
+        ...state,
+        isUpdatingProfile: false,
+        profileUpdateError: action.payload,
       };
     default:
       return state;
@@ -173,4 +199,32 @@ export const useAuthDispatch = () => {
     throw new Error('useAuthDispatch must be used within an AuthProvider');
   }
   return context;
+};
+
+// Custom hook for profile updates with API integration
+export const useUpdateProfile = () => {
+  const dispatch = useAuthDispatch();
+  const { user, isUpdatingProfile, profileUpdateError } = useAuthState();
+
+  const updateProfile = async (updates: Partial<User>) => {
+    if (!user) return;
+
+    dispatch({ type: 'UPDATE_PROFILE_START' });
+
+    try {
+      const response = await apiClient.updateMe(updates);
+      dispatch({ type: 'UPDATE_PROFILE_SUCCESS', payload: response.data });
+      return response.data;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update profile';
+      dispatch({ type: 'UPDATE_PROFILE_ERROR', payload: errorMessage });
+      throw error;
+    }
+  };
+
+  return {
+    updateProfile,
+    isUpdating: isUpdatingProfile,
+    error: profileUpdateError,
+  };
 };
