@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer } from 'react';
+import React, { createContext, useContext, useReducer, useCallback } from 'react';
 import { Event, Proposal, CalendarView, EventFilter } from '../types';
 
  
@@ -146,18 +146,18 @@ export const useEventsActions = () => {
   const dispatch = useEventsDispatch();
   
   return {
-    setEvents: (events: Event[]) => dispatch({ type: 'SET_EVENTS', payload: events }),
-    addEvent: (event: Event) => dispatch({ type: 'ADD_EVENT', payload: event }),
-    updateEvent: (eventId: string, updates: Partial<Event>) => 
-      dispatch({ type: 'UPDATE_EVENT', payload: { eventId, updates } }),
-    removeEvent: (eventId: string) => dispatch({ type: 'REMOVE_EVENT', payload: eventId }),
-    setEventsLoading: (loading: boolean) => dispatch({ type: 'SET_EVENTS_LOADING', payload: loading }),
-    setEventFilter: (filter: EventFilter) => dispatch({ type: 'SET_EVENT_FILTER', payload: filter }),
-    setCalendarView: (view: CalendarView) => dispatch({ type: 'SET_CALENDAR_VIEW', payload: view }),
-    setProposals: (proposals: Proposal[]) => dispatch({ type: 'SET_PROPOSALS', payload: proposals }),
-    addProposal: (proposal: Proposal) => dispatch({ type: 'ADD_PROPOSAL', payload: proposal }),
-    updateProposal: (proposalId: string, updates: Partial<Proposal>) => 
-      dispatch({ type: 'UPDATE_PROPOSAL', payload: { proposalId, updates } }),
-    removeProposal: (proposalId: string) => dispatch({ type: 'REMOVE_PROPOSAL', payload: proposalId }),
+    setEvents: useCallback((events: Event[]) => dispatch({ type: 'SET_EVENTS', payload: events }), [dispatch]),
+    addEvent: useCallback((event: Event) => dispatch({ type: 'ADD_EVENT', payload: event }), [dispatch]),
+    updateEvent: useCallback((eventId: string, updates: Partial<Event>) =>
+      dispatch({ type: 'UPDATE_EVENT', payload: { eventId, updates } }), [dispatch]),
+    removeEvent: useCallback((eventId: string) => dispatch({ type: 'REMOVE_EVENT', payload: eventId }), [dispatch]),
+    setEventsLoading: useCallback((loading: boolean) => dispatch({ type: 'SET_EVENTS_LOADING', payload: loading }), [dispatch]),
+    setEventFilter: useCallback((filter: EventFilter) => dispatch({ type: 'SET_EVENT_FILTER', payload: filter }), [dispatch]),
+    setCalendarView: useCallback((view: CalendarView) => dispatch({ type: 'SET_CALENDAR_VIEW', payload: view }), [dispatch]),
+    setProposals: useCallback((proposals: Proposal[]) => dispatch({ type: 'SET_PROPOSALS', payload: proposals }), [dispatch]),
+    addProposal: useCallback((proposal: Proposal) => dispatch({ type: 'ADD_PROPOSAL', payload: proposal }), [dispatch]),
+    updateProposal: useCallback((proposalId: string, updates: Partial<Proposal>) =>
+      dispatch({ type: 'UPDATE_PROPOSAL', payload: { proposalId, updates } }), [dispatch]),
+    removeProposal: useCallback((proposalId: string) => dispatch({ type: 'REMOVE_PROPOSAL', payload: proposalId }), [dispatch]),
   };
 };

@@ -43,7 +43,7 @@ const CalendarPage = () => {
     if (eventsData?.data) {
       setEvents(eventsData.data);
     }
-  }, [eventsData, setEvents]);
+  }, [eventsData?.data, setEvents]); // setEvents is now memoized so it's safe to include
 
   // Handle errors
   useEffect(() => {
