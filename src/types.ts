@@ -141,3 +141,28 @@ export interface BusyTimeSlot {
   title: string;
   visibility: string;
 }
+
+// Event Chat Types
+export interface EventMessage {
+  id: string;
+  event_id: string;
+  sender_id: string;
+  message: string;
+  created_at: string;
+  updated_at: string;
+  sender?: User; // populated from API
+}
+
+// Event Checklist Types
+export interface ChecklistItem {
+  id: string;
+  event_id: string;
+  title: string;
+  description?: string;
+  completed: boolean;
+  completed_by?: string;
+  completed_at?: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}

@@ -5,6 +5,8 @@ import { apiClient } from './client';
 export const queryKeys = {
   events: ['events'] as const,
   event: (id: string) => ['events', id] as const,
+  eventMessages: (eventId: string) => ['events', eventId, 'messages'] as const,
+  eventChecklist: (eventId: string) => ['events', eventId, 'checklist'] as const,
   tasks: ['tasks'] as const,
   task: (id: string) => ['tasks', id] as const,
   proposals: ['proposals'] as const,
@@ -35,4 +37,12 @@ export const partnerQueries = {
 
 export const userQueries = {
   getMe: () => apiClient.getMe(),
+};
+
+export const eventChatQueries = {
+  getEventMessages: (eventId: string) => apiClient.getEventMessages(eventId),
+};
+
+export const eventChecklistQueries = {
+  getEventChecklist: (eventId: string) => apiClient.getEventChecklist(eventId),
 };

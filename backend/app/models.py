@@ -181,6 +181,49 @@ class Task(MongoBaseModel, TaskBase):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+# Event Chat Models
+class EventMessageBase(BaseModel):
+    event_id: str
+    sender_id: str
+    message: str
+
+
+class EventMessageCreate(BaseModel):
+    message: str
+
+
+class EventMessage(MongoBaseModel, EventMessageBase):
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# Event Checklist Models
+class ChecklistItemBase(BaseModel):
+    event_id: str
+    title: str
+    description: Optional[str] = None
+    completed: bool = False
+
+
+class ChecklistItemCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+
+
+class ChecklistItemUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    completed: Optional[bool] = None
+
+
+class ChecklistItem(MongoBaseModel, ChecklistItemBase):
+    completed_by: Optional[str] = None  # User ID who completed it
+    completed_at: Optional[datetime] = None
+    created_by: str  # User ID who created it
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 # Availability Models
 class AvailabilitySlot(BaseModel):
     start_time: datetime

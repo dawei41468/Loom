@@ -24,6 +24,8 @@ import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys, eventQueries } from '../api/queries';
 import { apiClient } from '../api/client';
+import EventChat from '../components/EventChat';
+import EventChecklist from '../components/EventChecklist';
 
 const EventDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -285,28 +287,14 @@ const EventDetail = () => {
   );
 
   const renderChatTab = () => (
-    <div className="loom-card text-center py-12">
-      <MessageCircle className="w-12 h-12 mx-auto mb-4 text-[hsl(var(--loom-text-muted))] opacity-50" />
-      <h3 className="font-medium mb-2">Event Chat</h3>
-      <p className="text-[hsl(var(--loom-text-muted))] text-sm">
-        Chat about this event with {partner?.display_name || 'your partner'}
-      </p>
-      <button className="loom-btn-primary mt-4">
-        Start conversation
-      </button>
+    <div className="loom-card">
+      <EventChat eventId={event.id} />
     </div>
   );
 
   const renderChecklistTab = () => (
-    <div className="loom-card text-center py-12">
-      <CheckSquare className="w-12 h-12 mx-auto mb-4 text-[hsl(var(--loom-text-muted))] opacity-50" />
-      <h3 className="font-medium mb-2">Event Checklist</h3>
-      <p className="text-[hsl(var(--loom-text-muted))] text-sm">
-        Create a shared checklist for this event
-      </p>
-      <button className="loom-btn-primary mt-4">
-        Create checklist
-      </button>
+    <div className="loom-card">
+      <EventChecklist eventId={event.id} />
     </div>
   );
 

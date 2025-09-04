@@ -1,7 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from bson import ObjectId
-from ..models import Event, EventCreate, EventUpdate, User, ApiResponse
+from ..models import Event, EventCreate, EventUpdate, User, ApiResponse, EventMessage, EventMessageCreate, ChecklistItem, ChecklistItemCreate, ChecklistItemUpdate
 from ..auth import get_current_user
 from ..database import get_database
 from datetime import datetime
@@ -222,3 +222,427 @@ async def delete_event(
         )
     
     return ApiResponse(message="Event deleted successfully")
+
+
+# Event Chat Endpoints
+@router.get("/{event_id}/messages", response_model=ApiResponse)
+async def get_event_messages(
+    event_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all messages for an event"""
+    db = get_database()
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database connection not available"
+        )
+
+    # Validate ObjectId
+    if not ObjectId.is_valid(event_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid event ID"
+        )
+
+    # Check if event exists and user has access
+    event_doc = await db.events.find_one({"_id": ObjectId(event_id)})
+    if not event_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Event not found"
+        )
+
+    event = Event(**event_doc)
+    if (str(current_user.id) not in event.attendees and
+        event.created_by != str(current_user.id)):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this event"
+        )
+
+    # Get messages for this event
+    messages_cursor = db.event_messages.find({"event_id": event_id}).sort("created_at", 1)
+    messages = []
+    async for message_doc in messages_cursor:
+        message = EventMessage(**message_doc)
+        messages.append(message.dict())
+
+    return ApiResponse(data=messages, message="Messages retrieved successfully")
+
+
+@router.post("/{event_id}/messages", response_model=ApiResponse)
+async def send_event_message(
+    event_id: str,
+    message_data: EventMessageCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Send a new message to an event"""
+    db = get_database()
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database connection not available"
+        )
+
+    # Validate ObjectId
+    if not ObjectId.is_valid(event_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid event ID"
+        )
+
+    # Check if event exists and user has access
+    event_doc = await db.events.find_one({"_id": ObjectId(event_id)})
+    if not event_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Event not found"
+        )
+
+    event = Event(**event_doc)
+    if (str(current_user.id) not in event.attendees and
+        event.created_by != str(current_user.id)):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this event"
+        )
+
+    # Create message document
+    message_dict = message_data.dict()
+    message_dict["event_id"] = event_id
+    message_dict["sender_id"] = str(current_user.id)
+    message_dict["created_at"] = datetime.utcnow()
+    message_dict["updated_at"] = datetime.utcnow()
+
+    # Insert message into database
+    result = await db.event_messages.insert_one(message_dict)
+
+    # Get the created message
+    created_message = await db.event_messages.find_one({"_id": result.inserted_id})
+    if not created_message:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create message"
+        )
+
+    message = EventMessage(**created_message)
+    return ApiResponse(data=message.dict(), message="Message sent successfully")
+
+
+@router.delete("/{event_id}/messages/{message_id}", response_model=ApiResponse)
+async def delete_event_message(
+    event_id: str,
+    message_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a message (owner only)"""
+    db = get_database()
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database connection not available"
+        )
+
+    # Validate ObjectIds
+    if not ObjectId.is_valid(event_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid event ID"
+        )
+    if not ObjectId.is_valid(message_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid message ID"
+        )
+
+    # Check if message exists and user owns it
+    message_doc = await db.event_messages.find_one({"_id": ObjectId(message_id), "event_id": event_id})
+    if not message_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Message not found"
+        )
+
+    message = EventMessage(**message_doc)
+    if message.sender_id != str(current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only message sender can delete this message"
+        )
+
+    # Delete message
+    result = await db.event_messages.delete_one({"_id": ObjectId(message_id)})
+
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete message"
+        )
+
+    return ApiResponse(message="Message deleted successfully")
+
+
+# Event Checklist Endpoints
+@router.get("/{event_id}/checklist", response_model=ApiResponse)
+async def get_event_checklist(
+    event_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all checklist items for an event"""
+    db = get_database()
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database connection not available"
+        )
+
+    # Validate ObjectId
+    if not ObjectId.is_valid(event_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid event ID"
+        )
+
+    # Check if event exists and user has access
+    event_doc = await db.events.find_one({"_id": ObjectId(event_id)})
+    if not event_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Event not found"
+        )
+
+    event = Event(**event_doc)
+    if (str(current_user.id) not in event.attendees and
+        event.created_by != str(current_user.id)):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this event"
+        )
+
+    # Get checklist items for this event
+    checklist_cursor = db.event_checklist_items.find({"event_id": event_id}).sort("created_at", 1)
+    checklist_items = []
+    async for item_doc in checklist_cursor:
+        item = ChecklistItem(**item_doc)
+        checklist_items.append(item.dict())
+
+    return ApiResponse(data=checklist_items, message="Checklist items retrieved successfully")
+
+
+@router.post("/{event_id}/checklist", response_model=ApiResponse)
+async def create_checklist_item(
+    event_id: str,
+    item_data: ChecklistItemCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new checklist item for an event"""
+    db = get_database()
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database connection not available"
+        )
+
+    # Validate ObjectId
+    if not ObjectId.is_valid(event_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid event ID"
+        )
+
+    # Check if event exists and user has access
+    event_doc = await db.events.find_one({"_id": ObjectId(event_id)})
+    if not event_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Event not found"
+        )
+
+    event = Event(**event_doc)
+    if (str(current_user.id) not in event.attendees and
+        event.created_by != str(current_user.id)):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this event"
+        )
+
+    # Create checklist item document
+    item_dict = item_data.dict()
+    item_dict["event_id"] = event_id
+    item_dict["created_by"] = str(current_user.id)
+    item_dict["created_at"] = datetime.utcnow()
+    item_dict["updated_at"] = datetime.utcnow()
+
+    # Insert item into database
+    result = await db.event_checklist_items.insert_one(item_dict)
+
+    # Get the created item
+    created_item = await db.event_checklist_items.find_one({"_id": result.inserted_id})
+    if not created_item:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create checklist item"
+        )
+
+    item = ChecklistItem(**created_item)
+    return ApiResponse(data=item.dict(), message="Checklist item created successfully")
+
+
+@router.put("/{event_id}/checklist/{item_id}", response_model=ApiResponse)
+async def update_checklist_item(
+    event_id: str,
+    item_id: str,
+    item_update: ChecklistItemUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a checklist item (toggle completion)"""
+    db = get_database()
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database connection not available"
+        )
+
+    # Validate ObjectIds
+    if not ObjectId.is_valid(event_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid event ID"
+        )
+    if not ObjectId.is_valid(item_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid item ID"
+        )
+
+    # Check if item exists and user has access to the event
+    item_doc = await db.event_checklist_items.find_one({"_id": ObjectId(item_id), "event_id": event_id})
+    if not item_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Checklist item not found"
+        )
+
+    # Check event access
+    event_doc = await db.events.find_one({"_id": ObjectId(event_id)})
+    if not event_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Event not found"
+        )
+
+    event = Event(**event_doc)
+    if (str(current_user.id) not in event.attendees and
+        event.created_by != str(current_user.id)):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this event"
+        )
+
+    # Prepare update data
+    update_data = item_update.dict(exclude_unset=True)
+    update_data["updated_at"] = datetime.utcnow()
+
+    # Handle completion tracking
+    if "completed" in update_data:
+        if update_data["completed"]:
+            update_data["completed_by"] = str(current_user.id)
+            update_data["completed_at"] = datetime.utcnow()
+        else:
+            update_data["completed_by"] = None
+            update_data["completed_at"] = None
+
+    # Update item
+    result = await db.event_checklist_items.update_one(
+        {"_id": ObjectId(item_id)},
+        {"$set": update_data}
+    )
+
+    if result.modified_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update checklist item"
+        )
+
+    # Get updated item
+    updated_item = await db.event_checklist_items.find_one({"_id": ObjectId(item_id)})
+    if not updated_item:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve updated checklist item"
+        )
+
+    item = ChecklistItem(**updated_item)
+    return ApiResponse(data=item.dict(), message="Checklist item updated successfully")
+
+
+@router.delete("/{event_id}/checklist/{item_id}", response_model=ApiResponse)
+async def delete_checklist_item(
+    event_id: str,
+    item_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a checklist item"""
+    db = get_database()
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database connection not available"
+        )
+
+    # Validate ObjectIds
+    if not ObjectId.is_valid(event_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid event ID"
+        )
+    if not ObjectId.is_valid(item_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid item ID"
+        )
+
+    # Check if item exists and user has access
+    item_doc = await db.event_checklist_items.find_one({"_id": ObjectId(item_id), "event_id": event_id})
+    if not item_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Checklist item not found"
+        )
+
+    item = ChecklistItem(**item_doc)
+
+    # Check event access
+    event_doc = await db.events.find_one({"_id": ObjectId(event_id)})
+    if not event_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Event not found"
+        )
+
+    event = Event(**event_doc)
+    if (str(current_user.id) not in event.attendees and
+        event.created_by != str(current_user.id)):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this event"
+        )
+
+    # Only creator can delete
+    if item.created_by != str(current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only item creator can delete this checklist item"
+        )
+
+    # Delete item
+    result = await db.event_checklist_items.delete_one({"_id": ObjectId(item_id)})
+
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete checklist item"
+        )
+
+    return ApiResponse(message="Checklist item deleted successfully")

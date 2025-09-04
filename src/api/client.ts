@@ -7,6 +7,8 @@ import {
   Task,
   AvailabilitySlot,
   BusyTimeSlot,
+  EventMessage,
+  ChecklistItem,
   ApiResponse,
   Token,
   UserLogin,
@@ -294,6 +296,49 @@ class ApiClient {
   async getUserBusyTimes(startDate: string, endDate: string): Promise<ApiResponse<BusyTimeSlot[]>> {
     const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
     return this.request<ApiResponse<BusyTimeSlot[]>>(`/availability/user-busy?${params.toString()}`);
+  }
+
+  // Event Chat
+  async getEventMessages(eventId: string): Promise<ApiResponse<EventMessage[]>> {
+    return this.request<ApiResponse<EventMessage[]>>(`/events/${eventId}/messages`);
+  }
+
+  async sendEventMessage(eventId: string, message: string): Promise<ApiResponse<EventMessage>> {
+    return this.request<ApiResponse<EventMessage>>(`/events/${eventId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    });
+  }
+
+  async deleteEventMessage(eventId: string, messageId: string): Promise<ApiResponse<void>> {
+    return this.request<ApiResponse<void>>(`/events/${eventId}/messages/${messageId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Event Checklist
+  async getEventChecklist(eventId: string): Promise<ApiResponse<ChecklistItem[]>> {
+    return this.request<ApiResponse<ChecklistItem[]>>(`/events/${eventId}/checklist`);
+  }
+
+  async createChecklistItem(eventId: string, item: { title: string; description?: string }): Promise<ApiResponse<ChecklistItem>> {
+    return this.request<ApiResponse<ChecklistItem>>(`/events/${eventId}/checklist`, {
+      method: 'POST',
+      body: JSON.stringify(item),
+    });
+  }
+
+  async updateChecklistItem(eventId: string, itemId: string, updates: { completed: boolean }): Promise<ApiResponse<ChecklistItem>> {
+    return this.request<ApiResponse<ChecklistItem>>(`/events/${eventId}/checklist/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async deleteChecklistItem(eventId: string, itemId: string): Promise<ApiResponse<void>> {
+    return this.request<ApiResponse<void>>(`/events/${eventId}/checklist/${itemId}`, {
+      method: 'DELETE',
+    });
   }
 }
 
