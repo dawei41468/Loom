@@ -93,6 +93,28 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     # Convert ObjectId to string for Pydantic validation
     user_doc["_id"] = str(user_doc["_id"])
     return User(**user_doc)
+async def get_current_user_ws(token: str) -> Optional[User]:
+    """Get current authenticated user for WebSocket connections"""
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        user_id = payload.get("sub")
+        if user_id is None:
+            return None
+        token_data = TokenData(user_id=str(user_id))
+    except JWTError:
+        return None
+
+    db = get_database()
+    if db is None:
+        return None
+    from bson import ObjectId
+    user_doc = await db.users.find_one({"_id": ObjectId(token_data.user_id)})
+    if user_doc is None:
+        return None
+
+    # Convert ObjectId to string for Pydantic validation
+    user_doc["_id"] = str(user_doc["_id"])
+    return User(**user_doc)
 
 
 async def authenticate_user(email: str, password: str) -> Optional[User]:

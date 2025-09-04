@@ -1,9 +1,15 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, Query
 from bson import ObjectId
 from ..models import Event, EventCreate, EventUpdate, User, ApiResponse, EventMessage, EventMessageCreate, ChecklistItem, ChecklistItemCreate, ChecklistItemUpdate
 from ..auth import get_current_user
 from ..database import get_database
+# Import websocket functions - using absolute import to avoid relative import issues
+try:
+    from app.websocket import manager, handle_websocket_connection
+except ImportError:
+    # Fallback for when running as module
+    from ..websocket import manager, handle_websocket_connection
 from datetime import datetime
 
 router = APIRouter(prefix="/events", tags=["events"])
@@ -327,6 +333,13 @@ async def send_event_message(
         )
 
     message = EventMessage(**created_message)
+
+    # Broadcast the new message to all connected clients in this event
+    await manager.broadcast_to_event(event_id, {
+        "type": "new_message",
+        "data": message.dict()
+    })
+
     return ApiResponse(data=message.dict(), message="Message sent successfully")
 
 
@@ -379,6 +392,12 @@ async def delete_event_message(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete message"
         )
+
+    # Broadcast the message deletion to all connected clients in this event
+    await manager.broadcast_to_event(event_id, {
+        "type": "delete_message",
+        "data": {"message_id": message_id}
+    })
 
     return ApiResponse(message="Message deleted successfully")
 
@@ -486,6 +505,13 @@ async def create_checklist_item(
         )
 
     item = ChecklistItem(**created_item)
+
+    # Broadcast the new checklist item to all connected clients in this event
+    await manager.broadcast_to_event(event_id, {
+        "type": "new_checklist_item",
+        "data": item.dict()
+    })
+
     return ApiResponse(data=item.dict(), message="Checklist item created successfully")
 
 
@@ -574,6 +600,13 @@ async def update_checklist_item(
         )
 
     item = ChecklistItem(**updated_item)
+
+    # Broadcast the checklist item update to all connected clients in this event
+    await manager.broadcast_to_event(event_id, {
+        "type": "update_checklist_item",
+        "data": item.dict()
+    })
+
     return ApiResponse(data=item.dict(), message="Checklist item updated successfully")
 
 
@@ -645,4 +678,38 @@ async def delete_checklist_item(
             detail="Failed to delete checklist item"
         )
 
+    # Broadcast the checklist item deletion to all connected clients in this event
+    await manager.broadcast_to_event(event_id, {
+        "type": "delete_checklist_item",
+        "data": {"item_id": item_id}
+    })
+
     return ApiResponse(message="Checklist item deleted successfully")
+
+
+# WebSocket endpoint for real-time event updates
+@router.websocket("/{event_id}/ws")
+async def event_websocket(
+    websocket: WebSocket,
+    event_id: str,
+    token: str = Query(..., description="JWT access token")
+):
+    """WebSocket endpoint for real-time event updates"""
+    # Validate ObjectId
+    if not ObjectId.is_valid(event_id):
+        await websocket.close(code=1003)  # Unsupported data
+        return
+
+    # Check if event exists
+    db = get_database()
+    if db is None:
+        await websocket.close(code=1011)  # Internal error
+        return
+
+    event_doc = await db.events.find_one({"_id": ObjectId(event_id)})
+    if not event_doc:
+        await websocket.close(code=1003)  # Unsupported data
+        return
+
+    # Handle the WebSocket connection
+    await handle_websocket_connection(websocket, event_id, token)

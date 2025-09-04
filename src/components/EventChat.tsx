@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
-import { Send, Trash2, User } from 'lucide-react';
+import { Send, Trash2, User, Wifi, WifiOff } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthState } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { EventMessage } from '../types';
 import { queryKeys, eventChatQueries } from '../api/queries';
 import { apiClient } from '../api/client';
+import { useWebSocket, WebSocketMessage } from '../hooks/useWebSocket';
 import { cn } from '@/lib/utils';
 
 interface EventChatProps {
@@ -24,10 +25,36 @@ const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
   const { data: messagesData, isLoading, error } = useQuery({
     queryKey: queryKeys.eventMessages(eventId),
     queryFn: () => eventChatQueries.getEventMessages(eventId),
-    refetchInterval: 30000, // Poll every 30 seconds for new messages
+    refetchInterval: 60000, // Reduced polling to 60 seconds since we have WebSocket
   });
 
   const messages = messagesData?.data || [];
+
+  // WebSocket for real-time updates
+  const handleWebSocketMessage = (message: WebSocketMessage) => {
+    if (message.type === 'new_message') {
+      // Add new message to the list
+      queryClient.setQueryData(queryKeys.eventMessages(eventId), (oldData: { data: EventMessage[] } | undefined) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          data: [...oldData.data, message.data as EventMessage]
+        };
+      });
+    } else if (message.type === 'delete_message') {
+      // Remove deleted message from the list
+      const deleteData = message.data as { message_id: string };
+      queryClient.setQueryData(queryKeys.eventMessages(eventId), (oldData: { data: EventMessage[] } | undefined) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          data: oldData.data.filter((msg: EventMessage) => msg.id !== deleteData.message_id)
+        };
+      });
+    }
+  };
+
+  const { isConnected } = useWebSocket(eventId, handleWebSocketMessage);
 
   // Send message mutation
   const sendMessageMutation = useMutation({
@@ -121,6 +148,20 @@ const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
 
   return (
     <div className="flex flex-col h-96">
+      {/* Connection Status */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[hsl(var(--loom-border))]">
+        <div className="flex items-center space-x-2">
+          {isConnected ? (
+            <Wifi className="w-4 h-4 text-green-500" />
+          ) : (
+            <WifiOff className="w-4 h-4 text-red-500" />
+          )}
+          <span className="text-xs text-[hsl(var(--loom-text-muted))]">
+            {isConnected ? 'Connected' : 'Disconnected'}
+          </span>
+        </div>
+      </div>
+
       {/* Messages List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (

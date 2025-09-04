@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { Plus, Trash2, Check, Circle, User } from 'lucide-react';
+import { Plus, Trash2, Check, Circle, User, Wifi, WifiOff } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthState } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { ChecklistItem } from '../types';
 import { queryKeys, eventChecklistQueries } from '../api/queries';
 import { apiClient } from '../api/client';
+import { useWebSocket, WebSocketMessage } from '../hooks/useWebSocket';
 import { cn } from '@/lib/utils';
 
 interface EventChecklistProps {
@@ -30,6 +31,43 @@ const EventChecklist: React.FC<EventChecklistProps> = ({ eventId }) => {
   const checklistItems = checklistData?.data || [];
   const completedCount = checklistItems.filter(item => item.completed).length;
   const totalCount = checklistItems.length;
+
+  // WebSocket for real-time updates
+  const handleWebSocketMessage = (message: WebSocketMessage) => {
+    if (message.type === 'new_checklist_item') {
+      // Add new checklist item to the list
+      queryClient.setQueryData(queryKeys.eventChecklist(eventId), (oldData: { data: ChecklistItem[] } | undefined) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          data: [...oldData.data, message.data as ChecklistItem]
+        };
+      });
+    } else if (message.type === 'update_checklist_item') {
+      // Update existing checklist item
+      queryClient.setQueryData(queryKeys.eventChecklist(eventId), (oldData: { data: ChecklistItem[] } | undefined) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          data: oldData.data.map((item: ChecklistItem) =>
+            item.id === (message.data as ChecklistItem).id ? message.data as ChecklistItem : item
+          )
+        };
+      });
+    } else if (message.type === 'delete_checklist_item') {
+      // Remove deleted checklist item from the list
+      const deleteData = message.data as { item_id: string };
+      queryClient.setQueryData(queryKeys.eventChecklist(eventId), (oldData: { data: ChecklistItem[] } | undefined) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          data: oldData.data.filter((item: ChecklistItem) => item.id !== deleteData.item_id)
+        };
+      });
+    }
+  };
+
+  const { isConnected } = useWebSocket(eventId, handleWebSocketMessage);
 
   // Create checklist item mutation
   const createItemMutation = useMutation({
@@ -151,7 +189,7 @@ const EventChecklist: React.FC<EventChecklistProps> = ({ eventId }) => {
 
   return (
     <div className="space-y-4">
-      {/* Header with progress */}
+      {/* Header with progress and connection status */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <h3 className="font-medium">Checklist</h3>
@@ -161,13 +199,25 @@ const EventChecklist: React.FC<EventChecklistProps> = ({ eventId }) => {
             </span>
           )}
         </div>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="p-2 hover:bg-[hsl(var(--loom-border))] rounded-full transition-colors"
-          title="Add new item"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1">
+            {isConnected ? (
+              <Wifi className="w-4 h-4 text-green-500" />
+            ) : (
+              <WifiOff className="w-4 h-4 text-red-500" />
+            )}
+            <span className="text-xs text-[hsl(var(--loom-text-muted))]">
+              {isConnected ? 'Live' : 'Offline'}
+            </span>
+          </div>
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="p-2 hover:bg-[hsl(var(--loom-border))] rounded-full transition-colors"
+            title="Add new item"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Progress bar */}
