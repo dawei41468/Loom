@@ -7,6 +7,7 @@ import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
 import { UserLogin } from '../types';
 import LoomLogo from '../components/LoomLogo';
+import { useTranslation } from '../i18n';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -17,6 +18,7 @@ const Login = () => {
   const navigate = useNavigate();
   const dispatch = useAuthDispatch();
   const { addToast } = useToastContext();
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,7 +93,7 @@ const Login = () => {
             </div>
           </div>
           <h1 className="text-3xl font-semibold text-[hsl(var(--loom-text))] mb-2 md:text-4xl">
-            Welcome to Loom
+            {t('welcomeToLoom')}
           </h1>
           <p className="text-lg text-[hsl(var(--loom-text-muted))] leading-relaxed md:text-xl">
             <em>weave your days together</em>
@@ -158,7 +160,7 @@ const Login = () => {
               ) : (
                 <LogIn className="w-5 h-5" />
               )}
-              <span>{isLoading ? 'Signing in...' : 'Sign In'}</span>
+              <span>{isLoading ? t('signingIn') : t('login')}</span>
             </button>
           </form>
 
@@ -180,7 +182,7 @@ const Login = () => {
             className="w-full text-center text-[hsl(var(--loom-primary))] hover:text-[hsl(var(--loom-primary-dark))] font-medium transition-colors"
             disabled={isLoading}
           >
-            Create an account
+            {t('createAccount')}
           </button>
           </div>
         </div>

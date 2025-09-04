@@ -9,38 +9,40 @@ import {
   Heart
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const navItems = [
-  {
-    to: '/',
-    icon: CalendarDays,
-    label: 'Today',
-    exact: true,
-  },
-  {
-    to: '/calendar',
-    icon: Calendar,
-    label: 'Calendar',
-  },
-  {
-    to: '/add',
-    icon: Plus,
-    label: 'Add',
-  },
-  {
-    to: '/tasks',
-    icon: CheckSquare,
-    label: 'Tasks',
-  },
-  {
-    to: '/partner',
-    icon: Heart,
-    label: 'Partner',
-  },
-];
+import { useTranslation } from '@/i18n';
 
 const BottomNavigation = () => {
   const location = useLocation();
+  const { t } = useTranslation();
+
+  const navItems = [
+    {
+      to: '/',
+      icon: CalendarDays,
+      label: t('today'),
+      exact: true,
+    },
+    {
+      to: '/calendar',
+      icon: Calendar,
+      label: t('calendar'),
+    },
+    {
+      to: '/add',
+      icon: Plus,
+      label: t('add'),
+    },
+    {
+      to: '/tasks',
+      icon: CheckSquare,
+      label: t('tasks'),
+    },
+    {
+      to: '/partner',
+      icon: Heart,
+      label: t('partner'),
+    },
+  ];
 
   const isActive = (to: string, exact?: boolean) => {
     if (exact) {

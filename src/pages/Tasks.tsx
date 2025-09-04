@@ -7,12 +7,14 @@ import { useAuthState } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '../i18n';
 
 const Tasks = () => {
   const tasks = useTasks();
   const { addTask, updateTask, removeTask, setTasks } = useTasksActions();
   const { user } = useAuthState();
   const { addToast } = useToastContext();
+  const { t } = useTranslation();
 
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [showCompleted, setShowCompleted] = useState(false);
@@ -25,8 +27,8 @@ const Tasks = () => {
       } catch (error) {
         addToast({
           type: 'error',
-          title: 'Failed to load tasks',
-          description: 'Please try refreshing the page.',
+          title: t('failedToLoadTasks'),
+          description: t('pleaseTryRefreshing'),
         });
       }
     };
@@ -48,13 +50,13 @@ const Tasks = () => {
       setNewTaskTitle('');
       addToast({
         type: 'success',
-        title: 'Task added',
+        title: t('taskAdded'),
       });
     } catch (error) {
       addToast({
         type: 'error',
-        title: 'Failed to add task',
-        description: 'Please try again.',
+        title: t('failedToAddTask'),
+        description: t('pleaseTryAgain'),
       });
     }
   };
@@ -66,8 +68,8 @@ const Tasks = () => {
     } catch (error) {
       addToast({
         type: 'error',
-        title: 'Failed to update task',
-        description: 'Please try again.',
+        title: t('failedToUpdateTask'),
+        description: t('pleaseTryAgain'),
       });
     }
   };
@@ -78,13 +80,13 @@ const Tasks = () => {
       removeTask(taskId);
       addToast({
         type: 'success',
-        title: 'Task deleted',
+        title: t('taskDeleted'),
       });
     } catch (error) {
       addToast({
         type: 'error',
-        title: 'Failed to delete task',
-        description: 'Please try again.',
+        title: t('failedToDeleteTask'),
+        description: t('pleaseTryAgain'),
       });
     }
   };
@@ -94,11 +96,11 @@ const Tasks = () => {
 
   const getTaskTimeText = (task: { due_date?: string; completed: boolean }) => {
     if (!task.due_date) return null;
-    
+
     const dueDate = parseISO(task.due_date);
-    if (isToday(dueDate)) return 'Today';
-    if (isTomorrow(dueDate)) return 'Tomorrow';
-    if (isPast(dueDate)) return 'Overdue';
+    if (isToday(dueDate)) return t('taskToday');
+    if (isTomorrow(dueDate)) return t('tomorrow');
+    if (isPast(dueDate)) return t('overdue');
     return format(dueDate, 'MM/dd/yyyy');
   };
 
@@ -111,9 +113,9 @@ const Tasks = () => {
     <div className="container py-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Tasks</h1>
+        <h1 className="text-2xl font-semibold">{t('tasks')}</h1>
         <span className="text-sm text-[hsl(var(--loom-text-muted))]">
-          {activeTasks.length} active
+          {activeTasks.length} {t('active')}
         </span>
       </div>
 
@@ -126,7 +128,7 @@ const Tasks = () => {
             value={newTaskTitle}
             onChange={(e) => setNewTaskTitle(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleAddTask()}
-            placeholder="Add a new task..."
+            placeholder={t('addNewTask')}
             className="flex-1 bg-transparent border-none outline-none placeholder-[hsl(var(--loom-text-muted))]"
           />
           {newTaskTitle.trim() && (
@@ -134,7 +136,7 @@ const Tasks = () => {
               onClick={handleAddTask}
               className="loom-chip loom-chip-shared"
             >
-              Add
+              {t('add')}
             </button>
           )}
         </div>
@@ -144,7 +146,7 @@ const Tasks = () => {
       {activeTasks.length > 0 && (
         <div className="space-y-3">
           <h2 className="font-medium text-[hsl(var(--loom-text-muted))] uppercase text-sm tracking-wide">
-            To Do
+            {t('toDo')}
           </h2>
           {activeTasks.map((task) => {
             const timeText = getTaskTimeText(task);
@@ -208,7 +210,7 @@ const Tasks = () => {
             className="flex items-center space-x-2 text-[hsl(var(--loom-text-muted))] hover:text-[hsl(var(--loom-text))] transition-colors"
           >
             <span className="font-medium uppercase text-sm tracking-wide">
-              Completed ({completedTasks.length})
+              {t('completed')} ({completedTasks.length})
             </span>
             <div className={cn(
               'w-4 h-4 transition-transform',
@@ -260,9 +262,9 @@ const Tasks = () => {
       {activeTasks.length === 0 && completedTasks.length === 0 && (
         <div className="loom-card text-center py-12">
           <Check className="w-12 h-12 mx-auto mb-4 text-[hsl(var(--loom-text-muted))] opacity-50" />
-          <h3 className="font-medium mb-2">No tasks yet</h3>
+          <h3 className="font-medium mb-2">{t('noTasks')}</h3>
           <p className="text-[hsl(var(--loom-text-muted))] text-sm">
-            Add your first task to get organized!
+            {t('addFirstTask')}
           </p>
         </div>
       )}

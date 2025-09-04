@@ -2,9 +2,11 @@ import React from 'react';
 import { Wifi, WifiOff, RefreshCw, AlertCircle } from 'lucide-react';
 import { useOfflineQueue } from '../hooks/useOfflineQueue';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '../i18n';
 
 const OfflineIndicator: React.FC = () => {
   const { isOnline, pendingActionsCount, syncNow } = useOfflineQueue();
+  const { t } = useTranslation();
 
   if (isOnline && pendingActionsCount === 0) {
     return null; // Don't show anything when online and no pending actions
@@ -25,7 +27,7 @@ const OfflineIndicator: React.FC = () => {
           <WifiOff className="w-4 h-4" />
         )}
         <span className="text-sm font-medium">
-          {isOnline ? 'Online' : 'Offline'}
+          {isOnline ? t('online') : t('offline')}
         </span>
       </div>
 
@@ -36,7 +38,7 @@ const OfflineIndicator: React.FC = () => {
           <div className="flex items-center space-x-1">
             <AlertCircle className="w-4 h-4" />
             <span className="text-sm">
-              {pendingActionsCount} pending
+              {pendingActionsCount} {t('pending')}
             </span>
           </div>
         </>
@@ -52,7 +54,7 @@ const OfflineIndicator: React.FC = () => {
             title="Sync pending actions"
           >
             <RefreshCw className="w-3 h-3" />
-            <span>Sync</span>
+            <span>{t('sync')}</span>
           </button>
         </>
       )}

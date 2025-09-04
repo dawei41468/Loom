@@ -20,6 +20,7 @@ import { useAuthState, useAuthDispatch, useUpdateProfile } from '../contexts/Aut
 import { useTheme, useLanguage, useUIActions } from '../contexts/UIContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '../i18n';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ const Settings = () => {
   const language = useLanguage();
   const { setTheme, setLanguage } = useUIActions();
   const { addToast } = useToastContext();
+  const { t } = useTranslation();
   const [copiedInvite, setCopiedInvite] = useState(false);
   const [displayNameInput, setDisplayNameInput] = useState(user?.display_name || '');
 
@@ -115,9 +117,9 @@ const Settings = () => {
   };
 
   const themeOptions = [
-    { value: 'light', label: 'Light', icon: Sun },
-    { value: 'dark', label: 'Dark', icon: Moon },
-    { value: 'system', label: 'System', icon: Monitor },
+    { value: 'light', label: t('light'), icon: Sun },
+    { value: 'dark', label: t('dark'), icon: Moon },
+    { value: 'system', label: t('system'), icon: Monitor },
   ];
 
   const languageOptions = [
@@ -128,7 +130,7 @@ const Settings = () => {
   return (
     <div className="container py-6 space-y-6">
       {/* Header */}
-      <h1 className="text-2xl font-semibold">Settings</h1>
+      <h1 className="text-2xl font-semibold">{t('settingsPage')}</h1>
 
       {/* Profile Card */}
       <div className="loom-card">
@@ -148,7 +150,7 @@ const Settings = () => {
         
         <div className="space-y-3">
           <div>
-            <label className="block text-sm font-medium mb-2">Display Name</label>
+            <label className="block text-sm font-medium mb-2">{t('displayNameLabel')}</label>
             <input
               type="text"
               value={displayNameInput}
@@ -157,9 +159,9 @@ const Settings = () => {
               className="w-full px-3 py-2 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium mb-2">Color Preference</label>
+            <label className="block text-sm font-medium mb-2">{t('colorPreferenceLabel')}</label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => handleUpdateProfile('color_preference', 'user')}
@@ -172,7 +174,7 @@ const Settings = () => {
                 )}
               >
                 <div className="w-4 h-4 rounded-full bg-[hsl(var(--loom-user))]" />
-                <span className="text-sm">Teal</span>
+                <span className="text-sm">{t('tealColor')}</span>
               </button>
               <button
                 onClick={() => handleUpdateProfile('color_preference', 'partner')}
@@ -185,7 +187,7 @@ const Settings = () => {
                 )}
               >
                 <div className="w-4 h-4 rounded-full bg-[hsl(var(--loom-partner))]" />
-                <span className="text-sm">Orange</span>
+                <span className="text-sm">{t('orangeColor')}</span>
               </button>
             </div>
           </div>
@@ -196,7 +198,7 @@ const Settings = () => {
       <div className="loom-card">
         <div className="flex items-center space-x-3 mb-4">
           <Users className="w-5 h-5 text-[hsl(var(--loom-primary))]" />
-          <h2 className="font-medium">Partner Connection</h2>
+          <h2 className="font-medium">{t('partnerConnectionSection')}</h2>
         </div>
         
         {partner ? (
@@ -206,14 +208,14 @@ const Settings = () => {
             </div>
             <div className="flex-1">
               <h3 className="font-medium">{partner.display_name}</h3>
-              <p className="text-sm text-[hsl(var(--loom-text-muted))]">Connected</p>
+              <p className="text-sm text-[hsl(var(--loom-text-muted))]">{t('connectedStatus')}</p>
             </div>
             <div className="w-3 h-3 rounded-full bg-[hsl(var(--loom-success))]" />
           </div>
         ) : (
           <div className="space-y-3">
             <p className="text-[hsl(var(--loom-text-muted))] text-sm">
-              Share your invite link to connect with your partner
+              {t('shareInviteLink')}
             </p>
             
             <div className="flex items-center space-x-2 p-3 rounded-[var(--loom-radius-md)] bg-[hsl(var(--loom-surface))] border">
@@ -234,7 +236,7 @@ const Settings = () => {
             
             <button className="w-full loom-btn-ghost flex items-center justify-center space-x-2">
               <QrCode className="w-4 h-4" />
-              <span>Show QR Code</span>
+              <span>{t('showQrCode')}</span>
             </button>
           </div>
         )}
@@ -244,7 +246,7 @@ const Settings = () => {
       <div className="loom-card">
         <div className="flex items-center space-x-3 mb-4">
           <Globe className="w-5 h-5 text-[hsl(var(--loom-primary))]" />
-          <h2 className="font-medium">Language</h2>
+          <h2 className="font-medium">{t('languageSection')}</h2>
         </div>
         
         <div className="grid grid-cols-2 gap-2">
@@ -270,7 +272,7 @@ const Settings = () => {
       <div className="loom-card">
         <div className="flex items-center space-x-3 mb-4">
           <Monitor className="w-5 h-5 text-[hsl(var(--loom-primary))]" />
-          <h2 className="font-medium">Theme</h2>
+          <h2 className="font-medium">{t('themeSection')}</h2>
         </div>
         
         <div className="grid grid-cols-3 gap-2">
@@ -296,31 +298,21 @@ const Settings = () => {
       <div className="loom-card">
         <div className="flex items-center space-x-3 mb-4">
           <Info className="w-5 h-5 text-[hsl(var(--loom-primary))]" />
-          <h2 className="font-medium">About</h2>
+          <h2 className="font-medium">{t('aboutSection')}</h2>
         </div>
-        
+
         <div className="space-y-2 text-sm text-[hsl(var(--loom-text-muted))]">
           <div className="flex justify-between">
-            <span>Version</span>
+            <span>{t('versionLabel')}</span>
             <span>1.0.0</span>
           </div>
           <div className="flex justify-between">
-            <span>Build</span>
+            <span>{t('buildLabel')}</span>
             <span>2024.01.01</span>
           </div>
           <div className="pt-2 border-t border-[hsl(var(--loom-border))]">
-            <button
-              onClick={() => navigate('/timepicker-demo')}
-              className="w-full flex items-center justify-between p-3 rounded-[var(--loom-radius-md)] hover:bg-[hsl(var(--loom-border))] transition-colors mb-2"
-            >
-              <div className="flex items-center space-x-2">
-                <Clock className="w-4 h-4 text-[hsl(var(--loom-primary))]" />
-                <span className="text-sm">TimePicker Demo</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-[hsl(var(--loom-text))]" />
-            </button>
             <p className="italic text-center">
-              "weave your days together"
+              {t('tagline')}
             </p>
           </div>
         </div>
@@ -333,7 +325,7 @@ const Settings = () => {
           className="w-full loom-btn-danger flex items-center justify-center space-x-2"
         >
           <LogOut className="w-4 h-4 text-white" />
-          <span>Log Out</span>
+          <span>{t('logOut')}</span>
         </button>
       </div>
     </div>

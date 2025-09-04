@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addDays, addWeeks, addMonths, subDays, subWeeks, subMonths, getDay, parseISO } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Event } from '../types';
+import { useTranslation } from '../i18n';
 
 interface CustomCalendarEvent {
   id: string;
@@ -37,6 +38,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
   const [currentDate, setCurrentDate] = useState(date);
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
+  const { t } = useTranslation();
 
   useEffect(() => {
     setCurrentDate(date);
@@ -91,7 +93,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
 
     const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-    const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const weekDays = [t('sunday'), t('monday'), t('tuesday'), t('wednesday'), t('thursday'), t('friday'), t('saturday')];
 
     return (
       <div className="custom-calendar-month">
@@ -138,7 +140,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                   ))}
                   {dayEvents.length > 3 && (
                     <div className="text-xs text-[hsl(var(--loom-text-muted))]">
-                      +{dayEvents.length - 3} more
+                      +{dayEvents.length - 3} {t('more')}
                     </div>
                   )}
                 </div>
@@ -159,13 +161,17 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
       <div className="custom-calendar-week">
         <div className="grid grid-cols-8 gap-1">
           {/* Time column */}
-          <div className="text-sm font-medium text-[hsl(var(--loom-text-muted))] py-2">Time</div>
-          {days.map(day => (
-            <div key={day.toISOString()} className="text-center text-sm font-medium py-2">
-              <div>{format(day, 'EEE')}</div>
-              <div className="text-xs">{format(day, 'd')}</div>
-            </div>
-          ))}
+          <div className="text-sm font-medium text-[hsl(var(--loom-text-muted))] py-2">{t('time')}</div>
+          {days.map(day => {
+            const dayIndex = getDay(day);
+            const dayNames = [t('sunday'), t('monday'), t('tuesday'), t('wednesday'), t('thursday'), t('friday'), t('saturday')];
+            return (
+              <div key={day.toISOString()} className="text-center text-sm font-medium py-2">
+                <div>{dayNames[dayIndex]}</div>
+                <div className="text-xs">{format(day, 'd')}</div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Time slots */}
@@ -227,10 +233,6 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
 
     return (
       <div className="custom-calendar-day">
-        <div className="text-center mb-4">
-          <h3 className="text-lg font-semibold">{format(currentDate, 'EEEE, MMMM d, yyyy')}</h3>
-        </div>
-
         <div className="space-y-2">
           {Array.from({ length: 24 }, (_, hour) => {
             const hourEvents = events.filter(event => {
@@ -327,7 +329,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                 : 'bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] hover:bg-[hsl(var(--loom-surface-hover))]'
             }`}
           >
-            {viewOption.charAt(0).toUpperCase() + viewOption.slice(1)}
+            {t(viewOption)}
           </button>
         ))}
       </div>

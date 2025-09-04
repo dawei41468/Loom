@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { Settings, User, LogOut, Globe, Sun, Moon } from 'lucide-react';
 import { useAuthState, useAuthDispatch } from '@/contexts/AuthContext';
 import { useUIState, useUIActions } from '@/contexts/UIContext';
+import { useTranslation } from '@/i18n';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +21,7 @@ const UserProfileMenu = React.memo(() => {
   const dispatch = useAuthDispatch();
   const { theme, language } = useUIState();
   const { setTheme, setLanguage } = useUIActions();
+  const { t } = useTranslation();
 
   if (!user) return null;
 
@@ -55,31 +57,31 @@ const UserProfileMenu = React.memo(() => {
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             {theme === 'light' ? <Sun className="mr-2 h-4 w-4 text-[hsl(var(--loom-text))]" /> : <Moon className="mr-2 h-4 w-4 text-[hsl(var(--loom-text))]" />}
-            <span className="text-[hsl(var(--loom-text))]">Theme</span>
+            <span className="text-[hsl(var(--loom-text))]">{t('theme')}</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="bg-[hsl(var(--loom-surface))] border-[hsl(var(--loom-border))]">
             <DropdownMenuItem onClick={() => setTheme('light')} className={theme === 'light' ? 'bg-[hsl(var(--loom-accent))]' : ''}>
-              <span className="text-[hsl(var(--loom-text))]">Light</span>
+              <span className="text-[hsl(var(--loom-text))]">{t('light')}</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setTheme('dark')} className={theme === 'dark' ? 'bg-[hsl(var(--loom-accent))]' : ''}>
-              <span className="text-[hsl(var(--loom-text))]">Dark</span>
+              <span className="text-[hsl(var(--loom-text))]">{t('dark')}</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setTheme('system')} className={theme === 'system' ? 'bg-[hsl(var(--loom-accent))]' : ''}>
-              <span className="text-[hsl(var(--loom-text))]">System</span>
+              <span className="text-[hsl(var(--loom-text))]">{t('system')}</span>
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <Globe className="mr-2 h-4 w-4 text-[hsl(var(--loom-text))]" />
-            <span className="text-[hsl(var(--loom-text))]">Language</span>
+            <span className="text-[hsl(var(--loom-text))]">{t('language')}</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="bg-[hsl(var(--loom-surface))] border-[hsl(var(--loom-border))]">
             <DropdownMenuItem onClick={() => setLanguage('en')} className={language === 'en' ? 'bg-[hsl(var(--loom-accent))]' : ''}>
-              <span className="text-[hsl(var(--loom-text))]">English</span>
+              <span className="text-[hsl(var(--loom-text))]">{t('english')}</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setLanguage('zh')} className={language === 'zh' ? 'bg-[hsl(var(--loom-accent))]' : ''}>
-              <span className="text-[hsl(var(--loom-text))]">中文</span>
+              <span className="text-[hsl(var(--loom-text))]">{t('chinese')}</span>
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
@@ -89,13 +91,13 @@ const UserProfileMenu = React.memo(() => {
             className="flex items-center cursor-pointer"
           >
             <Settings className="mr-2 h-4 w-4 text-[hsl(var(--loom-text))]" />
-            <span className="text-[hsl(var(--loom-text))]">Settings</span>
+            <span className="text-[hsl(var(--loom-text))]">{t('settings')}</span>
           </NavLink>
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-[hsl(var(--loom-border))]" />
         <DropdownMenuItem onClick={() => dispatch({ type: 'LOGOUT' })}>
           <LogOut className="mr-2 h-4 w-4 text-[hsl(var(--loom-danger))]" />
-          <span className="text-[hsl(var(--loom-danger))]">Logout</span>
+          <span className="text-[hsl(var(--loom-danger))]">{t('logout')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

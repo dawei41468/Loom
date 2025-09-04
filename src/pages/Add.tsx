@@ -10,6 +10,7 @@ import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
 import { TimePicker } from '../components/ui/TimePicker';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '../i18n';
 
 type VisibilityType = 'shared' | 'private' | 'title_only';
 
@@ -19,6 +20,7 @@ const Add = () => {
   const { addEvent, addProposal } = useEventsActions();
   const { user, partner } = useAuthState();
   const { addToast } = useToastContext();
+  const { t } = useTranslation();
 
   const isProposal = searchParams.get('type') === 'proposal';
 
@@ -38,11 +40,11 @@ const Add = () => {
   const [nlInput, setNlInput] = useState('');
 
   const reminderOptions = [
-    { value: 5, label: '5 min' },
-    { value: 10, label: '10 min' },
-    { value: 15, label: '15 min' },
-    { value: 30, label: '30 min' },
-    { value: 60, label: '1 hour' },
+    { value: 5, label: t('fiveMin') },
+    { value: 10, label: t('tenMin') },
+    { value: 15, label: t('fifteenMin') },
+    { value: 30, label: t('thirtyMin') },
+    { value: 60, label: t('oneHour') },
   ];
 
   const parseNaturalLanguage = (input: string) => {
@@ -144,8 +146,8 @@ const Add = () => {
     if (!title.trim()) {
       addToast({
         type: 'error',
-        title: 'Title required',
-        description: 'Please enter a title for your event.',
+        title: t('titleRequired'),
+        description: t('enterTitleForEvent'),
       });
       return;
     }
@@ -175,8 +177,8 @@ const Add = () => {
         addProposal(proposal.data);
         addToast({
           type: 'success',
-          title: 'Proposal sent!',
-          description: `Sent "${title}" to ${partner.display_name}`,
+          title: t('proposalSent'),
+          description: `${t('sent')} "${title}" to ${partner.display_name}`,
         });
       } else {
         // Create event
@@ -195,8 +197,8 @@ const Add = () => {
         addEvent(event.data);
         addToast({
           type: 'success',
-          title: 'Event created!',
-          description: `"${title}" added to your calendar.`,
+          title: t('eventCreated'),
+          description: `"${title}" ${t('addedToCalendar')}`,
         });
       }
 
@@ -204,8 +206,8 @@ const Add = () => {
     } catch (error) {
       addToast({
         type: 'error',
-        title: 'Failed to create event',
-        description: 'Please try again.',
+        title: t('failedToCreateEvent'),
+        description: t('pleaseTryAgain'),
       });
     } finally {
       setIsSubmitting(false);
@@ -223,41 +225,41 @@ const Add = () => {
           <X className="w-6 h-6" />
         </button>
         <h1 className="text-lg font-semibold">
-          {isProposal ? 'Propose Time' : 'Add Event'}
+          {isProposal ? t('proposeTime') : t('addEvent')}
         </h1>
         <button
           onClick={handleSubmit}
           disabled={isSubmitting || !title.trim()}
           className="loom-btn-primary px-6 disabled:opacity-50"
         >
-          {isSubmitting ? 'Saving...' : isProposal ? 'Propose' : 'Save'}
+          {isSubmitting ? t('saving') : isProposal ? t('propose') : t('save')}
         </button>
       </div>
 
       <div className="container py-6 space-y-6">
         {/* Natural Language Input */}
         <div className="loom-card">
-          <label className="block text-sm font-medium mb-2">Quick Add</label>
+          <label className="block text-sm font-medium mb-2">{t('quickAdd')}</label>
           <input
             type="text"
             value={nlInput}
             onChange={(e) => handleNLInputChange(e.target.value)}
-            placeholder="e.g., Dinner Friday 7-9pm at Luigi's"
+            placeholder={t('exampleNaturalLanguage')}
             className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))]"
           />
           <p className="text-xs text-[hsl(var(--loom-text-muted))] mt-2">
-            Try typing something like "Coffee tomorrow 9am" or "Date night Friday 7pm"
+            {t('naturalLanguageHelper')}
           </p>
         </div>
 
         {/* Title */}
         <div className="loom-card">
-          <label className="block text-sm font-medium mb-2">Title *</label>
+          <label className="block text-sm font-medium mb-2">{t('titleLabel')}</label>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Event title"
+            placeholder={t('eventTitlePlaceholder')}
             className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))]"
           />
         </div>
@@ -266,12 +268,12 @@ const Add = () => {
         <div className="loom-card">
           <div className="flex items-center space-x-2 mb-3">
             <Clock className="w-5 h-5 text-[hsl(var(--loom-primary))]" />
-            <span className="font-medium">When</span>
+            <span className="font-medium">{t('whenSection')}</span>
           </div>
           
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium mb-2">Date</label>
+              <label className="block text-sm font-medium mb-2">{t('dateLabel')}</label>
               <div className="relative">
                 <input
                   type="date"
@@ -285,18 +287,18 @@ const Add = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <TimePicker
-                  label="Start Time"
+                  label={t('startTimeLabel')}
                   value={startTime}
                   onChange={setStartTime}
                 />
               </div>
               <div>
                 <TimePicker
-                  label="End Time"
+                  label={t('endTimeLabel')}
                   value={endTime}
                   onChange={setEndTime}
                 />
@@ -309,24 +311,24 @@ const Add = () => {
         <div className="loom-card">
           <div className="flex items-center space-x-2 mb-3">
             <MapPin className="w-5 h-5 text-[hsl(var(--loom-primary))]" />
-            <span className="font-medium">Where</span>
+            <span className="font-medium">{t('whereSection')}</span>
           </div>
           <input
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            placeholder="Add location"
+            placeholder={t('addLocationPlaceholder')}
             className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))]"
           />
         </div>
 
         {/* Description */}
         <div className="loom-card">
-          <label className="block text-sm font-medium mb-2">Notes</label>
+          <label className="block text-sm font-medium mb-2">{t('notesLabel')}</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Add notes or details..."
+            placeholder={t('addNotesOrDetailsPlaceholder')}
             rows={3}
             className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] resize-none"
           />
@@ -336,12 +338,12 @@ const Add = () => {
           <>
             {/* Visibility */}
             <div className="loom-card">
-              <label className="block text-sm font-medium mb-3">Visibility</label>
+              <label className="block text-sm font-medium mb-3">{t('visibilitySection')}</label>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { value: 'shared', label: 'Shared' },
-                  { value: 'private', label: 'Private' },
-                  { value: 'title_only', label: 'Title Only' },
+                  { value: 'shared', label: t('sharedVisibility') },
+                  { value: 'private', label: t('privateVisibility') },
+                  { value: 'title_only', label: t('titleOnlyVisibility') },
                 ].map(({ value, label }) => (
                   <button
                     key={value}
@@ -364,7 +366,7 @@ const Add = () => {
               <div className="loom-card">
                 <div className="flex items-center space-x-2 mb-3">
                   <Users className="w-5 h-5 text-[hsl(var(--loom-primary))]" />
-                  <span className="font-medium">Attendees</span>
+                  <span className="font-medium">{t('attendeesSection')}</span>
                 </div>
                 <label className="flex items-center space-x-3">
                   <input
@@ -373,7 +375,7 @@ const Add = () => {
                     onChange={(e) => setIncludePartner(e.target.checked)}
                     className="w-5 h-5 rounded border-2 border-[hsl(var(--loom-border))] text-[hsl(var(--loom-primary))] focus:ring-[hsl(var(--loom-primary))]"
                   />
-                  <span>Include {partner.display_name}</span>
+                  <span>{t('includePartnerLabel').replace('{partnerName}', partner.display_name)}</span>
                 </label>
               </div>
             )}
@@ -382,7 +384,7 @@ const Add = () => {
             <div className="loom-card">
               <div className="flex items-center space-x-2 mb-3">
                 <Bell className="w-5 h-5 text-[hsl(var(--loom-primary))]" />
-                <span className="font-medium">Reminders</span>
+                <span className="font-medium">{t('remindersSection')}</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {reminderOptions.map(({ value, label }) => (

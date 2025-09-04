@@ -2,8 +2,11 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import LoomLogo from './LoomLogo';
 import UserProfileMenu from './UserProfileMenu';
+import { useTranslation } from '@/i18n';
 
 const TopBar = React.memo(() => {
+  const { t } = useTranslation();
+
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] safe-area-top">
       <div className="container flex h-14 max-w-screen-2xl items-center px-4">
@@ -12,7 +15,7 @@ const TopBar = React.memo(() => {
           <NavLink to="/" className="mr-6 flex items-center space-x-2">
             <LoomLogo size="sm" />
             <span className="font-bold loom-heading-3 text-[hsl(var(--loom-text))]">
-              Loom
+              {t('loom')}
             </span>
           </NavLink>
         </div>

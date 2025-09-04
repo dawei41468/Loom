@@ -10,6 +10,7 @@ import { apiClient } from '../api/client';
 import { useWebSocket, WebSocketMessage } from '../hooks/useWebSocket';
 import { useOfflineQueue } from '../hooks/useOfflineQueue';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/i18n';
 
 interface EventChatProps {
   eventId: string;
@@ -21,6 +22,7 @@ const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
   const queryClient = useQueryClient();
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   // Fetch messages
   const { data: messagesData, isLoading, error } = useQuery({
@@ -69,8 +71,8 @@ const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
       console.error('Failed to send message:', error);
       addToast({
         type: 'error',
-        title: 'Failed to send message',
-        description: 'Please try again.',
+        title: t('failedToSendMessage'),
+        description: t('pleaseTryAgain'),
       });
     },
   });
@@ -82,15 +84,15 @@ const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.eventMessages(eventId) });
       addToast({
         type: 'success',
-        title: 'Message deleted',
+        title: t('messageDeleted'),
       });
     },
     onError: (error) => {
       console.error('Failed to delete message:', error);
       addToast({
         type: 'error',
-        title: 'Failed to delete message',
-        description: 'Please try again.',
+        title: t('failedToDeleteMessage'),
+        description: t('pleaseTryAgain'),
       });
     },
   });
@@ -117,15 +119,15 @@ const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
         setNewMessage('');
         addToast({
           type: 'info',
-          title: 'Message queued',
-          description: 'Your message will be sent when connection is restored.',
+          title: t('messageQueued'),
+          description: t('messageWillBeSentWhenOnline'),
         });
       } catch (error) {
         console.error('Failed to queue message:', error);
         addToast({
           type: 'error',
-          title: 'Failed to queue message',
-          description: 'Please try again.',
+          title: t('failedToQueueMessage'),
+          description: t('pleaseTryAgain'),
         });
       }
     } else {
@@ -135,7 +137,7 @@ const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
   };
 
   const handleDeleteMessage = (messageId: string) => {
-    if (window.confirm('Are you sure you want to delete this message?')) {
+    if (window.confirm(t('confirmDeleteMessage'))) {
       deleteMessageMutation.mutate(messageId);
     }
   };
@@ -143,13 +145,13 @@ const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
   const getSenderInfo = (message: EventMessage) => {
     if (message.sender_id === user?.id) {
       return {
-        name: 'You',
+        name: t('you'),
         color: 'bg-[hsl(var(--loom-user))]',
         isCurrentUser: true,
       };
     } else {
       return {
-        name: partner?.display_name || 'Partner',
+        name: partner?.display_name || t('partner'),
         color: 'bg-[hsl(var(--loom-partner))]',
         isCurrentUser: false,
       };
@@ -160,7 +162,7 @@ const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[hsl(var(--loom-primary))]"></div>
-        <span className="ml-2 text-sm text-[hsl(var(--loom-text-muted))]">Loading messages...</span>
+        <span className="ml-2 text-sm text-[hsl(var(--loom-text-muted))]">{t('loadingMessages')}</span>
       </div>
     );
   }
@@ -169,7 +171,7 @@ const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
     return (
       <div className="text-center py-8">
         <p className="text-[hsl(var(--loom-text-muted))] text-sm">
-          Failed to load messages. Please try again.
+          {t('failedToLoadMessages')}
         </p>
       </div>
     );
@@ -186,7 +188,7 @@ const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
             <WifiOff className="w-4 h-4 text-red-500" />
           )}
           <span className="text-xs text-[hsl(var(--loom-text-muted))]">
-            {isConnected ? 'Connected' : 'Disconnected'}
+            {isConnected ? t('connected') : t('disconnected')}
           </span>
         </div>
       </div>
@@ -196,9 +198,9 @@ const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
         {messages.length === 0 ? (
           <div className="text-center py-8">
             <User className="w-12 h-12 mx-auto mb-4 text-[hsl(var(--loom-text-muted))] opacity-50" />
-            <h3 className="font-medium mb-2">No messages yet</h3>
+            <h3 className="font-medium mb-2">{t('noMessagesYet')}</h3>
             <p className="text-[hsl(var(--loom-text-muted))] text-sm">
-              Start a conversation about this event with {partner?.display_name || 'your partner'}
+              {t('startConversation')} {partner?.display_name || t('partner')}
             </p>
           </div>
         ) : (
@@ -273,7 +275,7 @@ const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder={`Message ${partner?.display_name || 'your partner'}...`}
+            placeholder={`${t('message')} ${partner?.display_name || t('partner')}...`}
             className="flex-1 px-3 py-2 border border-[hsl(var(--loom-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:border-transparent"
             disabled={sendMessageMutation.isPending}
           />
@@ -292,7 +294,7 @@ const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
             ) : (
               <Send className="w-4 h-4" />
             )}
-            <span className="hidden sm:inline">Send</span>
+            <span className="hidden sm:inline">{t('send')}</span>
           </button>
         </form>
       </div>

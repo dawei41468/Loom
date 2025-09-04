@@ -10,6 +10,7 @@ import { apiClient } from '../api/client';
 import { useWebSocket, WebSocketMessage } from '../hooks/useWebSocket';
 import { useOfflineQueue } from '../hooks/useOfflineQueue';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/i18n';
 
 interface EventChecklistProps {
   eventId: string;
@@ -22,6 +23,7 @@ const EventChecklist: React.FC<EventChecklistProps> = ({ eventId }) => {
   const [newItemTitle, setNewItemTitle] = useState('');
   const [newItemDescription, setNewItemDescription] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
+  const { t } = useTranslation();
 
   // Fetch checklist items
   const { data: checklistData, isLoading, error } = useQuery({
@@ -82,8 +84,8 @@ const EventChecklist: React.FC<EventChecklistProps> = ({ eventId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.eventChecklist(eventId) });
       addToast({
         type: 'success',
-        title: 'Item added',
-        description: 'Checklist item has been created.',
+        title: t('itemAdded'),
+        description: t('checklistItemCreated'),
       });
     },
     onError: (error) => {
@@ -229,7 +231,7 @@ const EventChecklist: React.FC<EventChecklistProps> = ({ eventId }) => {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[hsl(var(--loom-primary))]"></div>
-        <span className="ml-2 text-sm text-[hsl(var(--loom-text-muted))]">Loading checklist...</span>
+        <span className="ml-2 text-sm text-[hsl(var(--loom-text-muted))]">{t('loadingChecklist')}</span>
       </div>
     );
   }
@@ -249,10 +251,10 @@ const EventChecklist: React.FC<EventChecklistProps> = ({ eventId }) => {
       {/* Header with progress and connection status */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <h3 className="font-medium">Checklist</h3>
+          <h3 className="font-medium">{t('checklist')}</h3>
           {totalCount > 0 && (
             <span className="text-sm text-[hsl(var(--loom-text-muted))]">
-              ({completedCount}/{totalCount} completed)
+              ({completedCount}/{totalCount} {t('completedText')})
             </span>
           )}
         </div>

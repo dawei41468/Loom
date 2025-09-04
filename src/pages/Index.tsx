@@ -13,6 +13,7 @@ import { Event as LoomEvent } from '../types';
 import { PageHeader } from '../components/ui/page-header';
 import { EmptyState } from '../components/ui/empty-state';
 import { Section } from '../components/ui/section';
+import { useTranslation } from '../i18n';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ const Index = () => {
   const { user, partner } = useAuthState();
   const { addToast } = useToastContext();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const acceptProposalMutation = useMutation({
     mutationFn: ({ proposalId, selectedTimeSlot }: {
@@ -33,14 +35,14 @@ const Index = () => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
       addToast({
         type: 'success',
-        title: 'Proposal accepted!',
-        description: 'A new event has been created.',
+        title: t('proposalAccepted'),
+        description: t('newEventCreated'),
       });
     },
     onError: (error: Error) => {
       addToast({
         type: 'error',
-        title: 'Failed to accept proposal',
+        title: t('failedToAcceptProposal'),
         description: error.message,
       });
     },
@@ -52,14 +54,14 @@ const Index = () => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
       addToast({
         type: 'info',
-        title: 'Proposal declined',
-        description: 'The proposal has been declined.',
+        title: t('proposalDeclined'),
+        description: t('proposalHasBeenDeclined'),
       });
     },
     onError: (error: Error) => {
       addToast({
         type: 'error',
-        title: 'Failed to decline proposal',
+        title: t('failedToDeclineProposal'),
         description: error.message,
       });
     },
@@ -77,8 +79,8 @@ const Index = () => {
       } catch (error) {
         addToast({
           type: 'error',
-          title: 'Failed to load data',
-          description: 'Please try refreshing the page.',
+          title: t('failedToLoadData'),
+          description: t('pleaseTryRefreshing'),
         });
       }
     };
@@ -123,8 +125,8 @@ const Index = () => {
 
   const getNextUpText = (event: LoomEvent) => {
     const start = parseISO(event.start_time);
-    if (isToday(start)) return 'Today';
-    if (isTomorrow(start)) return 'Tomorrow';
+    if (isToday(start)) return t('taskToday');
+    if (isTomorrow(start)) return t('tomorrow');
     return format(start, 'MM/dd/yyyy');
   };
 
@@ -133,7 +135,7 @@ const Index = () => {
       {/* Enhanced Header */}
       <PageHeader
         title={format(new Date(), 'MM/dd/yyyy')}
-        subtitle={partner ? `You and ${partner.display_name}` : 'Your schedule'}
+        subtitle={partner ? `${t('youAnd')} ${partner.display_name}` : t('yourSchedule')}
       />
 
       {/* Next Up Card - Enhanced */}
@@ -144,7 +146,7 @@ const Index = () => {
               <Clock className="w-5 h-5 text-white" />
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="font-semibold text-[hsl(var(--loom-text))] truncate">Next up</h3>
+              <h3 className="font-semibold text-[hsl(var(--loom-text))] truncate">{t('nextUp')}</h3>
               <p className="text-sm text-[hsl(var(--loom-text-muted))] truncate">{getNextUpText(nextEvent)}</p>
             </div>
           </div>
@@ -162,7 +164,7 @@ const Index = () => {
             onClick={() => navigate(`/event/${nextEvent.id}`)}
             className="loom-btn-ghost text-sm hover-scale w-full sm:w-auto"
           >
-            View details
+            {t('viewDetails')}
           </button>
         </Section>
       )}
@@ -170,7 +172,7 @@ const Index = () => {
       {/* Pending Proposals - Enhanced */}
       {pendingProposals.length > 0 && (
         <Section
-          title="Pending Proposals"
+          title={t('pendingProposals')}
           variant="card"
         >
           <div className="space-y-3">
@@ -183,7 +185,7 @@ const Index = () => {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-sm mb-1 line-clamp-2">{proposal.title}</h3>
                     <p className="loom-text-muted text-xs sm:text-sm">
-                      from {proposal.proposed_by === user?.id ? 'you' : partner?.display_name}
+                      {t('from')} {proposal.proposed_by === user?.id ? t('you') : partner?.display_name}
                     </p>
                   </div>
                   <div className="flex space-x-2 sm:ml-4">
@@ -204,14 +206,14 @@ const Index = () => {
                       disabled={acceptProposalMutation.isPending}
                       className="loom-chip loom-chip-primary text-xs hover-scale flex-1 sm:flex-initial"
                     >
-                      {acceptProposalMutation.isPending ? 'Accepting...' : 'Accept'}
+                      {acceptProposalMutation.isPending ? t('accepting') : t('accept')}
                     </button>
                     <button
                       onClick={() => declineProposalMutation.mutate(proposal.id)}
                       disabled={declineProposalMutation.isPending}
                       className="loom-chip text-xs hover-scale border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] flex-1 sm:flex-initial"
                     >
-                      {declineProposalMutation.isPending ? 'Declining...' : 'Decline'}
+                      {declineProposalMutation.isPending ? t('declining') : t('decline')}
                     </button>
                   </div>
                 </div>
@@ -223,21 +225,21 @@ const Index = () => {
 
       {/* Today's Timeline - Enhanced */}
       <Section
-        title="Today's Schedule"
+        title={t('todaysSchedule')}
         variant="card"
       >
         {todayEvents.length === 0 ? (
           <EmptyState
             icon={Clock}
-            title="No events today"
-            description="Time to plan something together!"
+            title={t('noEventsToday')}
+            description={t('timeToGather')}
             action={
               <button
                 onClick={() => navigate('/add')}
                 className="loom-btn-primary hover-scale"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add Event
+                {t('addEvent')}
               </button>
             }
           />
@@ -276,7 +278,7 @@ const Index = () => {
       </Section>
 
       {/* Quick Actions - Enhanced */}
-      <Section title="Quick Actions">
+      <Section title={t('quickActions')}>
         <div className="mobile-quick-actions grid grid-cols-3 gap-3 sm:gap-4">
           <button
             onClick={() => navigate('/add')}
@@ -285,7 +287,7 @@ const Index = () => {
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/20 flex items-center justify-center">
               <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <span className="font-semibold text-sm sm:text-base">Add Event</span>
+            <span className="font-semibold text-sm sm:text-base">{t('addEvent')}</span>
           </button>
           <button
             onClick={() => navigate('/add?type=proposal')}
@@ -294,7 +296,7 @@ const Index = () => {
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/20 flex items-center justify-center">
               <Users className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <span className="font-semibold text-sm sm:text-base">Propose</span>
+            <span className="font-semibold text-sm sm:text-base">{t('propose')}</span>
           </button>
           <button
             onClick={() => navigate('/calendar')}
@@ -303,7 +305,7 @@ const Index = () => {
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[hsl(var(--loom-primary-light))] flex items-center justify-center">
               <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-[hsl(var(--loom-primary))]" />
             </div>
-            <span className="font-semibold text-sm sm:text-base">Calendar</span>
+            <span className="font-semibold text-sm sm:text-base">{t('calendar')}</span>
           </button>
         </div>
       </Section>

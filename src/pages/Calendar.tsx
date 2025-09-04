@@ -11,6 +11,7 @@ import CustomCalendar from '../components/CustomCalendar';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys, eventQueries } from '../api/queries';
 import { useToastContext } from '../contexts/ToastContext';
+import { useTranslation } from '../i18n';
 
 interface CalendarEventType {
   id: string;
@@ -27,6 +28,7 @@ const CalendarPage = () => {
   const filter = useEventFilter();
   const { setEventFilter, setEvents } = useEventsActions();
   const { addToast } = useToastContext();
+  const { t } = useTranslation();
   const [currentView, setCurrentView] = useState<'month' | 'week' | 'day'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showFilters, setShowFilters] = useState(false);
@@ -50,8 +52,8 @@ const CalendarPage = () => {
     if (error) {
       console.error('Failed to load events:', error);
       addToast({
-        title: 'Error',
-        description: 'Failed to load events. Please try again.',
+        title: t('error'),
+        description: t('failedToLoadEvents'),
         type: 'error',
       });
     }
@@ -143,74 +145,41 @@ const CalendarPage = () => {
     <div className="container py-4 sm:py-8 space-y-4 sm:space-y-6">
       {/* Mobile-Optimized Header */}
       <div className="flex items-center justify-between">
-        <PageHeader title="Calendar" subtitle="View all your events" className="flex-1" />
+        <PageHeader title={t('calendar')} subtitle={t('viewAllYourEvents')} className="flex-1" />
 
         {/* Mobile Filter Toggle */}
         <button
           onClick={() => setShowFilters(!showFilters)}
           className="loom-btn-icon ml-4 hover-scale"
-          aria-label="Toggle filters"
+          aria-label={t('toggleFilters')}
         >
           <Filter className="w-5 h-5" />
         </button>
       </div>
 
-      {/* Mobile Navigation */}
-      <Section>
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => navigateDate('prev')}
-            className="loom-btn-icon hover-scale"
-            aria-label="Previous period"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-
-          <div className="text-center flex-1 mx-2">
-            <h3 className="font-semibold text-lg">
-              {format(currentDate, currentView === 'month' ? 'MMMM yyyy' : 'MMM d, yyyy')}
-            </h3>
+      {/* Mobile Filter Controls */}
+      {showFilters && (
+        <div className="flex justify-between gap-2 pb-2 sm:flex sm:space-x-3 sm:overflow-x-auto sm:pb-2">
+          {[
+            { type: 'all', label: t('all') },
+            { type: 'mine', label: t('mine') },
+            { type: 'partner', label: t('partner') },
+            { type: 'shared', label: t('shared') },
+          ].map(({ type, label }) => (
             <button
-              onClick={() => setCurrentDate(new Date())}
-              className="text-xs text-[hsl(var(--loom-primary))] hover:underline mt-1"
+              key={type}
+              onClick={() => setEventFilter({ type: type as 'all' | 'mine' | 'partner' | 'shared' })}
+              className={`loom-chip whitespace-nowrap hover-scale text-sm py-2 px-3 min-h-[40px] flex-1 ${
+                filter.type === type
+                  ? 'loom-chip-primary'
+                  : 'bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text-muted))] border-[hsl(var(--loom-border))] hover:bg-[hsl(var(--loom-border))]'
+              }`}
             >
-              Today
+              {label}
             </button>
-          </div>
-
-          <button
-            onClick={() => navigateDate('next')}
-            className="loom-btn-icon hover-scale"
-            aria-label="Next period"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
+          ))}
         </div>
-
-        {/* Mobile Filter Controls */}
-        {showFilters && (
-          <div className="flex justify-between gap-2 pb-2 sm:flex sm:space-x-3 sm:overflow-x-auto sm:pb-2">
-            {[
-              { type: 'all', label: 'All' },
-              { type: 'mine', label: 'Mine' },
-              { type: 'partner', label: 'Partner' },
-              { type: 'shared', label: 'Shared' },
-            ].map(({ type, label }) => (
-              <button
-                key={type}
-                onClick={() => setEventFilter({ type: type as 'all' | 'mine' | 'partner' | 'shared' })}
-                className={`loom-chip whitespace-nowrap hover-scale text-sm py-2 px-3 min-h-[40px] flex-1 ${
-                  filter.type === type
-                    ? 'loom-chip-primary'
-                    : 'bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text-muted))] border-[hsl(var(--loom-border))] hover:bg-[hsl(var(--loom-border))]'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
-      </Section>
+      )}
 
       {/* Mobile-Optimized Calendar */}
       <Section variant="card" className="p-2 sm:p-6">
@@ -224,7 +193,7 @@ const CalendarPage = () => {
           >
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(var(--loom-primary))] mx-auto mb-2"></div>
-              <p className="text-sm text-[hsl(var(--loom-text-muted))]">Loading events...</p>
+              <p className="text-sm text-[hsl(var(--loom-text-muted))]">{t('loadingEvents')}</p>
             </div>
           </div>
         ) : (
