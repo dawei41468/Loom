@@ -8,6 +8,7 @@ import { ChecklistItem } from '../types';
 import { queryKeys, eventChecklistQueries } from '../api/queries';
 import { apiClient } from '../api/client';
 import { useWebSocket, WebSocketMessage } from '../hooks/useWebSocket';
+import { useOfflineQueue } from '../hooks/useOfflineQueue';
 import { cn } from '@/lib/utils';
 
 interface EventChecklistProps {
@@ -68,6 +69,7 @@ const EventChecklist: React.FC<EventChecklistProps> = ({ eventId }) => {
   };
 
   const { isConnected } = useWebSocket(eventId, handleWebSocketMessage);
+  const { isOnline, addOfflineAction } = useOfflineQueue();
 
   // Create checklist item mutation
   const createItemMutation = useMutation({
@@ -131,21 +133,76 @@ const EventChecklist: React.FC<EventChecklistProps> = ({ eventId }) => {
     },
   });
 
-  const handleCreateItem = (e: React.FormEvent) => {
+  const handleCreateItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItemTitle.trim()) return;
 
-    createItemMutation.mutate({
+    const itemData = {
       title: newItemTitle.trim(),
       description: newItemDescription.trim() || undefined,
-    });
+    };
+
+    if (!isOnline) {
+      // Queue the item creation for offline processing
+      try {
+        await addOfflineAction({
+          type: 'create_checklist_item',
+          eventId,
+          data: itemData
+        });
+        setNewItemTitle('');
+        setNewItemDescription('');
+        setShowAddForm(false);
+        addToast({
+          type: 'info',
+          title: 'Item queued',
+          description: 'Your checklist item will be created when connection is restored.',
+        });
+      } catch (error) {
+        console.error('Failed to queue checklist item:', error);
+        addToast({
+          type: 'error',
+          title: 'Failed to queue item',
+          description: 'Please try again.',
+        });
+      }
+    } else {
+      // Create immediately when online
+      createItemMutation.mutate(itemData);
+    }
   };
 
-  const handleToggleComplete = (item: ChecklistItem) => {
-    updateItemMutation.mutate({
+  const handleToggleComplete = async (item: ChecklistItem) => {
+    const updateData = {
       itemId: item.id,
-      updates: { completed: !item.completed },
-    });
+      updates: { completed: !item.completed }
+    };
+
+    if (!isOnline) {
+      // Queue the item update for offline processing
+      try {
+        await addOfflineAction({
+          type: 'update_checklist_item',
+          eventId,
+          data: updateData
+        });
+        addToast({
+          type: 'info',
+          title: 'Update queued',
+          description: 'Your checklist update will be applied when connection is restored.',
+        });
+      } catch (error) {
+        console.error('Failed to queue checklist update:', error);
+        addToast({
+          type: 'error',
+          title: 'Failed to queue update',
+          description: 'Please try again.',
+        });
+      }
+    } else {
+      // Update immediately when online
+      updateItemMutation.mutate(updateData);
+    }
   };
 
   const handleDeleteItem = (itemId: string) => {

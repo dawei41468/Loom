@@ -8,6 +8,7 @@ import { EventMessage } from '../types';
 import { queryKeys, eventChatQueries } from '../api/queries';
 import { apiClient } from '../api/client';
 import { useWebSocket, WebSocketMessage } from '../hooks/useWebSocket';
+import { useOfflineQueue } from '../hooks/useOfflineQueue';
 import { cn } from '@/lib/utils';
 
 interface EventChatProps {
@@ -55,6 +56,7 @@ const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
   };
 
   const { isConnected } = useWebSocket(eventId, handleWebSocketMessage);
+  const { isOnline, addOfflineAction } = useOfflineQueue();
 
   // Send message mutation
   const sendMessageMutation = useMutation({
@@ -98,11 +100,38 @@ const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messagesData?.data]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
 
-    sendMessageMutation.mutate(newMessage.trim());
+    const messageText = newMessage.trim();
+
+    if (!isOnline) {
+      // Queue the message for offline sending
+      try {
+        await addOfflineAction({
+          type: 'send_message',
+          eventId,
+          data: { message: messageText }
+        });
+        setNewMessage('');
+        addToast({
+          type: 'info',
+          title: 'Message queued',
+          description: 'Your message will be sent when connection is restored.',
+        });
+      } catch (error) {
+        console.error('Failed to queue message:', error);
+        addToast({
+          type: 'error',
+          title: 'Failed to queue message',
+          description: 'Please try again.',
+        });
+      }
+    } else {
+      // Send immediately when online
+      sendMessageMutation.mutate(messageText);
+    }
   };
 
   const handleDeleteMessage = (messageId: string) => {
