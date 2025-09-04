@@ -1,8 +1,7 @@
 // Custom Calendar View
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
-import { ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { Filter } from 'lucide-react';
 import { useEvents, useEventFilter, useEventsActions } from '../contexts/EventsContext';
 import { Event } from '../types';
 import { PageHeader } from '../components/ui/page-header';
@@ -57,7 +56,7 @@ const CalendarPage = () => {
         type: 'error',
       });
     }
-  }, [error, addToast]);
+  }, [error, addToast, t]);
 
 
   // Handle responsive calendar height

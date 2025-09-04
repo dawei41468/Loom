@@ -1,8 +1,7 @@
 // Settings Page
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  User,
   Globe,
   Moon,
   Sun,
@@ -13,8 +12,7 @@ import {
   ChevronRight,
   Copy,
   Check,
-  LogOut,
-  Clock
+  LogOut
 } from 'lucide-react';
 import { useAuthState, useAuthDispatch, useUpdateProfile } from '../contexts/AuthContext';
 import { useTheme, useLanguage, useUIActions } from '../contexts/UIContext';
@@ -64,7 +62,7 @@ const Settings = () => {
     if (user?.display_name && user.display_name !== displayNameInput) {
       setDisplayNameInput(user.display_name);
     }
-  }, [user?.display_name]);
+  }, [user?.display_name, displayNameInput]);
 
   const handleCopyInvite = async () => {
     const inviteLink = 'https://loom.app/join/abc123';

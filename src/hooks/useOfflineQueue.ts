@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { indexedDBManager, createOfflineAction, OfflineAction, isOnline, waitForOnline } from '../utils/indexedDB';
 import { apiClient } from '../api/client';
 import { queryKeys } from '../api/queries';
@@ -24,37 +24,6 @@ export const useOfflineQueue = (): UseOfflineQueueReturn => {
     indexedDBManager.init().catch(console.error);
   }, []);
 
-  // Monitor online/offline status
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnlineStatus(true);
-      addToast({
-        type: 'success',
-        title: 'Back online',
-        description: 'Syncing offline actions...',
-      });
-      // Auto-sync when coming back online
-      syncOfflineActions();
-    };
-
-    const handleOffline = () => {
-      setIsOnlineStatus(false);
-      addToast({
-        type: 'warning',
-        title: 'You are offline',
-        description: 'Actions will be saved locally and synced when connection is restored.',
-      });
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
   // Update pending actions count
   const updatePendingCount = useCallback(async () => {
     try {
@@ -64,61 +33,6 @@ export const useOfflineQueue = (): UseOfflineQueueReturn => {
       console.error('Failed to get pending actions count:', error);
     }
   }, []);
-
-  // Sync offline actions
-  const syncOfflineActions = useCallback(async () => {
-    if (!isOnline()) return;
-
-    try {
-      const actions = await indexedDBManager.getOfflineActions();
-
-      if (actions.length === 0) return;
-
-      addToast({
-        type: 'info',
-        title: 'Syncing actions',
-        description: `Processing ${actions.length} offline action${actions.length > 1 ? 's' : ''}...`,
-      });
-
-      for (const action of actions) {
-        try {
-          await processOfflineAction(action);
-          await indexedDBManager.removeOfflineAction(action.id);
-        } catch (error) {
-          console.error(`Failed to sync action ${action.id}:`, error);
-
-          // Increment retry count
-          if (action.retryCount < action.maxRetries) {
-            await indexedDBManager.updateOfflineAction(action.id, {
-              retryCount: action.retryCount + 1
-            });
-          } else {
-            // Max retries reached, remove the action
-            await indexedDBManager.removeOfflineAction(action.id);
-            addToast({
-              type: 'error',
-              title: 'Sync failed',
-              description: `Action could not be completed after ${action.maxRetries} attempts.`,
-            });
-          }
-        }
-      }
-
-      await updatePendingCount();
-
-      const remainingActions = await indexedDBManager.getOfflineActions();
-      if (remainingActions.length === 0) {
-        addToast({
-          type: 'success',
-          title: 'Sync complete',
-          description: 'All offline actions have been processed.',
-        });
-      }
-
-    } catch (error) {
-      console.error('Failed to sync offline actions:', error);
-    }
-  }, [isOnlineStatus, updatePendingCount, addToast]);
 
   // Process individual offline action with conflict resolution
   const processOfflineAction = useCallback(async (action: OfflineAction) => {
@@ -210,6 +124,93 @@ export const useOfflineQueue = (): UseOfflineQueueReturn => {
     }
   }, [queryClient]);
 
+  // Sync offline actions
+  const syncOfflineActions = useCallback(async () => {
+    if (!isOnline()) return;
+
+    try {
+      const actions = await indexedDBManager.getOfflineActions();
+
+      if (actions.length === 0) return;
+
+      addToast({
+        type: 'info',
+        title: 'Syncing actions',
+        description: `Processing ${actions.length} offline action${actions.length > 1 ? 's' : ''}...`,
+      });
+
+      for (const action of actions) {
+        try {
+          await processOfflineAction(action);
+          await indexedDBManager.removeOfflineAction(action.id);
+        } catch (error) {
+          console.error(`Failed to sync action ${action.id}:`, error);
+
+          // Increment retry count
+          if (action.retryCount < action.maxRetries) {
+            await indexedDBManager.updateOfflineAction(action.id, {
+              retryCount: action.retryCount + 1
+            });
+          } else {
+            // Max retries reached, remove the action
+            await indexedDBManager.removeOfflineAction(action.id);
+            addToast({
+              type: 'error',
+              title: 'Sync failed',
+              description: `Action could not be completed after ${action.maxRetries} attempts.`,
+            });
+          }
+        }
+      }
+
+      await updatePendingCount();
+
+      const remainingActions = await indexedDBManager.getOfflineActions();
+      if (remainingActions.length === 0) {
+        addToast({
+          type: 'success',
+          title: 'Sync complete',
+          description: 'All offline actions have been processed.',
+        });
+      }
+
+    } catch (error) {
+      console.error('Failed to sync offline actions:', error);
+    }
+  }, [updatePendingCount, addToast, processOfflineAction]);
+
+  // Monitor online/offline status
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnlineStatus(true);
+      addToast({
+        type: 'success',
+        title: 'Back online',
+        description: 'Syncing offline actions...',
+      });
+      // Auto-sync when coming back online
+      syncOfflineActions();
+    };
+
+    const handleOffline = () => {
+      setIsOnlineStatus(false);
+      addToast({
+        type: 'warning',
+        title: 'You are offline',
+        description: 'Actions will be saved locally and synced when connection is restored.',
+      });
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [addToast, syncOfflineActions]);
+
+
   // Add offline action
   const addOfflineAction = useCallback(async (actionData: Omit<OfflineAction, 'id' | 'timestamp' | 'retryCount' | 'maxRetries'>) => {
     const action = createOfflineAction(actionData.type, actionData.eventId, actionData.data);
@@ -226,7 +227,7 @@ export const useOfflineQueue = (): UseOfflineQueueReturn => {
         console.error('Immediate sync failed, will retry later:', error);
       }
     }
-  }, [isOnlineStatus, updatePendingCount, processOfflineAction]);
+  }, [updatePendingCount, processOfflineAction]);
 
   // Manual sync
   const syncNow = useCallback(async () => {
@@ -240,7 +241,7 @@ export const useOfflineQueue = (): UseOfflineQueueReturn => {
     }
 
     await syncOfflineActions();
-  }, [isOnlineStatus, syncOfflineActions, addToast]);
+  }, [syncOfflineActions, addToast]);
 
   // Clear queue
   const clearQueue = useCallback(async () => {
