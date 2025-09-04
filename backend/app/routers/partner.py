@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from ..models import Partnership, PartnershipCreate, Partner, User, ApiResponse
 from ..auth import get_current_user
 from ..database import get_database
+from ..email import send_partnership_invitation
 from bson import ObjectId
 from datetime import datetime
 
@@ -60,8 +61,25 @@ async def invite_partner(
 
     result = await db.partnerships.insert_one(partnership_dict)
 
+    # Send invitation email (don't fail the request if email fails)
+    partnership_id = str(result.inserted_id)
+    invitation_link = f"https://your-loom-app.com/accept-invitation/{partnership_id}"  # TODO: Update with actual domain
+
+    try:
+        email_sent = await send_partnership_invitation(
+            inviter_name=current_user.display_name,
+            invitee_email=partnership_data.invited_user_email,
+            invitation_link=invitation_link
+        )
+        if not email_sent:
+            # Log that email failed but don't fail the request
+            print(f"Warning: Failed to send invitation email to {partnership_data.invited_user_email}")
+    except Exception as e:
+        # Log error but don't fail the request
+        print(f"Error sending invitation email: {e}")
+
     return ApiResponse(
-        data={"partnership_id": str(result.inserted_id)},
+        data={"partnership_id": partnership_id},
         message="Partnership invitation sent successfully"
     )
 

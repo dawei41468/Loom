@@ -13,3 +13,4 @@ python-jose[cryptography]
 bcrypt
 redis
 aiocache
+aiosmtplib>=3.0.1

@@ -69,7 +69,7 @@ const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messagesData?.data]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,7 +138,7 @@ const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
               <div
                 key={message.id}
                 className={cn(
-                  'flex items-start space-x-3',
+                  'flex items-start space-x-3 group',
                   senderInfo.isCurrentUser ? 'justify-end' : 'justify-start'
                 )}
               >
