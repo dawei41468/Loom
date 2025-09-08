@@ -61,96 +61,274 @@ def create_partnership_invitation_email(inviter_name: str, invitee_email: str, i
         <title>Join Loom</title>
         <style>
             body {{
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
                 line-height: 1.6;
-                color: #333;
+                color: #1f2937;
                 max-width: 600px;
                 margin: 0 auto;
                 padding: 20px;
-                background-color: #f8f9fa;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
             }}
             .container {{
                 background: white;
-                padding: 40px;
-                border-radius: 12px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                padding: 50px 40px;
+                border-radius: 20px;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+                margin: 40px auto;
+                position: relative;
+                overflow: hidden;
+            }}
+            .container::before {{
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #f5576c);
             }}
             .header {{
                 text-align: center;
-                margin-bottom: 30px;
+                margin-bottom: 40px;
+                position: relative;
             }}
             .logo {{
-                font-size: 28px;
+                width: 80px;
+                height: 80px;
+                margin: 0 auto 20px;
+                display: block;
+                filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+                background: linear-gradient(135deg, #667eea 0%, #764ba2);
+                border-radius: 16px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 32px;
                 font-weight: bold;
-                color: #6366f1;
+                text-decoration: none;
+            }}
+            .logo img {{
+                width: 100%;
+                height: 100%;
+                border-radius: 16px;
+            }}
+            .logo-text {{
+                background: linear-gradient(135deg, #667eea 0%, #764ba2);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                font-size: 32px;
+                font-weight: 700;
                 margin-bottom: 10px;
+                letter-spacing: -0.5px;
+            }}
+            .app-name {{
+                font-size: 32px;
+                font-weight: 700;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                margin-bottom: 10px;
+                letter-spacing: -0.5px;
+            }}
+            .tagline {{
+                font-size: 16px;
+                color: #6b7280;
+                margin-bottom: 0;
+                font-weight: 400;
+            }}
+            .invitation-card {{
+                background: #f8fafc;
+                border-radius: 16px;
+                padding: 30px;
+                margin: 30px 0;
+                border: 1px solid #e5e7eb;
+                position: relative;
+            }}
+            .invitation-card::before {{
+                content: '💌';
+                position: absolute;
+                top: -15px;
+                left: 20px;
+                background: white;
+                padding: 10px;
+                border-radius: 50%;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                font-size: 20px;
             }}
             .invitation-text {{
-                font-size: 18px;
-                margin: 20px 0;
-                color: #374151;
+                font-size: 20px;
+                margin: 20px 0 25px 0;
+                color: #1f2937;
+                line-height: 1.5;
+            }}
+            .inviter-name {{
+                color: #667eea;
+                font-weight: 600;
+                font-size: 24px;
+            }}
+            .description {{
+                font-size: 16px;
+                color: #4b5563;
+                margin: 25px 0;
+                line-height: 1.6;
+            }}
+            .features {{
+                display: flex;
+                justify-content: space-around;
+                margin: 30px 0;
+                text-align: center;
+            }}
+            .feature {{
+                flex: 1;
+                padding: 0 10px;
+            }}
+            .feature-icon {{
+                font-size: 28px;
+                margin-bottom: 8px;
+            }}
+            .feature-text {{
+                font-size: 14px;
+                color: #6b7280;
+                font-weight: 500;
             }}
             .cta-button {{
                 display: inline-block;
-                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
                 text-decoration: none;
-                padding: 16px 32px;
-                border-radius: 8px;
+                padding: 18px 40px;
+                border-radius: 12px;
                 font-weight: 600;
                 font-size: 16px;
-                margin: 20px 0;
-                box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+                margin: 30px 0;
+                box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+                transition: all 0.3s ease;
+                text-align: center;
+                min-width: 200px;
             }}
             .cta-button:hover {{
-                background: linear-gradient(135deg, #5855eb 0%, #7c3aed 100%);
-                box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+                transform: translateY(-2px);
+                box-shadow: 0 12px 28px rgba(102, 126, 234, 0.4);
+            }}
+            .fallback-link {{
+                font-size: 14px;
+                color: #6b7280;
+                margin-top: 20px;
+                word-break: break-all;
+                background: #f3f4f6;
+                padding: 15px;
+                border-radius: 8px;
+                border: 1px solid #e5e7eb;
             }}
             .footer {{
                 margin-top: 40px;
-                padding-top: 20px;
-                border-top: 1px solid #e5e7eb;
+                padding-top: 30px;
+                border-top: 2px solid #f3f4f6;
                 font-size: 14px;
                 color: #6b7280;
                 text-align: center;
+                position: relative;
+            }}
+            .footer::before {{
+                content: '';
+                position: absolute;
+                top: -2px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 60px;
+                height: 2px;
+                background: linear-gradient(90deg, #667eea, #764ba2);
             }}
             .highlight {{
-                color: #6366f1;
+                color: #667eea;
                 font-weight: 600;
+            }}
+            .security-note {{
+                background: #fef3c7;
+                border: 1px solid #f59e0b;
+                border-radius: 8px;
+                padding: 15px;
+                margin: 20px 0;
+                font-size: 14px;
+                color: #92400e;
+            }}
+            @media (max-width: 480px) {{
+                .container {{
+                    padding: 30px 20px;
+                    margin: 20px;
+                }}
+                .features {{
+                    flex-direction: column;
+                    gap: 20px;
+                }}
+                .cta-button {{
+                    width: 100%;
+                    box-sizing: border-box;
+                }}
             }}
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
-                <div class="logo">Loom</div>
-                <p>Connect and coordinate with your partner</p>
+                <div class="logo">
+                    <img src="https://loom.studiodtw.net/icons/loom-logo-192.svg" alt="Loom Logo" onerror="this.parentElement.innerHTML='L'">
+                </div>
+                <div class="app-name">Loom</div>
+                <p class="tagline">Connect and coordinate with your partner</p>
             </div>
 
-            <div class="invitation-text">
-                <strong>{inviter_name}</strong> has invited you to join <span class="highlight">Loom</span>!
-            </div>
+            <div class="invitation-card">
+                <div class="invitation-text">
+                    <span class="inviter-name">{inviter_name}</span> has invited you to join <span class="highlight">Loom</span>!
+                </div>
 
-            <p>
-                Loom helps couples coordinate their schedules, share events, and stay connected.
-                Accept the invitation to start planning together.
-            </p>
+                <div class="description">
+                    <strong>Loom</strong> helps couples coordinate their schedules, share events, and stay connected.
+                    Accept the invitation to start planning together and never miss an important moment.
+                </div>
+
+                <div class="features">
+                    <div class="feature">
+                        <div class="feature-icon">📅</div>
+                        <div class="feature-text">Shared Calendar</div>
+                    </div>
+                    <div class="feature">
+                        <div class="feature-icon">❤️</div>
+                        <div class="feature-text">Stay Connected</div>
+                    </div>
+                    <div class="feature">
+                        <div class="feature-icon">🎯</div>
+                        <div class="feature-text">Plan Together</div>
+                    </div>
+                </div>
+            </div>
 
             <div style="text-align: center;">
                 <a href="{invitation_link}" class="cta-button">
-                    Accept Invitation
+                    ✨ Accept Invitation
                 </a>
             </div>
 
-            <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
-                If the button doesn't work, copy and paste this link into your browser:<br>
-                <a href="{invitation_link}" style="color: #6366f1; word-break: break-all;">{invitation_link}</a>
-            </p>
+            <div class="fallback-link">
+                <strong>If the button doesn't work:</strong><br>
+                Copy and paste this link into your browser:<br>
+                <a href="{invitation_link}" style="color: #667eea; word-break: break-all;">{invitation_link}</a>
+            </div>
+
+            <div class="security-note">
+                <strong>🔒 Security Note:</strong> This invitation is personal and expires in 7 days.
+                If you didn't expect this invitation, you can safely ignore this email.
+            </div>
 
             <div class="footer">
                 <p>
-                    This invitation will expire in 7 days.<br>
-                    If you didn't expect this invitation, you can safely ignore this email.
+                    <strong>Loom</strong> - Making coordination effortless for couples<br>
+                    Questions? Contact us at <a href="mailto:support@studiodtw.net" style="color: #667eea;">support@studiodtw.net</a>
                 </p>
             </div>
         </div>

@@ -192,6 +192,10 @@ class ApiClient {
     });
   }
 
+  async checkEmailRegistered(email: string): Promise<ApiResponse<{ is_registered: boolean; email: string }>> {
+    return this.request<ApiResponse<{ is_registered: boolean; email: string }>>(`/partner/check-email/${encodeURIComponent(email)}`);
+  }
+
   // Events
   async getEvents(): Promise<ApiResponse<Event[]>> {
     return this.request<ApiResponse<Event[]>>('/events');

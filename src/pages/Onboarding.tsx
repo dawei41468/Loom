@@ -20,15 +20,36 @@ const Onboarding = () => {
   const handleOnboardingComplete = async () => {
     setIsLoading(true);
     try {
-      // This is a mock API call. In a real app, you'd send the partner email.
+      // Update user as onboarded
       await apiClient.updateMe({ is_onboarded: true });
+      
+      // If partner email is provided, send invitation
+      if (partnerEmail.trim()) {
+        try {
+          const result = await apiClient.invitePartner(partnerEmail.trim());
+          addToast({
+            type: 'success',
+            title: 'Partner invitation sent!',
+            description: `We've sent an invitation to ${partnerEmail}`,
+          });
+        } catch (inviteError) {
+          console.error('Failed to send partner invitation:', inviteError);
+          addToast({
+            type: 'warning',
+            title: 'Onboarding complete',
+            description: 'Partner invitation failed, but you can invite them later from the Partner page.',
+          });
+        }
+      }
       
       dispatch({ type: 'SET_ONBOARDED', payload: true });
       
       addToast({
         type: 'success',
         title: 'Onboarding Complete!',
-        description: 'Welcome to Loom!',
+        description: partnerEmail.trim() 
+          ? 'Welcome to Loom! Your partner invitation has been sent.' 
+          : 'Welcome to Loom!',
       });
       
       navigate('/');

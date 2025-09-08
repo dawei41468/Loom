@@ -82,7 +82,8 @@ class Partner(MongoBaseModel, PartnerBase):
 # Partnership Models
 class PartnershipBase(BaseModel):
     user1_id: str
-    user2_id: str
+    user2_id: Optional[str] = None  # Optional - may not exist yet if user hasn't signed up
+    invited_email: str  # Email of the invited user
     status: Literal["pending", "accepted", "declined"] = "pending"
     invited_by: str  # User ID who sent the invitation
     created_at: datetime = Field(default_factory=datetime.utcnow)
