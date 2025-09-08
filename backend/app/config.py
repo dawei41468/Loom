@@ -1,8 +1,18 @@
 import os
 from typing import List
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pathlib import Path
 import json
 
+# Determine the environment and set the appropriate .env file path
+app_env = os.getenv('APP_ENV', 'development')
+env_file_path = Path(__file__).parent.parent
+
+if app_env == 'production':
+    env_file = env_file_path / ".env.production"
+else:
+    # Default to .env.development if not in production
+    env_file = env_file_path / ".env.development"
 
 class Settings(BaseSettings):
     ENV: str = "dev"
@@ -43,11 +53,13 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_USE_TLS: bool = True
     EMAIL_FROM: str = ""
-    
-    model_config = {
-        "env_file": ".env"
-    }
-    
+
+    model_config = SettingsConfigDict(
+        env_file=env_file,
+        env_file_encoding="utf-8",
+        extra="ignore"
+    )
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Parse CORS_ORIGINS from environment if it's a string

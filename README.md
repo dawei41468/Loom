@@ -226,6 +226,50 @@ pytest
 4. Push to the branch: `git push origin feature/amazing-feature`
 5. Open a Pull Request
 
+## 🛡️ Production Deployment (Tencent HK)
+
+This project is deployed similar to LOS on a Tencent Lighthouse (Hong Kong) server.
+
+- Server: `ubuntu@124.156.174.180`
+- Domain: `https://loom.studiodtw.net`
+- Backend: PM2 process `loom-backend` bound to `127.0.0.1:4100` (FastAPI via Gunicorn/Uvicorn)
+- Frontend: Static files served by Nginx from `/var/www/loom-frontend`
+- Nginx vhost file in repo: `nginx/loom.studiodtw.net`
+
+### Server‑managed secrets
+
+- The real backend env file lives on the server at `~/Loom/backend/.env.production`.
+- The repo only contains `backend/.env.production.example` (placeholders, no secrets).
+- `.env.production` is gitignored and is excluded from deploy uploads.
+- Deploy does not delete the remote backend directory to preserve the server env file.
+
+### One‑time setup
+
+- Ensure Cloudflare Origin certificates exist on the server:
+  - `/etc/ssl/certs/cloudflare-origin.crt`
+  - `/etc/ssl/private/cloudflare-origin.key`
+- Install PM2, Python 3, and Node.js on the server.
+- DNS A record for `loom.studiodtw.net` should point to the server IP.
+
+### Deploy steps
+```bash
+# From repo root
+bash deploy-nginx-loom.sh     # install/update Nginx vhost and reload
+bash deploy-backend.sh        # upload backend (without .env.production), install deps, start PM2
+bash deploy-frontend.sh       # build on server, copy to /var/www/loom-frontend
+```
+
+### Health checks
+
+- Backend local: `curl -I http://127.0.0.1:4100/health`
+- Public API: `https://loom.studiodtw.net/api/health`
+- Site: `https://loom.studiodtw.net`
+
+### Troubleshooting
+
+- PM2 logs: `pm2 logs loom-backend`
+- Nginx test/reload: `sudo nginx -t && sudo systemctl reload nginx`
+
 ## 📄 License
 
 This project is private and proprietary.
