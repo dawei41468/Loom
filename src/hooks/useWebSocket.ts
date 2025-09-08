@@ -24,9 +24,13 @@ export const useWebSocket = (eventId: string | null, onMessage: (message: WebSoc
 
   const getWebSocketUrl = useCallback((eventId: string) => {
     const token = localStorage.getItem('access_token');
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-    const wsUrl = baseUrl.replace(/^http/, 'ws');
-    return `${wsUrl}/api/v1/events/${eventId}/ws?token=${token}`;
+    // Prefer VITE_API_URL (origin) then VITE_API_BASE_URL (may include /api)
+    const rawBase = (import.meta as any).env.VITE_API_URL || (import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:7500/api';
+    // Strip trailing /api if present to get the service origin
+    const httpOrigin = String(rawBase).replace(/\/?api\/?$/, '');
+    const wsOrigin = httpOrigin.replace(/^http/, 'ws');
+    // Backend uses API_V1_STR = '/api'
+    return `${wsOrigin}/api/events/${eventId}/ws?token=${token}`;
   }, []);
 
   const connect = useCallback((targetEventId: string) => {

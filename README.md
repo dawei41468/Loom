@@ -202,6 +202,53 @@ cd backend
 uvicorn app.main:app --reload  # Start with auto-reload
 ```
 
+## 🧑‍💻 Local development (post‑production)
+
+Local setup is aligned with production paths while using dev ports.
+
+- Frontend dev server: `http://localhost:7100`
+- Backend dev server: `http://localhost:7500`
+- API base path: `/api`
+
+### 1) Backend
+
+```bash
+cd backend
+python3.11 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+# Use the dev env file expected by app.config (APP_ENV=development by default)
+cp .env.example .env.development
+
+# Start FastAPI on port 7500
+uvicorn app.main:app --reload --port 7500
+```
+
+The backend reads `backend/.env.development` in development. Ensure `CORS_ORIGINS` includes `http://localhost:7100`.
+
+### 2) Frontend
+
+Create a project‑root `.env.development` with API base URL:
+
+```bash
+echo "VITE_API_BASE_URL=http://localhost:7500/api" > .env.development
+```
+
+Then run Vite:
+
+```bash
+npm install
+npm run dev  # serves on http://localhost:7100
+```
+
+### 3) WebSocket URL
+
+The frontend `src/hooks/useWebSocket.ts` derives the WS endpoint from `VITE_API_URL` or `VITE_API_BASE_URL`. With the above env, it will connect to:
+
+- `ws://localhost:7500/api/events/:eventId/ws?token=...`
+
+which matches the backend route defined in `backend/app/routers/events.py` (`/events/{event_id}/ws`) under the API prefix `/api`.
+
 ### Code Quality
 - **ESLint**: Configured for React/TypeScript best practices
 - **Prettier**: Consistent code formatting
