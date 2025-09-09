@@ -23,6 +23,8 @@ export interface WebSocketState {
   lastConnectedAt: Date | null;
   lastDisconnectedAt: Date | null;
   lastError: string | null;
+  isHealthy: boolean;
+  lastHeartbeatAt: Date | null;
 }
 
 export interface UseWebSocketBaseReturn extends WebSocketState {
@@ -34,6 +36,11 @@ export interface UseWebSocketBaseReturn extends WebSocketState {
     readyState: number;
     bufferedAmount: number;
   } | null;
+  getConnectionHealth: () => {
+    isHealthy: boolean;
+    lastHeartbeatAt: Date | null;
+    timeSinceLastHeartbeat: number | null;
+  };
 }
 
 const DEFAULT_CONFIG: WebSocketConfig = {
@@ -64,14 +71,19 @@ export const useWebSocketBase = (
     lastConnectedAt: null,
     lastDisconnectedAt: null,
     lastError: null,
+    isHealthy: false,
+    lastHeartbeatAt: null,
   });
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
   const heartbeatIntervalRef = useRef<number | null>(null);
+  const pongTimeoutRef = useRef<number | null>(null);
   const messageQueueRef = useRef<WebSocketMessage[]>([]);
   const isManualDisconnectRef = useRef(false);
   const connectionAttemptsRef = useRef(0);
+  const lastPingSentRef = useRef<number | null>(null);
+  const lastPongReceivedRef = useRef<number | null>(null);
 
   const getWebSocketUrlWithToken = useCallback(() => {
     const baseUrl = getWebSocketUrl();
@@ -93,16 +105,55 @@ export const useWebSocketBase = (
   }, []);
 
   const startHeartbeat = useCallback(() => {
+    // Clear any existing heartbeat timers
     if (heartbeatIntervalRef.current) {
       clearInterval(heartbeatIntervalRef.current);
       heartbeatIntervalRef.current = null;
     }
+    if (pongTimeoutRef.current) {
+      clearTimeout(pongTimeoutRef.current);
+      pongTimeoutRef.current = null;
+    }
+
+    // Reset heartbeat tracking
+    lastPingSentRef.current = null;
+    lastPongReceivedRef.current = null;
+
+    // Set up pong timeout checker - runs every 10 seconds to check for missed pongs
     heartbeatIntervalRef.current = setInterval(() => {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: 'ping', timestamp: new Date().toISOString() }));
+      const now = Date.now();
+
+      // If we sent a ping but haven't received a pong within the timeout period
+      if (lastPingSentRef.current && !lastPongReceivedRef.current) {
+        const timeSincePing = now - lastPingSentRef.current;
+        if (timeSincePing > finalConfig.connectionTimeout * 1000) {
+          console.warn('Pong timeout detected, connection may be unhealthy');
+          // Force reconnection by closing the connection
+          if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.close(1008, 'Pong timeout');
+          }
+          return;
+        }
       }
-    }, finalConfig.heartbeatInterval);
-  }, [finalConfig.heartbeatInterval]);
+
+      // Send a ping to test connection health (less frequent than server pings)
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        lastPingSentRef.current = now;
+        lastPongReceivedRef.current = null; // Reset pong received flag
+        wsRef.current.send(JSON.stringify({ type: 'ping', timestamp: new Date().toISOString() }));
+
+        // Set a timeout for this specific ping
+        pongTimeoutRef.current = setTimeout(() => {
+          if (lastPingSentRef.current && !lastPongReceivedRef.current) {
+            console.warn('Pong response timeout, closing connection');
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+              wsRef.current.close(1008, 'Pong timeout');
+            }
+          }
+        }, finalConfig.connectionTimeout * 1000);
+      }
+    }, finalConfig.heartbeatInterval * 3); // Check every 90 seconds (3x server interval to avoid interference)
+  }, [finalConfig.heartbeatInterval, finalConfig.connectionTimeout]);
 
   const sendQueuedMessages = useCallback(() => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
@@ -153,6 +204,8 @@ export const useWebSocketBase = (
           isReconnecting: false,
           lastConnectedAt: new Date(),
           lastError: null,
+          isHealthy: true,
+          lastHeartbeatAt: new Date(),
         });
         connectionAttemptsRef.current = 0; // Reset on successful connection
         startHeartbeat();
@@ -168,7 +221,17 @@ export const useWebSocketBase = (
             // Respond with pong
             ws.send(JSON.stringify({ type: 'pong', timestamp: message.timestamp }));
           } else if (message.type === 'pong') {
-            // Heartbeat response received
+            // Heartbeat response received - clear pong timeout and update tracking
+            lastPongReceivedRef.current = Date.now();
+            if (pongTimeoutRef.current) {
+              clearTimeout(pongTimeoutRef.current);
+              pongTimeoutRef.current = null;
+            }
+            updateState({
+              isHealthy: true,
+              lastHeartbeatAt: new Date(),
+            });
+            console.debug('Pong received, connection healthy');
           } else {
             onMessage(message);
           }
@@ -183,6 +246,10 @@ export const useWebSocketBase = (
           clearInterval(heartbeatIntervalRef.current);
           heartbeatIntervalRef.current = null;
         }
+        if (pongTimeoutRef.current) {
+          clearTimeout(pongTimeoutRef.current);
+          pongTimeoutRef.current = null;
+        }
         console.log('WebSocket disconnected:', event.code, event.reason);
 
         const now = new Date();
@@ -191,6 +258,7 @@ export const useWebSocketBase = (
           isConnecting: false,
           lastDisconnectedAt: now,
           lastError: event.reason || `Connection closed with code ${event.code}`,
+          isHealthy: false,
         });
 
         wsRef.current = null;
@@ -258,6 +326,11 @@ export const useWebSocketBase = (
       heartbeatIntervalRef.current = null;
     }
 
+    if (pongTimeoutRef.current) {
+      clearTimeout(pongTimeoutRef.current);
+      pongTimeoutRef.current = null;
+    }
+
     if (wsRef.current) {
       wsRef.current.close(1000, 'Manual disconnect');
       wsRef.current = null;
@@ -269,6 +342,7 @@ export const useWebSocketBase = (
       isReconnecting: false,
       connectionAttempts: 0,
       lastDisconnectedAt: new Date(),
+      isHealthy: false,
     });
   }, [updateState]);
 
@@ -302,6 +376,19 @@ export const useWebSocketBase = (
     };
   }, []);
 
+  const getConnectionHealth = useCallback(() => {
+    const now = Date.now();
+    const timeSinceLastHeartbeat = state.lastHeartbeatAt
+      ? now - state.lastHeartbeatAt.getTime()
+      : null;
+
+    return {
+      isHealthy: state.isHealthy,
+      lastHeartbeatAt: state.lastHeartbeatAt,
+      timeSinceLastHeartbeat,
+    };
+  }, [state.isHealthy, state.lastHeartbeatAt]);
+
   // Auto-connect when user changes
   useEffect(() => {
     if (token && !state.isConnected && !state.isConnecting) {
@@ -328,5 +415,6 @@ export const useWebSocketBase = (
     disconnect,
     sendMessage,
     getConnectionInfo,
+    getConnectionHealth,
   };
 };
