@@ -16,6 +16,7 @@ const Partner = React.lazy(() => import('./pages/Partner'));
 const EventDetail = React.lazy(() => import('./pages/EventDetail'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
 const AcceptInvitation = React.lazy(() => import('./pages/AcceptInvitation'));
+const Invite = React.lazy(() => import('./pages/Invite'));
 
 // Components
 import Layout from './components/Layout';
@@ -98,6 +99,7 @@ const AppRoutes = React.memo(() => {
         <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
         <Route path="/register" element={isAuthenticated ? <Navigate to="/" replace /> : <Register />} />
         <Route path="/accept-invitation/:id" element={<AcceptInvitation />} />
+        <Route path="/invite/:token" element={<Invite />} />
 
         {/* Onboarding route */}
         <Route

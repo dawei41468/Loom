@@ -1,12 +1,99 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from ..models import Partnership, PartnershipCreate, Partner, User, ApiResponse
+from ..models import Partnership, PartnershipCreate, Partner, User, ApiResponse, InviteToken, InviteTokenCreate
 from ..auth import get_current_user
 from ..database import get_database
 from ..email import send_partnership_invitation
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timedelta
+import secrets
 
 router = APIRouter(prefix="/partner", tags=["partner"])
+
+
+@router.post("/generate-invite", response_model=ApiResponse)
+async def generate_invite_token(
+    invite_data: InviteTokenCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Generate a unique invite token for sharing"""
+    db = get_database()
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database connection not available"
+        )
+
+    # Generate a secure random token
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.utcnow() + timedelta(days=invite_data.expires_in_days)
+
+    # Create invite token document
+    invite_token_dict = {
+        "token": token,
+        "created_by": str(current_user.id),
+        "expires_at": expires_at,
+        "used": False,
+        "created_at": datetime.utcnow()
+    }
+
+    result = await db.invite_tokens.insert_one(invite_token_dict)
+
+    # Generate the invite URL
+    invite_url = f"https://loom.studiodtw.net/invite/{token}"
+
+    return ApiResponse(
+        data={
+            "invite_token": token,
+            "invite_url": invite_url,
+            "expires_at": expires_at.isoformat()
+        },
+        message="Invite link generated successfully"
+    )
+
+
+@router.get("/check-invite/{token}", response_model=ApiResponse)
+async def check_invite_token(token: str):
+    """Check if an invite token is valid and get inviter info"""
+    db = get_database()
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database connection not available"
+        )
+
+    # Find the invite token
+    invite_token = await db.invite_tokens.find_one({
+        "token": token,
+        "used": False,
+        "expires_at": {"$gt": datetime.utcnow()}
+    })
+
+    if not invite_token:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invalid or expired invite token"
+        )
+
+    # Get inviter user info
+    inviter = await db.users.find_one({"_id": ObjectId(invite_token["created_by"])})
+    if not inviter:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Inviter not found"
+        )
+
+    return ApiResponse(
+        data={
+            "inviter": {
+                "id": str(inviter["_id"]),
+                "display_name": inviter.get("display_name", "Partner"),
+                "email": inviter.get("email")
+            },
+            "expires_at": invite_token["expires_at"].isoformat(),
+            "token": token
+        },
+        message="Valid invite token"
+    )
 
 
 @router.post("/invite", response_model=ApiResponse)

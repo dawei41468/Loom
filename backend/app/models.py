@@ -98,6 +98,24 @@ class PartnershipCreate(BaseModel):
     invited_user_email: str
 
 
+# Invite Token Models
+class InviteTokenBase(BaseModel):
+    token: str
+    created_by: str  # User ID who created the invite
+    expires_at: datetime
+    used: bool = False
+    used_by: Optional[str] = None  # User ID who used the invite
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class InviteToken(MongoBaseModel, InviteTokenBase):
+    pass
+
+
+class InviteTokenCreate(BaseModel):
+    expires_in_days: int = 7  # Default 7 days
+
+
 # Event Models
 class TimeSlot(BaseModel):
     start_time: datetime

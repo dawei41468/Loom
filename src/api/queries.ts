@@ -37,6 +37,8 @@ export const partnerQueries = {
   acceptPartnership: (id: string) => apiClient.acceptPartnership(id),
   declinePartnership: (id: string) => apiClient.declinePartnership(id),
   checkEmailRegistered: (email: string) => apiClient.checkEmailRegistered(email),
+  generateInviteToken: (expiresInDays?: number) => apiClient.generateInviteToken(expiresInDays),
+  checkInviteToken: (token: string) => apiClient.checkInviteToken(token),
 };
 
 export const userQueries = {

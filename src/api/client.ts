@@ -196,6 +196,17 @@ class ApiClient {
     return this.request<ApiResponse<{ is_registered: boolean; email: string }>>(`/partner/check-email/${encodeURIComponent(email)}`);
   }
 
+  async generateInviteToken(expiresInDays: number = 7): Promise<ApiResponse<{ invite_token: string; invite_url: string; expires_at: string }>> {
+    return this.request<ApiResponse<{ invite_token: string; invite_url: string; expires_at: string }>>('/partner/generate-invite', {
+      method: 'POST',
+      body: JSON.stringify({ expires_in_days: expiresInDays }),
+    });
+  }
+
+  async checkInviteToken(token: string): Promise<ApiResponse<{ inviter: { id: string; display_name: string; email: string }; expires_at: string; token: string }>> {
+    return this.request<ApiResponse<{ inviter: { id: string; display_name: string; email: string }; expires_at: string; token: string }>>(`/partner/check-invite/${token}`);
+  }
+
   // Events
   async getEvents(): Promise<ApiResponse<Event[]>> {
     return this.request<ApiResponse<Event[]>>('/events');

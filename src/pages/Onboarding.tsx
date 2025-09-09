@@ -1,11 +1,13 @@
-// Onboarding Page - Consistent with Loom brand styling
-import React, { useState } from 'react';
+// Onboarding Page - Multi-step flow with app introduction and optional partner connection
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ArrowRight } from 'lucide-react';
+import { Check, ArrowRight, ArrowLeft, Copy, Check as CheckIcon } from 'lucide-react';
 import { useAuthState, useAuthDispatch } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
+import { partnerQueries } from '@/api/queries';
 import { useTranslation } from '../i18n';
+import AppIntroduction from '../components/AppIntroduction';
 
 const Onboarding = () => {
   const { user } = useAuthState();
@@ -13,45 +15,59 @@ const Onboarding = () => {
   const navigate = useNavigate();
   const { addToast } = useToastContext();
   const { t } = useTranslation();
-  
-  const [partnerEmail, setPartnerEmail] = useState('');
+
+  const [currentStep, setCurrentStep] = useState<'introduction' | 'partner'>('introduction');
+  const [inviteUrl, setInviteUrl] = useState<string>('');
+  const [copiedInvite, setCopiedInvite] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleOnboardingComplete = async () => {
+  // Generate invite token when component mounts
+  useEffect(() => {
+    const generateInviteLink = async () => {
+      try {
+        const response = await partnerQueries.generateInviteToken();
+        if (response.data?.invite_url) {
+          setInviteUrl(response.data.invite_url);
+        }
+      } catch (error) {
+        console.error('Failed to generate invite link:', error);
+        // Fallback to a generic invite URL
+        setInviteUrl('https://loom.studiodtw.net/invite/request');
+      }
+    };
+
+    generateInviteLink();
+  }, []);
+
+  const handleIntroductionComplete = () => {
+    setCurrentStep('partner');
+  };
+
+  const handleSkipPartner = async () => {
+    await completeOnboarding(false);
+  };
+
+  const handlePartnerComplete = async () => {
+    await completeOnboarding(true);
+  };
+
+  const completeOnboarding = async (sendInvite: boolean) => {
     setIsLoading(true);
     try {
       // Update user as onboarded
       await apiClient.updateMe({ is_onboarded: true });
-      
-      // If partner email is provided, send invitation
-      if (partnerEmail.trim()) {
-        try {
-          const result = await apiClient.invitePartner(partnerEmail.trim());
-          addToast({
-            type: 'success',
-            title: 'Partner invitation sent!',
-            description: `We've sent an invitation to ${partnerEmail}`,
-          });
-        } catch (inviteError) {
-          console.error('Failed to send partner invitation:', inviteError);
-          addToast({
-            type: 'warning',
-            title: 'Onboarding complete',
-            description: 'Partner invitation failed, but you can invite them later from the Partner page.',
-          });
-        }
-      }
-      
-      dispatch({ type: 'SET_ONBOARDED', payload: true });
-      
+
+      // Show success message
       addToast({
         type: 'success',
-        title: 'Onboarding Complete!',
-        description: partnerEmail.trim() 
-          ? 'Welcome to Loom! Your partner invitation has been sent.' 
-          : 'Welcome to Loom!',
+        title: 'Welcome to Loom! 🎉',
+        description: sendInvite
+          ? 'Your invite link is ready to share with your partner. Check the link above!'
+          : 'You can connect with a partner anytime from the Partner page.',
       });
-      
+
+      dispatch({ type: 'SET_ONBOARDED', payload: true });
+
       navigate('/');
     } catch (error) {
       console.error('Onboarding failed:', error);
@@ -65,48 +81,118 @@ const Onboarding = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-[hsl(var(--loom-bg))] flex flex-col items-center justify-center p-6 safe-area-top safe-area-bottom">
-      <div className="loom-card max-w-md w-full text-center">
-        <div className="w-20 h-20 mx-auto rounded-full loom-gradient-hero flex items-center justify-center mb-6">
-          <Check className="w-10 h-10 text-white" />
-        </div>
-        <h1 className="text-3xl font-semibold text-[hsl(var(--loom-text))] mb-2">
-          {t('welcomeFriend').replace('{name}', user?.display_name || t('friend'))}
-        </h1>
-        <p className="text-lg text-[hsl(var(--loom-text-muted))] leading-relaxed mb-8">
-          {t('letsGetLoomSetup')}
-        </p>
+  const handleCopyInvite = async () => {
+    const urlToCopy = inviteUrl || 'https://loom.studiodtw.net/invite/request';
 
-        <div className="space-y-6 text-left">
-          <div>
-            <label className="block text-sm font-medium mb-2 text-[hsl(var(--loom-text))]">
-              {t('connectWithYourPartner')}
-            </label>
-            <input
-              type="email"
-              value={partnerEmail}
-              onChange={(e) => setPartnerEmail(e.target.value)}
-              placeholder={t('enterPartnersEmailOptional')}
-              className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:border-transparent"
-              disabled={isLoading}
-            />
-            <p className="text-xs text-[hsl(var(--loom-text-muted))] mt-2">
-              {t('wellSendInvitation')}
+    try {
+      await navigator.clipboard.writeText(urlToCopy);
+      setCopiedInvite(true);
+      addToast({
+        type: 'success',
+        title: 'Invite link copied!',
+        description: 'Share this with your partner to connect.',
+      });
+
+      setTimeout(() => setCopiedInvite(false), 2000);
+    } catch (error) {
+      addToast({
+        type: 'error',
+        title: 'Failed to copy',
+        description: 'Please copy the link manually.',
+      });
+    }
+  };
+
+  const handleBackToIntroduction = () => {
+    setCurrentStep('introduction');
+  };
+
+  return (
+    <>
+      {currentStep === 'introduction' ? (
+        <AppIntroduction onContinue={handleIntroductionComplete} />
+      ) : (
+        <div className="min-h-screen bg-[hsl(var(--loom-bg))] flex flex-col items-center justify-center p-6 safe-area-top safe-area-bottom">
+          <div className="loom-card max-w-md w-full">
+            {/* Header with back button */}
+            <div className="flex items-center justify-between mb-6">
+              <button
+                onClick={handleBackToIntroduction}
+                className="p-2 hover:bg-[hsl(var(--loom-border))] rounded-md transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div className="w-20 h-20 mx-auto rounded-full loom-gradient-hero flex items-center justify-center">
+                <Check className="w-10 h-10 text-white" />
+              </div>
+              <div className="w-8" /> {/* Spacer for centering */}
+            </div>
+
+            <h1 className="text-2xl font-semibold text-[hsl(var(--loom-text))] mb-2 text-center">
+              Connect with Your Partner
+            </h1>
+            <p className="text-sm text-[hsl(var(--loom-text-muted))] leading-relaxed mb-8 text-center">
+              Optional: Invite your partner to coordinate schedules and share tasks together.
             </p>
+
+            <div className="space-y-6">
+              {/* Invite Link Display */}
+              <div>
+                <label className="block text-sm font-medium mb-2 text-[hsl(var(--loom-text))]">
+                  Your Invite Link
+                </label>
+                <div className="flex items-center space-x-2 p-3 rounded-[var(--loom-radius-md)] bg-[hsl(var(--loom-surface))] border mb-4">
+                  <code className="flex-1 text-sm font-mono overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-[hsl(var(--loom-border))] scrollbar-track-transparent">
+                    {inviteUrl || 'Generating invite link...'}
+                  </code>
+                  <button
+                    onClick={handleCopyInvite}
+                    className="p-2 hover:bg-[hsl(var(--loom-border))] rounded-md transition-colors disabled:opacity-50"
+                    disabled={!inviteUrl || isLoading}
+                  >
+                    {copiedInvite ? (
+                      <CheckIcon className="w-4 h-4 text-[hsl(var(--loom-success))]" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-[hsl(var(--loom-text-muted))]">
+                  Copy this link and send it to your partner to connect your accounts.
+                </p>
+              </div>
+
+              {/* Action buttons */}
+              <div className="space-y-3">
+                <button
+                  onClick={handlePartnerComplete}
+                  disabled={isLoading || !inviteUrl}
+                  className="loom-btn-primary w-full flex items-center justify-center space-x-2 disabled:opacity-50"
+                >
+                  <span>{isLoading ? 'Setting up...' : 'Continue with Invite Link'}</span>
+                  {!isLoading && <ArrowRight className="w-5 h-5" />}
+                </button>
+
+                <button
+                  onClick={handleSkipPartner}
+                  disabled={isLoading}
+                  className="w-full px-4 py-3 text-sm text-[hsl(var(--loom-text-muted))] hover:text-[hsl(var(--loom-text))] transition-colors disabled:opacity-50"
+                >
+                  Skip for now - I'll connect later
+                </button>
+              </div>
+
+              {/* Info about connecting later */}
+              <div className="text-center p-4 bg-[hsl(var(--loom-surface))] rounded-lg border border-[hsl(var(--loom-border))]">
+                <p className="text-xs text-[hsl(var(--loom-text-muted))]">
+                  💡 You can always generate a new invite link from the Partner page anytime.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-
-        <button
-          onClick={handleOnboardingComplete}
-          disabled={isLoading}
-          className="loom-btn-primary w-full flex items-center justify-center space-x-2 mt-8 disabled:opacity-50"
-        >
-          <span>{isLoading ? t('finishingUp') : t('completeSetup')}</span>
-          {!isLoading && <ArrowRight className="w-5 h-5" />}
-        </button>
-      </div>
-    </div>
+      )}
+    </>
   );
 };
 

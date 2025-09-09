@@ -37,6 +37,18 @@ const Register = () => {
     setIsLoading(true);
 
     try {
+      // Check for invite context from sessionStorage
+      const inviteToken = sessionStorage.getItem('inviteToken');
+      const inviterInfoStr = sessionStorage.getItem('inviterInfo');
+      let inviterInfo = null;
+      if (inviterInfoStr) {
+        try {
+          inviterInfo = JSON.parse(inviterInfoStr);
+        } catch (e) {
+          console.warn('Failed to parse inviter info from sessionStorage');
+        }
+      }
+
       const userData: UserCreate = {
         email,
         display_name: displayName,
@@ -63,11 +75,49 @@ const Register = () => {
               type: 'LOGIN',
               payload: { token: loginResponse.access_token, refreshToken: loginResponse.refresh_token, user: userResponse.data },
             });
-            addToast({
-              type: 'success',
-              title: 'Welcome to Loom!',
-              description: 'Your account has been created successfully.',
-            });
+            
+            // Handle invite context - auto-link with inviter if invite token exists
+            if (inviteToken && inviterInfo) {
+              try {
+                // Create partnership invitation from inviter to new user
+                const partnershipResponse = await apiClient.invitePartner(email);
+                
+                if (partnershipResponse.data?.partnership_id) {
+                  // Accept the partnership automatically since we're the invited user
+                  await apiClient.acceptPartnership(partnershipResponse.data.partnership_id);
+                  
+                  addToast({
+                    type: 'success',
+                    title: 'Welcome to Loom!',
+                    description: `Your account has been created and you're now connected with ${inviterInfo.display_name}!`,
+                  });
+                } else {
+                  addToast({
+                    type: 'success',
+                    title: 'Welcome to Loom!',
+                    description: 'Your account has been created successfully.',
+                  });
+                }
+                
+                // Clear invite context from sessionStorage
+                sessionStorage.removeItem('inviteToken');
+                sessionStorage.removeItem('inviterInfo');
+                
+              } catch (inviteError) {
+                console.error('Failed to auto-link partners:', inviteError);
+                addToast({
+                  type: 'success',
+                  title: 'Welcome to Loom!',
+                  description: 'Your account has been created successfully.',
+                });
+              }
+            } else {
+              addToast({
+                type: 'success',
+                title: 'Welcome to Loom!',
+                description: 'Your account has been created successfully.',
+              });
+            }
             
             // Navigate based on onboarding status
             if (userResponse.data.is_onboarded) {
