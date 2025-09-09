@@ -9,7 +9,16 @@ const Switch = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SwitchPrimitives.Root
     className={cn(
-      "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input",
+      // Layout
+      "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-0",
+      // Visible track border in both themes
+      "border border-[hsl(var(--loom-border))] dark:border-[hsl(var(--loom-border-strong))]",
+      // Track colors with good contrast
+      "transition-colors data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-300 dark:data-[state=unchecked]:bg-gray-600",
+      // Focus ring (offset blends with app surface)
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900",
+      // Disabled state
+      "disabled:cursor-not-allowed disabled:opacity-50",
       className
     )}
     {...props}
@@ -17,7 +26,15 @@ const Switch = React.forwardRef<
   >
     <SwitchPrimitives.Thumb
       className={cn(
-        "pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+        // Size & shape
+        "pointer-events-none block h-5 w-5 rounded-full",
+        // Thumb fill (high contrast on both themes)
+        "bg-white dark:bg-gray-200",
+        // No border for cleaner look
+        // Elevation
+        "shadow-sm",
+        // Motion (respect reduced motion) — with inner padding, 6 translates end-to-end
+        "transition-transform motion-reduce:transition-none data-[state=checked]:translate-x-6 data-[state=unchecked]:translate-x-0"
       )}
     />
   </SwitchPrimitives.Root>

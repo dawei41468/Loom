@@ -87,7 +87,6 @@ const Settings = () => {
   const themeOptions = [
     { value: 'light', label: t('light'), icon: Sun },
     { value: 'dark', label: t('dark'), icon: Moon },
-    { value: 'system', label: t('system'), icon: Monitor },
   ];
 
   const languageOptions = [
@@ -195,11 +194,11 @@ const Settings = () => {
           <h2 className="font-medium">{t('themeSection')}</h2>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {themeOptions.map(({ value, label, icon: Icon }) => (
             <button
               key={value}
-              onClick={() => setTheme(value as 'light' | 'dark' | 'system')}
+              onClick={() => setTheme(value as 'light' | 'dark')}
               className={cn(
                 'p-3 rounded-[var(--loom-radius-md)] border transition-all flex flex-col items-center space-y-1',
                 theme === value

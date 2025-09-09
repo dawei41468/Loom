@@ -66,9 +66,6 @@ const UserProfileMenu = React.memo(() => {
             <DropdownMenuItem onClick={() => setTheme('dark')} className={theme === 'dark' ? 'bg-[hsl(var(--loom-accent))]' : ''}>
               <span className="text-[hsl(var(--loom-text))]">{t('dark')}</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme('system')} className={theme === 'system' ? 'bg-[hsl(var(--loom-accent))]' : ''}>
-              <span className="text-[hsl(var(--loom-text))]">{t('system')}</span>
-            </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
         <DropdownMenuSub>

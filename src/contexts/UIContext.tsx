@@ -4,13 +4,13 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 
 // 1. Define State Shape
 interface UIState {
-  theme: 'light' | 'dark' | 'system';
+  theme: 'light' | 'dark';
   language: 'en' | 'zh';
 }
 
 // 2. Define Action Types
 type UIAction =
-  | { type: 'SET_THEME'; payload: 'light' | 'dark' | 'system' }
+  | { type: 'SET_THEME'; payload: 'light' | 'dark' }
   | { type: 'SET_LANGUAGE'; payload: 'en' | 'zh' };
 
 // 3. Initial State
@@ -61,7 +61,20 @@ const UIDispatchContext = createContext<React.Dispatch<UIAction> | undefined>(un
 export const UIProvider = ({ children }: { children: React.ReactNode }) => {
   const [state, dispatch] = useReducer(uiReducer, initialState, () => {
     const stored = loadFromStorage();
-    return stored || initialState;
+    if (stored) {
+      // Migrate legacy 'system' to a concrete theme once, based on current OS preference
+      // Simple approach to avoid lingering 'system' in storage
+      // Safe in client-side SPA context
+      // Fallback to light if matchMedia is unavailable
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const s: any = stored as any;
+      if (s.theme === 'system') {
+        const prefersDark = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)').matches : false;
+        return { ...stored, theme: prefersDark ? 'dark' : 'light' } as UIState;
+      }
+      return stored as UIState;
+    }
+    return initialState;
   });
 
   // Persist to localStorage on state changes
@@ -111,7 +124,7 @@ export const useUIActions = () => {
   const dispatch = useUIDispatch();
   
   return {
-    setTheme: (theme: 'light' | 'dark' | 'system') => dispatch({ type: 'SET_THEME', payload: theme }),
+    setTheme: (theme: 'light' | 'dark') => dispatch({ type: 'SET_THEME', payload: theme }),
     setLanguage: (language: 'en' | 'zh') => dispatch({ type: 'SET_LANGUAGE', payload: language }),
   };
 };

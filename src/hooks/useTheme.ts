@@ -15,29 +15,8 @@ export const useTheme = () => {
       }
     };
 
-    const handleSystemTheme = () => {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      applyTheme(mediaQuery.matches);
-
-      const handleChange = (e: MediaQueryListEvent) => {
-        applyTheme(e.matches);
-      };
-
-      mediaQuery.addEventListener('change', handleChange);
-      return () => mediaQuery.removeEventListener('change', handleChange);
-    };
-
-    let cleanup: (() => void) | undefined;
-
-    if (theme === 'dark') {
-      applyTheme(true);
-    } else if (theme === 'light') {
-      applyTheme(false);
-    } else if (theme === 'system') {
-      cleanup = handleSystemTheme();
-    }
-
-    return cleanup;
+    applyTheme(theme === 'dark');
+    return undefined;
   }, [theme]);
 
   return theme;
