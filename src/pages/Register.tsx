@@ -130,6 +130,7 @@ const Register = () => {
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="What should we call you?"
                 required
+                autoComplete="name"
                 className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:border-transparent"
                 disabled={isLoading}
               />
@@ -145,6 +146,7 @@ const Register = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 required
+                autoComplete="email"
                 className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:border-transparent"
                 disabled={isLoading}
               />
@@ -162,6 +164,7 @@ const Register = () => {
                   placeholder="Create a password"
                   required
                   minLength={6}
+                  autoComplete="new-password"
                   className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:border-transparent pr-12"
                   disabled={isLoading}
                 />
@@ -192,6 +195,7 @@ const Register = () => {
                 placeholder="Confirm your password"
                 required
                 minLength={6}
+                autoComplete="new-password"
                 className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:border-transparent"
                 disabled={isLoading}
               />
