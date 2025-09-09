@@ -14,29 +14,33 @@ const AppIntroduction: React.FC<AppIntroductionProps> = ({ onContinue }) => {
       icon: Calendar,
       title: 'Smart Calendar',
       description: 'Coordinate schedules with your partner. See overlapping free time and plan events together.',
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
+      cardBg: 'bg-blue-50 dark:bg-blue-950/40',
+      iconBg: 'bg-blue-50 dark:bg-blue-950/40',
+      iconColor: 'text-blue-600 dark:text-blue-300',
     },
     {
       icon: CheckSquare,
       title: 'Shared Tasks',
       description: 'Create and manage tasks together. Keep track of household responsibilities and goals.',
-      color: 'text-green-600',
-      bgColor: 'bg-green-50'
+      cardBg: 'bg-green-50 dark:bg-green-950/40',
+      iconBg: 'bg-green-50 dark:bg-green-950/40',
+      iconColor: 'text-green-600 dark:text-green-300',
     },
     {
       icon: Users,
       title: 'Partner Connection',
       description: 'Connect with your partner to share calendars, tasks, and stay coordinated.',
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50'
+      cardBg: 'bg-purple-50 dark:bg-purple-950/40',
+      iconBg: 'bg-purple-50 dark:bg-purple-950/40',
+      iconColor: 'text-purple-600 dark:text-purple-300',
     },
     {
       icon: Heart,
       title: 'Quality Time',
       description: 'Find the perfect moments to spend together and never miss special occasions.',
-      color: 'text-pink-600',
-      bgColor: 'bg-pink-50'
+      cardBg: 'bg-pink-50 dark:bg-pink-950/40',
+      iconBg: 'bg-pink-50 dark:bg-pink-950/40',
+      iconColor: 'text-pink-600 dark:text-pink-300',
     }
   ];
 
@@ -61,14 +65,17 @@ const AppIntroduction: React.FC<AppIntroductionProps> = ({ onContinue }) => {
           {features.map((feature, index) => {
             const IconComponent = feature.icon;
             return (
-              <div key={index} className={`p-6 rounded-xl ${feature.bgColor} border border-[hsl(var(--loom-border))] transition-transform hover:scale-105`}>
-                <div className={`w-12 h-12 rounded-lg ${feature.bgColor} flex items-center justify-center mb-4`}>
-                  <IconComponent className={`w-6 h-6 ${feature.color}`} />
+              <div
+                key={index}
+                className={`p-6 rounded-xl ${feature.cardBg} border border-[hsl(var(--loom-border))] dark:border-[hsl(var(--loom-border-strong))] transition-transform hover:scale-105`}
+              >
+                <div className={`w-12 h-12 rounded-lg ${feature.iconBg} flex items-center justify-center mb-4`}>
+                  <IconComponent className={`w-6 h-6 ${feature.iconColor}`} />
                 </div>
-                <h3 className="font-semibold text-lg mb-2 text-[hsl(var(--loom-text))]">
+                <h3 className="font-semibold text-lg mb-2 text-[hsl(var(--loom-text))] dark:text-white">
                   {feature.title}
                 </h3>
-                <p className="text-sm text-[hsl(var(--loom-text-muted))]">
+                <p className="text-sm text-[hsl(var(--loom-text-muted))] dark:text-[hsl(var(--loom-text))/0.85]">
                   {feature.description}
                 </p>
               </div>
