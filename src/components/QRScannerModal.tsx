@@ -48,9 +48,9 @@ const QRScannerModal: React.FC<QRScannerModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div className="max-w-md w-full mx-4">
-        <Card className="relative">
+        <Card className="relative bg-[hsl(var(--loom-surface))] border border-[hsl(var(--loom-border))] text-[hsl(var(--loom-text))]">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">{title}</CardTitle>

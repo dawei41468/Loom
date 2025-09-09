@@ -40,9 +40,9 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="max-w-md w-full mx-4">
-        <Card className="relative">
+        <Card className="relative bg-[hsl(var(--loom-surface))] border border-[hsl(var(--loom-border))] text-[hsl(var(--loom-text))]">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">{title}</CardTitle>
@@ -58,7 +58,7 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
           </CardHeader>
 
           <CardContent className="space-y-4">
-            <div className="flex justify-center p-4 bg-white rounded-lg">
+            <div className="flex justify-center p-4 bg-[hsl(var(--loom-surface))] rounded-lg border border-[hsl(var(--loom-border))]">
               <QRCode
                 value={inviteUrl}
                 size={200}
