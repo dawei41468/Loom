@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, Query
 from ..models import Partnership, Partner, User, ApiResponse, InviteToken, InviteTokenCreate
 from ..auth import get_current_user
 from ..database import get_database
+from ..websocket import manager, handle_partner_websocket_connection
 from bson import ObjectId
 from datetime import datetime, timedelta
 import secrets
@@ -97,6 +98,101 @@ async def check_invite_token(token: str):
 
 
 
+@router.post("/connect", response_model=ApiResponse)
+async def connect_partner(
+    token_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Connect with a partner using an invite token"""
+    db = get_database()
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database connection not available"
+        )
+    token = token_data.get("invite_token")
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invite token is required"
+        )
+
+    # Reuse the logic from check_invite_token to validate
+    invite_token = await db.invite_tokens.find_one({
+        "token": token,
+        "used": False,
+        "expires_at": {"$gt": datetime.utcnow()}
+    })
+
+    if not invite_token:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invalid or expired invite token"
+        )
+
+    inviter_id = invite_token["created_by"]
+
+    # Prevent connecting with oneself
+    if inviter_id == str(current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot connect with yourself"
+        )
+
+    # Check for existing partnership
+    existing_partnership = await db.partnerships.find_one({
+        "$or": [
+            {"user1_id": str(current_user.id), "user2_id": inviter_id, "status": "accepted"},
+            {"user1_id": inviter_id, "user2_id": str(current_user.id), "status": "accepted"}
+        ]
+    })
+    if existing_partnership:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You are already connected with this user"
+        )
+
+    # Create partnership
+    partnership_dict = {
+        "user1_id": inviter_id,
+        "user2_id": str(current_user.id),
+        "status": "accepted",
+        "invited_by": inviter_id,
+        "accepted_at": datetime.utcnow(),
+        "created_at": invite_token["created_at"]
+    }
+    await db.partnerships.insert_one(partnership_dict)
+
+    # Mark token as used
+    await db.invite_tokens.update_one(
+        {"_id": invite_token["_id"]},
+        {"$set": {"used": True, "used_by": str(current_user.id)}}
+    )
+
+    # Fetch partner data to return
+    partner_user = await db.users.find_one({"_id": ObjectId(inviter_id)})
+    if not partner_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Partner user not found"
+        )
+    partner_data = {
+        "id": str(partner_user["_id"]),
+        "display_name": partner_user.get("display_name", "Partner"),
+        "color_preference": "partner",
+        "timezone": partner_user.get("timezone", "UTC"),
+        "invite_status": "accepted",
+        "connected_at": partnership_dict["accepted_at"]
+    }
+    partner = Partner(**partner_data)
+
+    # WebSocket notifications
+    await manager.notify_partner_connection(inviter_id, str(current_user.id))
+
+    return ApiResponse(data=partner.dict(), message="Successfully connected with partner")
+
+
 @router.get("", response_model=ApiResponse)
 async def get_partner(current_user: User = Depends(get_current_user)):
     """Get current user's partner"""
@@ -143,6 +239,55 @@ async def get_partner(current_user: User = Depends(get_current_user)):
     return ApiResponse(data=partner.dict(), message="Partner retrieved successfully")
 
 
+@router.delete("", response_model=ApiResponse)
+async def disconnect_partner(current_user: User = Depends(get_current_user)):
+    """Disconnect from current partner"""
+    db = get_database()
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database connection not available"
+        )
+
+    # Find accepted partnership
+    partnership = await db.partnerships.find_one({
+        "$or": [
+            {"user1_id": str(current_user.id), "status": "accepted"},
+            {"user2_id": str(current_user.id), "status": "accepted"}
+        ]
+    })
+
+    if not partnership:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No active partnership found"
+        )
+
+    # Determine partner user ID
+    partner_id = (
+        partnership["user2_id"]
+        if partnership["user1_id"] == str(current_user.id)
+        else partnership["user1_id"]
+    )
+
+    # Update partnership status to declined
+    await db.partnerships.update_one(
+        {"_id": partnership["_id"]},
+        {"$set": {"status": "declined"}}
+    )
+
+    # Get partner user data for notification
+    partner_user = await db.users.find_one({"_id": ObjectId(partner_id)})
+    if partner_user:
+        # Send WebSocket notification to the partner
+        await manager.notify_partner_disconnection(partner_id, str(current_user.id))
+
+    return ApiResponse(
+        data=None,
+        message="Successfully disconnected from partner"
+    )
+
+
 @router.get("/check-email/{email}", response_model=ApiResponse)
 async def check_email_registered(email: str):
     """Check if an email is already registered in the system."""
@@ -161,3 +306,4 @@ async def check_email_registered(email: str):
         data={"is_registered": is_registered, "email": email},
         message="Email registration status checked"
     )
+

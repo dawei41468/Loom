@@ -14,6 +14,8 @@ SSH_KEY_PATH="~/.ssh/id_ed25519_tencentHK"
 echo "Creating tar archive of frontend (excluding node_modules)..."
 # Create a tar archive of the repository (frontend is at repo root; build will run there)
 # Exclude node_modules to reduce payload
+# Disable macOS extended attributes
+export COPYFILE_DISABLE=1
 if [ -d node_modules ]; then
   TAR_EXCLUDES=(--exclude='node_modules')
 else
@@ -22,10 +24,10 @@ fi
 
 # Include only files needed to build (package.json, lock, src, public, vite config, ts configs, etc.) to keep upload lean
 # Fallback to archiving entire repo if patterns fail is not implemented to keep script simple
- tar -czf frontend.tar.gz \
+ tar --no-xattrs -czf frontend.tar.gz \
   package.json package-lock.json vite.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json index.html .env.production \
   public src \
-  2>/dev/null || tar "${TAR_EXCLUDES[@]}" -czf frontend.tar.gz .
+  2>/dev/null || tar --no-xattrs "${TAR_EXCLUDES[@]}" -czf frontend.tar.gz .
 
 if [ $? -ne 0 ]; then
   echo "Failed to create frontend tar archive. Exiting."
@@ -58,7 +60,7 @@ ssh -i ${SSH_KEY_PATH} ${SERVER_USER}@${SERVER_IP} << EOF
   mkdir -p frontend
 
   echo "Extracting frontend.tar.gz..."
-  tar -xzf frontend.tar.gz -C frontend --strip-components=0
+  tar --no-xattrs -xzf frontend.tar.gz -C frontend --strip-components=0
 
   echo "Removing frontend.tar.gz on server..."
   rm -f frontend.tar.gz

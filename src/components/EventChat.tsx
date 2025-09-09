@@ -14,9 +14,10 @@ import { useTranslation } from '@/i18n';
 
 interface EventChatProps {
   eventId: string;
+  hasAccess?: boolean;
 }
 
-const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
+const EventChat: React.FC<EventChatProps> = ({ eventId, hasAccess = true }) => {
   const { user, partner } = useAuthState();
   const { addToast } = useToastContext();
   const queryClient = useQueryClient();
@@ -24,14 +25,19 @@ const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
 
-  // Fetch messages
+  console.log('EventChat component rendered', { eventId, hasAccess, userId: user?.id });
+
+  // Don't fetch messages if eventId is invalid
   const { data: messagesData, isLoading, error } = useQuery({
     queryKey: queryKeys.eventMessages(eventId),
     queryFn: () => eventChatQueries.getEventMessages(eventId),
     refetchInterval: 60000, // Reduced polling to 60 seconds since we have WebSocket
+    enabled: !!eventId, // Only run if eventId is valid
   });
 
   const messages = messagesData?.data || [];
+
+  console.log('EventChat: Setting up WebSocket for eventId:', eventId);
 
   // WebSocket for real-time updates
   const handleWebSocketMessage = (message: WebSocketMessage) => {
@@ -57,7 +63,14 @@ const EventChat: React.FC<EventChatProps> = ({ eventId }) => {
     }
   };
 
-  const { isConnected } = useWebSocket(eventId, handleWebSocketMessage);
+  const webSocketState = useWebSocket(eventId || null, handleWebSocketMessage);
+  console.log('EventChat: WebSocket state:', {
+    isConnected: webSocketState.isConnected,
+    isConnecting: webSocketState.isConnecting,
+    connectionAttempts: webSocketState.connectionAttempts,
+    eventId
+  });
+  const { isConnected } = webSocketState;
   const { isOnline, addOfflineAction } = useOfflineQueue();
 
   // Send message mutation

@@ -11,8 +11,8 @@ class PyObjectId(ObjectId):
     def __get_pydantic_core_schema__(cls, source_type, handler):
         return core_schema.union_schema([
             core_schema.is_instance_schema(ObjectId),
-            core_schema.no_info_plain_validator_function(cls.validate, serialization=core_schema.to_string_ser_schema())
-        ])
+            core_schema.no_info_plain_validator_function(cls.validate)
+        ], serialization=core_schema.to_string_ser_schema())
 
     @classmethod
     def validate(cls, v):
@@ -21,6 +21,9 @@ class PyObjectId(ObjectId):
         if isinstance(v, str) and ObjectId.is_valid(v):
             return ObjectId(v)
         raise ValueError("Invalid ObjectId")
+
+    def __str__(self):
+        return str(self)
 
 
 class MongoBaseModel(BaseModel):
@@ -34,6 +37,7 @@ class MongoBaseModel(BaseModel):
     @field_serializer('id')
     def serialize_id(self, value):
         return str(value)
+
 
 
 # User Models
@@ -81,13 +85,17 @@ class Partner(MongoBaseModel, PartnerBase):
 
 # Partnership Models
 class PartnershipBase(BaseModel):
-    user1_id: str
-    user2_id: Optional[str] = None  # Optional - may not exist yet if user hasn't signed up
+    user1_id: PyObjectId
+    user2_id: Optional[PyObjectId] = None  # Optional - may not exist yet if user hasn't signed up
     invited_email: str  # Email of the invited user
     status: Literal["pending", "accepted", "declined"] = "pending"
-    invited_by: str  # User ID who sent the invitation
+    invited_by: PyObjectId  # User ID who sent the invitation
     created_at: datetime = Field(default_factory=datetime.utcnow)
     accepted_at: Optional[datetime] = None
+
+    @field_serializer('user1_id', 'user2_id', 'invited_by')
+    def serialize_object_ids(self, value):
+        return str(value) if value else None
 
 
 class Partnership(MongoBaseModel, PartnershipBase):
@@ -101,11 +109,15 @@ class PartnershipCreate(BaseModel):
 # Invite Token Models
 class InviteTokenBase(BaseModel):
     token: str
-    created_by: str  # User ID who created the invite
+    created_by: PyObjectId  # User ID who created the invite
     expires_at: datetime
     used: bool = False
-    used_by: Optional[str] = None  # User ID who used the invite
+    used_by: Optional[PyObjectId] = None  # User ID who used the invite
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    @field_serializer('created_by', 'used_by')
+    def serialize_object_ids(self, value):
+        return str(value) if value else None
 
 
 class InviteToken(MongoBaseModel, InviteTokenBase):
@@ -129,8 +141,12 @@ class EventBase(BaseModel):
     end_time: datetime
     location: Optional[str] = None
     visibility: Literal["shared", "private", "title_only"] = "shared"
-    attendees: List[str] = []  # User IDs
+    attendees: List[PyObjectId] = []  # User IDs
     reminders: List[int] = []  # Minutes before event
+
+    @field_serializer('attendees')
+    def serialize_attendees(self, value):
+        return [str(attendee) for attendee in value]
 
 
 class EventCreate(EventBase):
@@ -144,14 +160,22 @@ class EventUpdate(BaseModel):
     end_time: Optional[datetime] = None
     location: Optional[str] = None
     visibility: Optional[Literal["shared", "private", "title_only"]] = None
-    attendees: Optional[List[str]] = None
+    attendees: Optional[List[PyObjectId]] = None
     reminders: Optional[List[int]] = None
+
+    @field_serializer('attendees')
+    def serialize_attendees(self, value):
+        return [str(attendee) for attendee in value] if value else None
 
 
 class Event(MongoBaseModel, EventBase):
-    created_by: str  # User ID
+    created_by: PyObjectId  # User ID
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    @field_serializer('created_by')
+    def serialize_created_by(self, value):
+        return str(value)
 
 
 # Proposal Models
@@ -160,7 +184,11 @@ class ProposalBase(BaseModel):
     description: Optional[str] = None
     proposed_times: List[TimeSlot]
     location: Optional[str] = None
-    proposed_to: str  # User ID
+    proposed_to: PyObjectId  # User ID
+
+    @field_serializer('proposed_to')
+    def serialize_proposed_to(self, value):
+        return str(value)
 
 
 class ProposalCreate(ProposalBase):
@@ -168,11 +196,15 @@ class ProposalCreate(ProposalBase):
 
 
 class Proposal(MongoBaseModel, ProposalBase):
-    proposed_by: str  # User ID
+    proposed_by: PyObjectId  # User ID
     status: Literal["pending", "accepted", "declined"] = "pending"
     accepted_time_slot: Optional[TimeSlot] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    @field_serializer('proposed_by')
+    def serialize_proposed_by(self, value):
+        return str(value)
 
 
 # Task Models
@@ -195,16 +227,24 @@ class TaskUpdate(BaseModel):
 
 class Task(MongoBaseModel, TaskBase):
     completed: bool = False
-    created_by: str  # User ID
+    created_by: PyObjectId  # User ID
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    @field_serializer('created_by')
+    def serialize_created_by(self, value):
+        return str(value)
 
 
 # Event Chat Models
 class EventMessageBase(BaseModel):
-    event_id: str
-    sender_id: str
+    event_id: PyObjectId
+    sender_id: PyObjectId
     message: str
+
+    @field_serializer('event_id', 'sender_id')
+    def serialize_object_ids(self, value):
+        return str(value)
 
 
 class EventMessageCreate(BaseModel):
@@ -218,10 +258,14 @@ class EventMessage(MongoBaseModel, EventMessageBase):
 
 # Event Checklist Models
 class ChecklistItemBase(BaseModel):
-    event_id: str
+    event_id: PyObjectId
     title: str
     description: Optional[str] = None
     completed: bool = False
+
+    @field_serializer('event_id')
+    def serialize_event_id(self, value):
+        return str(value)
 
 
 class ChecklistItemCreate(BaseModel):
@@ -236,11 +280,15 @@ class ChecklistItemUpdate(BaseModel):
 
 
 class ChecklistItem(MongoBaseModel, ChecklistItemBase):
-    completed_by: Optional[str] = None  # User ID who completed it
+    completed_by: Optional[PyObjectId] = None  # User ID who completed it
     completed_at: Optional[datetime] = None
-    created_by: str  # User ID who created it
+    created_by: PyObjectId  # User ID who created it
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    @field_serializer('completed_by', 'created_by')
+    def serialize_object_ids(self, value):
+        return str(value) if value else None
 
 
 # Availability Models

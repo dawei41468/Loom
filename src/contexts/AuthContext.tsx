@@ -81,6 +81,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
       return {
         ...state,
         isOnboarded: action.payload,
+        user: state.user ? { ...state.user, is_onboarded: action.payload } : null,
       };
     case 'SET_LOADING':
       return {
@@ -122,8 +123,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const token = localStorage.getItem('loom-auth-token');
       const refreshToken = localStorage.getItem('loom-auth-refresh-token');
       const userString = localStorage.getItem('loom-auth-user');
+      const partnerString = localStorage.getItem('loom-auth-partner');
       if (token && refreshToken && userString) {
         const user: User = JSON.parse(userString);
+        const partner: Partner | null = partnerString ? JSON.parse(partnerString) : null;
         apiClient.setToken(token);
         apiClient.setRefreshToken(refreshToken);
         return {
@@ -132,6 +135,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           token,
           refreshToken,
           user,
+          partner,
           isOnboarded: user.is_onboarded,
         };
       }
@@ -164,16 +168,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       localStorage.setItem('loom-auth-token', state.token);
       localStorage.setItem('loom-auth-refresh-token', state.refreshToken);
       localStorage.setItem('loom-auth-user', JSON.stringify(state.user));
+      if (state.partner) {
+        localStorage.setItem('loom-auth-partner', JSON.stringify(state.partner));
+      } else {
+        localStorage.removeItem('loom-auth-partner');
+      }
       apiClient.setToken(state.token);
       apiClient.setRefreshToken(state.refreshToken);
     } else {
       localStorage.removeItem('loom-auth-token');
       localStorage.removeItem('loom-auth-refresh-token');
       localStorage.removeItem('loom-auth-user');
+      localStorage.removeItem('loom-auth-partner');
       apiClient.setToken(null);
       apiClient.setRefreshToken(null);
     }
-  }, [state.token, state.refreshToken, state.user]);
+  }, [state.token, state.refreshToken, state.user, state.partner]);
 
   return (
     <AuthStateContext.Provider value={state}>

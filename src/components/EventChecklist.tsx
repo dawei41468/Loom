@@ -29,6 +29,7 @@ const EventChecklist: React.FC<EventChecklistProps> = ({ eventId }) => {
   const { data: checklistData, isLoading, error } = useQuery({
     queryKey: queryKeys.eventChecklist(eventId),
     queryFn: () => eventChecklistQueries.getEventChecklist(eventId),
+    enabled: !!eventId, // Only run if eventId is valid
   });
 
   const checklistItems = checklistData?.data || [];
@@ -70,7 +71,7 @@ const EventChecklist: React.FC<EventChecklistProps> = ({ eventId }) => {
     }
   };
 
-  const { isConnected } = useWebSocket(eventId, handleWebSocketMessage);
+  const { isConnected } = useWebSocket(eventId || null, handleWebSocketMessage);
   const { isOnline, addOfflineAction } = useOfflineQueue();
 
   // Create checklist item mutation

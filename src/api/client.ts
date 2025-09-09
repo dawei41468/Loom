@@ -178,6 +178,13 @@ class ApiClient {
     return this.request<ApiResponse<{ is_registered: boolean; email: string }>>(`/partner/check-email/${encodeURIComponent(email)}`);
   }
 
+  async connectPartner(token: { invite_token: string }): Promise<ApiResponse<Partner>> {
+    return this.request<ApiResponse<Partner>>('/partner/connect', {
+      method: 'POST',
+      body: JSON.stringify(token),
+    });
+  }
+
   async generateInviteToken(expiresInDays: number = 7): Promise<ApiResponse<{ invite_token: string; invite_url: string; expires_at: string }>> {
     return this.request<ApiResponse<{ invite_token: string; invite_url: string; expires_at: string }>>('/partner/generate-invite', {
       method: 'POST',
@@ -187,6 +194,12 @@ class ApiClient {
 
   async checkInviteToken(token: string): Promise<ApiResponse<{ inviter: { id: string; display_name: string; email: string }; expires_at: string; token: string }>> {
     return this.request<ApiResponse<{ inviter: { id: string; display_name: string; email: string }; expires_at: string; token: string }>>(`/partner/check-invite/${token}`);
+  }
+
+  async disconnectPartner(): Promise<ApiResponse<void>> {
+    return this.request<ApiResponse<void>>('/partner', {
+      method: 'DELETE',
+    });
   }
 
   // Events

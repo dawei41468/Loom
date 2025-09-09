@@ -6,6 +6,8 @@ from app.database import connect_to_mongo, close_mongo_connection
 from app.middleware import setup_middleware
 from app.cache import cache_manager
 from app.routers import auth, events, tasks, proposals, partner, availability
+# Import WebSocket manager to ensure it's initialized
+from app.websocket import manager
 
 
 @asynccontextmanager

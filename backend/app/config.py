@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Loom"
     API_V1_STR: str = "/api"
     SECRET_KEY: str = "your-super-secure-secret-key-change-this-in-production-12345678901234567890"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8 hours for development/testing
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 10080  # 7 days
 
     # Security Settings
@@ -53,6 +53,18 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_USE_TLS: bool = True
     EMAIL_FROM: str = ""
+
+    # WebSocket Settings
+    WS_HEARTBEAT_INTERVAL: int = 30  # seconds
+    WS_CONNECTION_TIMEOUT: int = 10  # seconds
+    WS_MAX_CONNECTIONS_PER_USER: int = 10
+    WS_MAX_CONNECTIONS_PER_ROOM: int = 100
+    WS_MESSAGE_QUEUE_SIZE: int = 50
+    WS_RECONNECT_MAX_ATTEMPTS: int = 5
+    WS_RECONNECT_BASE_DELAY: float = 1.0  # seconds
+    WS_RECONNECT_MAX_DELAY: float = 30.0  # seconds
+    WS_PING_TIMEOUT: int = 5  # seconds
+    WS_CLOSE_TIMEOUT: int = 5  # seconds
 
     model_config = SettingsConfigDict(
         env_file=env_file,

@@ -43,7 +43,7 @@ const EventDetail = () => {
   const contextEvent = events.find(e => e.id === id);
 
   // Use React Query for individual event loading if not in context
-  const { data: eventData, isLoading: isLoadingEvent } = useQuery({
+  const { data: eventData, isLoading: isLoadingEvent, error: eventError } = useQuery({
     queryKey: queryKeys.event(id!),
     queryFn: () => eventQueries.getEvent(id!),
     enabled: !contextEvent && !!id, // Only run if event not in context and id exists
@@ -81,7 +81,7 @@ const EventDetail = () => {
       addToast({
         type: 'error',
         title: 'Event not found',
-        description: 'The event may have been deleted.',
+        description: 'The event may have been deleted or you may not have access to it.',
       });
       navigate('/');
     }
@@ -286,17 +286,51 @@ const EventDetail = () => {
     </div>
   );
 
-  const renderChatTab = () => (
-    <div className="loom-card">
-      <EventChat eventId={event.id} />
-    </div>
-  );
+  const renderChatTab = () => {
+    // Check if there's an access error
+    if (eventError && 'message' in eventError && eventError.message?.includes('Access denied')) {
+      return (
+        <div className="loom-card">
+          <div className="text-center py-8">
+            <MessageCircle className="w-12 h-12 mx-auto mb-4 text-[hsl(var(--loom-text-muted))] opacity-50" />
+            <h3 className="font-medium mb-2">Chat Unavailable</h3>
+            <p className="text-[hsl(var(--loom-text-muted))] text-sm">
+              You don't have access to chat for this event.
+            </p>
+          </div>
+        </div>
+      );
+    }
 
-  const renderChecklistTab = () => (
-    <div className="loom-card">
-      <EventChecklist eventId={event.id} />
-    </div>
-  );
+    return (
+      <div className="loom-card">
+        <EventChat eventId={event.id} hasAccess={true} />
+      </div>
+    );
+  };
+
+  const renderChecklistTab = () => {
+    // Check if there's an access error
+    if (eventError && 'message' in eventError && eventError.message?.includes('Access denied')) {
+      return (
+        <div className="loom-card">
+          <div className="text-center py-8">
+            <CheckSquare className="w-12 h-12 mx-auto mb-4 text-[hsl(var(--loom-text-muted))] opacity-50" />
+            <h3 className="font-medium mb-2">Checklist Unavailable</h3>
+            <p className="text-[hsl(var(--loom-text-muted))] text-sm">
+              You don't have access to the checklist for this event.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="loom-card">
+        <EventChecklist eventId={event.id} />
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[hsl(var(--loom-bg))] safe-area-top">

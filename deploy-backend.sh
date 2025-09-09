@@ -18,7 +18,7 @@ ssh -i ${SSH_KEY_PATH} ${SERVER_USER}@${SERVER_IP} "mkdir -p ${REMOTE_BASE_DIR}"
 ssh -i ${SSH_KEY_PATH} ${SERVER_USER}@${SERVER_IP} "mkdir -p ${REMOTE_APP_DIR}"
 
 # Create a tar archive of the backend directory, excluding venv, and extract it on the server
-(cd backend && tar --exclude=venv --exclude='.env.production' -czf - .) | ssh -i ${SSH_KEY_PATH} ${SERVER_USER}@${SERVER_IP} "tar -xzf - -C ${REMOTE_APP_DIR}"
+(cd backend && tar --no-xattr --exclude=venv --exclude='.env.production' -czf - .) | ssh -i ${SSH_KEY_PATH} ${SERVER_USER}@${SERVER_IP} "tar -xzf - -C ${REMOTE_APP_DIR}"
 
 if [ $? -ne 0 ]; then
   echo "Failed to copy backend code. Exiting."

@@ -96,7 +96,7 @@ async def get_task(
     task = Task(**task_doc)
     
     # Check if user owns this task
-    if task.created_by != str(current_user.id):
+    if str(task.created_by) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this task"
@@ -134,7 +134,7 @@ async def toggle_task(
         )
     
     task = Task(**task_doc)
-    if task.created_by != str(current_user.id):
+    if str(task.created_by) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this task"
@@ -200,7 +200,7 @@ async def update_task(
         )
     
     task = Task(**task_doc)
-    if task.created_by != str(current_user.id):
+    if str(task.created_by) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this task"
@@ -262,7 +262,7 @@ async def delete_task(
         )
     
     task = Task(**task_doc)
-    if task.created_by != str(current_user.id):
+    if str(task.created_by) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this task"

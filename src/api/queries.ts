@@ -33,6 +33,8 @@ export const proposalQueries = {
 
 export const partnerQueries = {
   getPartner: () => apiClient.getPartner(),
+  disconnectPartner: () => apiClient.disconnectPartner(),
+  connectPartner: (token: { invite_token: string }) => apiClient.connectPartner(token),
   checkEmailRegistered: (email: string) => apiClient.checkEmailRegistered(email),
   generateInviteToken: (expiresInDays?: number) => apiClient.generateInviteToken(expiresInDays),
   checkInviteToken: (token: string) => apiClient.checkInviteToken(token),

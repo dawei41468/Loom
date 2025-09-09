@@ -2,8 +2,9 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, Query
 from bson import ObjectId
 from ..models import Event, EventCreate, EventUpdate, User, ApiResponse, EventMessage, EventMessageCreate, ChecklistItem, ChecklistItemCreate, ChecklistItemUpdate
-from ..auth import get_current_user
+from ..auth import get_current_user, get_current_user_ws
 from ..database import get_database
+import json
 # Import websocket functions - using absolute import to avoid relative import issues
 try:
     from app.websocket import manager, handle_websocket_connection
@@ -15,7 +16,8 @@ from datetime import datetime
 router = APIRouter(prefix="/events", tags=["events"])
 
 
-@router.get("", response_model=ApiResponse)
+@router.api_route("", methods=["GET"], response_model=ApiResponse)
+@router.api_route("/", methods=["GET"], response_model=ApiResponse, include_in_schema=False)
 async def get_events(current_user: User = Depends(get_current_user)):
     """Get all events for the current user"""
     db = get_database()
@@ -53,20 +55,41 @@ async def create_event(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Database connection not available"
         )
-    
+
     # Create event document
     event_dict = event_data.dict()
     event_dict["created_by"] = str(current_user.id)
     event_dict["created_at"] = datetime.utcnow()
     event_dict["updated_at"] = datetime.utcnow()
-    
+
     # Ensure current user is in attendees
     if str(current_user.id) not in event_dict["attendees"]:
         event_dict["attendees"].append(str(current_user.id))
-    
+
+    # Find and add partner as attendee if they exist
+    partnership = await db.partnerships.find_one({
+        "$or": [
+            {"user1_id": str(current_user.id), "status": "accepted"},
+            {"user2_id": str(current_user.id), "status": "accepted"}
+        ]
+    })
+
+    partner_id = None
+    if partnership:
+        # Determine partner user ID
+        partner_id = (
+            partnership["user2_id"]
+            if partnership["user1_id"] == str(current_user.id)
+            else partnership["user1_id"]
+        )
+
+        # Add partner to attendees if not already present
+        if partner_id and partner_id not in event_dict["attendees"]:
+            event_dict["attendees"].append(partner_id)
+
     # Insert event into database
     result = await db.events.insert_one(event_dict)
-    
+
     # Get the created event
     created_event = await db.events.find_one({"_id": result.inserted_id})
     if not created_event:
@@ -74,8 +97,13 @@ async def create_event(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create event"
         )
-    
+
     event = Event(**created_event)
+
+    # Notify partner about the new event if they exist
+    if partnership and partner_id:
+        await manager.notify_event_created(partner_id, event.dict())
+
     return ApiResponse(data=event.dict(), message="Event created successfully")
 
 
@@ -108,10 +136,12 @@ async def get_event(
         )
     
     event = Event(**event_doc)
-    
+
     # Check if user has access to this event
-    if (str(current_user.id) not in event.attendees and 
-        event.created_by != str(current_user.id)):
+    # Convert both sides to strings for consistent comparison
+    user_id_str = str(current_user.id)
+    if (user_id_str not in [str(attendee) for attendee in event.attendees] and
+        str(event.created_by) != user_id_str):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this event"
@@ -150,7 +180,7 @@ async def update_event(
         )
     
     event = Event(**event_doc)
-    if event.created_by != str(current_user.id):
+    if str(event.created_by) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only event creator can update this event"
@@ -212,7 +242,7 @@ async def delete_event(
         )
     
     event = Event(**event_doc)
-    if event.created_by != str(current_user.id):
+    if str(event.created_by) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only event creator can delete this event"
@@ -227,6 +257,21 @@ async def delete_event(
             detail="Failed to delete event"
         )
     
+    # Notify partner about the event deletion if they exist
+    partnership = await db.partnerships.find_one({
+        "$or": [
+            {"user1_id": str(current_user.id), "status": "accepted"},
+            {"user2_id": str(current_user.id), "status": "accepted"}
+        ]
+    })
+    if partnership:
+        partner_id = (
+            partnership["user2_id"]
+            if partnership["user1_id"] == str(current_user.id)
+            else partnership["user1_id"]
+        )
+        await manager.notify_event_deleted(partner_id, event_id)
+
     return ApiResponse(message="Event deleted successfully")
 
 
@@ -260,8 +305,10 @@ async def get_event_messages(
         )
 
     event = Event(**event_doc)
-    if (str(current_user.id) not in event.attendees and
-        event.created_by != str(current_user.id)):
+    # Convert both sides to strings for consistent comparison
+    user_id_str = str(current_user.id)
+    if (user_id_str not in [str(attendee) for attendee in event.attendees] and
+        str(event.created_by) != user_id_str):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this event"
@@ -307,8 +354,10 @@ async def send_event_message(
         )
 
     event = Event(**event_doc)
-    if (str(current_user.id) not in event.attendees and
-        event.created_by != str(current_user.id)):
+    # Convert both sides to strings for consistent comparison
+    user_id_str = str(current_user.id)
+    if (user_id_str not in [str(attendee) for attendee in event.attendees] and
+        str(event.created_by) != user_id_str):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this event"
@@ -378,7 +427,7 @@ async def delete_event_message(
         )
 
     message = EventMessage(**message_doc)
-    if message.sender_id != str(current_user.id):
+    if str(message.sender_id) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only message sender can delete this message"
@@ -432,8 +481,10 @@ async def get_event_checklist(
         )
 
     event = Event(**event_doc)
-    if (str(current_user.id) not in event.attendees and
-        event.created_by != str(current_user.id)):
+    # Convert both sides to strings for consistent comparison
+    user_id_str = str(current_user.id)
+    if (user_id_str not in [str(attendee) for attendee in event.attendees] and
+        str(event.created_by) != user_id_str):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this event"
@@ -479,8 +530,10 @@ async def create_checklist_item(
         )
 
     event = Event(**event_doc)
-    if (str(current_user.id) not in event.attendees and
-        event.created_by != str(current_user.id)):
+    # Convert both sides to strings for consistent comparison
+    user_id_str = str(current_user.id)
+    if (user_id_str not in [str(attendee) for attendee in event.attendees] and
+        str(event.created_by) != user_id_str):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this event"
@@ -559,8 +612,10 @@ async def update_checklist_item(
         )
 
     event = Event(**event_doc)
-    if (str(current_user.id) not in event.attendees and
-        event.created_by != str(current_user.id)):
+    # Convert both sides to strings for consistent comparison
+    user_id_str = str(current_user.id)
+    if (user_id_str not in [str(attendee) for attendee in event.attendees] and
+        str(event.created_by) != user_id_str):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this event"
@@ -655,15 +710,17 @@ async def delete_checklist_item(
         )
 
     event = Event(**event_doc)
-    if (str(current_user.id) not in event.attendees and
-        event.created_by != str(current_user.id)):
+    # Convert both sides to strings for consistent comparison
+    user_id_str = str(current_user.id)
+    if (user_id_str not in [str(attendee) for attendee in event.attendees] and
+        str(event.created_by) != user_id_str):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this event"
         )
 
     # Only creator can delete
-    if item.created_by != str(current_user.id):
+    if str(item.created_by) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only item creator can delete this checklist item"
@@ -691,25 +748,84 @@ async def delete_checklist_item(
 @router.websocket("/{event_id}/ws")
 async def event_websocket(
     websocket: WebSocket,
-    event_id: str,
-    token: str = Query(..., description="JWT access token")
+    event_id: str
 ):
     """WebSocket endpoint for real-time event updates"""
+    import logging
+    logger = logging.getLogger(__name__)
+
+    logger.info(f"WebSocket connection attempt for event {event_id}")
+
+    # Extract token from query parameters (consistent with partner WebSocket)
+    query_params = websocket.query_params
+    token = query_params.get('token')
+
+    logger.info(f"Token extracted: {'present' if token else 'missing'}")
+    logger.info(f"Query params: {dict(query_params)}")
+
+    if not token:
+        logger.error("No token provided in WebSocket connection")
+        await websocket.close(code=1008)  # Policy violation
+        return
+
+    # Authenticate user
+    logger.info("Attempting WebSocket user authentication...")
+    user = await get_current_user_ws(token)
+    if not user:
+        logger.error("WebSocket user authentication failed")
+        await websocket.close(code=4001)  # Custom code for unauthorized
+        return
+
+    logger.info(f"WebSocket user authenticated: {user.id}")
+
     # Validate ObjectId
     if not ObjectId.is_valid(event_id):
         await websocket.close(code=1003)  # Unsupported data
         return
 
-    # Check if event exists
+    # Check if event exists and user has access
+    logger.info("Checking database connection for event lookup...")
     db = get_database()
     if db is None:
+        logger.error("Database connection not available for WebSocket")
         await websocket.close(code=1011)  # Internal error
         return
 
+    logger.info(f"Looking up event: {event_id}")
     event_doc = await db.events.find_one({"_id": ObjectId(event_id)})
     if not event_doc:
-        await websocket.close(code=1003)  # Unsupported data
+        logger.error(f"Event not found: {event_id}")
+        await websocket.close(code=1003)  # Event not found
         return
 
+    logger.info(f"Event found: {event_doc.get('title', 'unknown')}")
+    event = Event(**event_doc)
+
+    # Convert both sides to strings for consistent comparison
+    user_id_str = str(user.id)
+    event_attendees = [str(attendee) for attendee in event.attendees]
+    event_creator = str(event.created_by)
+
+    logger.info(f"User ID: {user_id_str}")
+    logger.info(f"Event attendees: {event_attendees}")
+    logger.info(f"Event creator: {event_creator}")
+
+    is_attendee = user_id_str in event_attendees
+    is_creator = event_creator == user_id_str
+
+    logger.info(f"Is attendee: {is_attendee}")
+    logger.info(f"Is creator: {is_creator}")
+
+    if not (is_attendee or is_creator):
+        logger.error(f"Access denied: user {user_id_str} is not attendee or creator of event {event_id}")
+        await websocket.close(code=4003)  # Custom code for forbidden
+        return
+
+    logger.info("Event access granted, proceeding with WebSocket connection")
+
+    # Accept the WebSocket connection before handling it
+    await websocket.accept()
+    logger.info("WebSocket connection accepted")
+
     # Handle the WebSocket connection
-    await handle_websocket_connection(websocket, event_id, token)
+    await handle_websocket_connection(websocket, event_id, user)

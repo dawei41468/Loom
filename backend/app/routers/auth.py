@@ -69,8 +69,6 @@ async def register(request: Request, user_data: UserCreate):
     
     # Remove password hash from response
     created_user.pop("password_hash", None)
-    # Convert ObjectId to string for Pydantic validation
-    created_user["_id"] = str(created_user["_id"])
     user = User(**created_user)
     
     return ApiResponse(data=user.dict(), message="User registered successfully")
@@ -161,7 +159,7 @@ async def update_current_user(
     if update_data:
         update_data["updated_at"] = datetime.utcnow()
         result = await db.users.update_one(
-            {"_id": ObjectId(str(current_user.id))},
+            {"_id": current_user.id},
             {"$set": update_data}
         )
 
@@ -172,7 +170,7 @@ async def update_current_user(
             )
 
     # Get updated user
-    updated_user = await db.users.find_one({"_id": ObjectId(str(current_user.id))})
+    updated_user = await db.users.find_one({"_id": current_user.id})
     if not updated_user:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -180,7 +178,6 @@ async def update_current_user(
         )
 
     updated_user.pop("password_hash", None)
-    updated_user["_id"] = str(updated_user["_id"])
     user = User(**updated_user)
 
     return ApiResponse(data=user.dict(), message="User updated successfully")

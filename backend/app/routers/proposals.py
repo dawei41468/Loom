@@ -4,6 +4,7 @@ from bson import ObjectId
 from ..models import Proposal, ProposalCreate, User, ApiResponse, Event, TimeSlot
 from ..auth import get_current_user
 from ..database import get_database
+from ..websocket import manager
 from datetime import datetime
 
 router = APIRouter(prefix="/proposals", tags=["proposals"])
@@ -49,7 +50,7 @@ async def create_proposal(
         )
     
     # Validate that proposed_to is not the same as current user
-    if proposal_data.proposed_to == str(current_user.id):
+    if str(proposal_data.proposed_to) == str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot propose to yourself"
@@ -82,6 +83,20 @@ async def create_proposal(
         )
     
     proposal = Proposal(**created_proposal)
+
+    # Notify the partner about the new proposal via WebSocket
+    try:
+        await manager.notify_proposal_created(
+            str(proposal_data.proposed_to),
+            {
+                "proposal": proposal.dict(),
+                "message": f"New proposal from {current_user.display_name}"
+            }
+        )
+    except Exception as e:
+        # Log the error but don't fail the request
+        print(f"Failed to send WebSocket notification: {e}")
+
     return ApiResponse(data=proposal.dict(), message="Proposal created successfully")
 
 
@@ -117,7 +132,7 @@ async def accept_proposal(
     proposal = Proposal(**proposal_doc)
     
     # Check if current user is the recipient
-    if proposal.proposed_to != str(current_user.id):
+    if str(proposal.proposed_to) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the proposal recipient can accept it"
@@ -156,6 +171,21 @@ async def accept_proposal(
             }
         }
     )
+
+    # Notify the proposal creator about the acceptance
+    try:
+        updated_proposal = await db.proposals.find_one({"_id": ObjectId(proposal_id)})
+        if updated_proposal:
+            proposal_obj = Proposal(**updated_proposal)
+            await manager.notify_proposal_updated(
+                str(proposal.proposed_by),
+                {
+                    "proposal": proposal_obj.dict(),
+                    "message": f"Proposal accepted by {current_user.display_name}"
+                }
+            )
+    except Exception as e:
+        print(f"Failed to send WebSocket notification for proposal acceptance: {e}")
     
     # Create event from accepted proposal
     event_dict = {
@@ -232,7 +262,7 @@ async def decline_proposal(
     proposal = Proposal(**proposal_doc)
     
     # Check if current user is the recipient
-    if proposal.proposed_to != str(current_user.id):
+    if str(proposal.proposed_to) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the proposal recipient can decline it"
@@ -255,6 +285,21 @@ async def decline_proposal(
             }
         }
     )
+
+    # Notify the proposal creator about the decline
+    try:
+        updated_proposal = await db.proposals.find_one({"_id": ObjectId(proposal_id)})
+        if updated_proposal:
+            proposal_obj = Proposal(**updated_proposal)
+            await manager.notify_proposal_updated(
+                str(proposal.proposed_by),
+                {
+                    "proposal": proposal_obj.dict(),
+                    "message": f"Proposal declined by {current_user.display_name}"
+                }
+            )
+    except Exception as e:
+        print(f"Failed to send WebSocket notification for proposal decline: {e}")
     
     if result.modified_count == 0:
         raise HTTPException(
@@ -305,8 +350,8 @@ async def get_proposal(
     proposal = Proposal(**proposal_doc)
     
     # Check if user has access to this proposal
-    if (proposal.proposed_by != str(current_user.id) and 
-        proposal.proposed_to != str(current_user.id)):
+    if (str(proposal.proposed_by) != str(current_user.id) and
+        str(proposal.proposed_to) != str(current_user.id)):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this proposal"

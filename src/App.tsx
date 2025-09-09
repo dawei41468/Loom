@@ -32,6 +32,7 @@ import { UIProvider } from './contexts/UIContext';
 
 // Hooks
 import { usePolling } from './hooks/usePolling';
+import { usePartnerWebSocket } from './hooks/usePartnerWebSocket';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -83,6 +84,24 @@ const PollingManager = React.memo(() => {
   return null;
 });
 
+const PartnerSocketManager = React.memo(() => {
+  usePartnerWebSocket();
+  return null;
+});
+
+const AuthenticatedSocketManager = React.memo(() => {
+  const { isAuthenticated, isLoading } = useAuthState();
+
+  // Only render WebSocket manager when user is authenticated and not loading
+  if (isLoading || !isAuthenticated) {
+    return null;
+  }
+
+  return <PartnerSocketManager />;
+});
+
+AuthenticatedSocketManager.displayName = 'AuthenticatedSocketManager';
+
 const AppRoutes = React.memo(() => {
   const { isAuthenticated, isOnboarded, isLoading } = useAuthState();
 
@@ -92,7 +111,6 @@ const AppRoutes = React.memo(() => {
 
   return (
     <Suspense fallback={<PageFallback />}>
-      <PollingManager />
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
@@ -162,6 +180,8 @@ const App = React.memo(() => {
                       }}
                     >
                       <div className="min-h-screen bg-[hsl(var(--loom-bg))] text-[hsl(var(--loom-text))]">
+                        <PollingManager />
+                        <AuthenticatedSocketManager />
                         <AppRoutes />
                         <ToastContainer />
                       </div>

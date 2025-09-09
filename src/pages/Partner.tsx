@@ -1,10 +1,11 @@
 // Partner Management Page
 import React, { useState, useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Heart, QrCode, Camera, Copy, Check } from 'lucide-react';
 import { useAuthState, useAuthDispatch } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { partnerQueries } from '@/api/queries';
+import { Partner as PartnerType } from '../types';
 import { PageHeader } from '../components/ui/page-header';
 import { Section } from '../components/ui/section';
 import { EmptyState } from '../components/ui/empty-state';
@@ -25,6 +26,33 @@ const Partner = () => {
   const [showQRModal, setShowQRModal] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
 
+  const { data: partnerData, isLoading: isLoadingPartner } = useQuery({
+    queryKey: ['partner'],
+    queryFn: partnerQueries.getPartner,
+    enabled: !!user,
+  });
+
+  const connectPartnerMutation = useMutation({
+    mutationFn: (token: { invite_token: string }) => partnerQueries.connectPartner(token),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['partner'] });
+      authDispatch({ type: 'SET_PARTNER', payload: data.data as PartnerType });
+      addToast({
+        type: 'success',
+        title: 'Partner connected!',
+        description: 'You are now connected with your partner.',
+      });
+      setShowQRScanner(false);
+    },
+    onError: (error) => {
+      addToast({
+        type: 'error',
+        title: 'Connection failed',
+        description: error?.message || 'Failed to connect with partner. Please try again.',
+      });
+    },
+  });
+
   // Generate invite token on component mount
   useEffect(() => {
     const generateInviteLink = async () => {
@@ -40,10 +68,10 @@ const Partner = () => {
       }
     };
 
-    if (!partner) {
+    if (!partnerData?.data) {
       generateInviteLink();
     }
-  }, [partner]);
+  }, [partnerData?.data]);
 
 
   const handleCopyInvite = async () => {
@@ -93,14 +121,7 @@ const Partner = () => {
             const checkResponse = await partnerQueries.checkInviteToken(token);
 
             if (checkResponse.data) {
-              addToast({
-                type: 'success',
-                title: 'Connected!',
-                description: `You're now connected with ${checkResponse.data.inviter.display_name}!`,
-              });
-
-              // Refresh partner data
-              queryClient.invalidateQueries({ queryKey: ['partner'] });
+              connectPartnerMutation.mutate({ invite_token: token });
             } else {
               addToast({
                 type: 'error',
@@ -139,7 +160,28 @@ const Partner = () => {
     }
   };
 
-  if (partner) {
+  if (isLoadingPartner) {
+    return (
+      <div className="container py-4 sm:py-8 space-y-6 sm:space-y-8">
+        <PageHeader
+          title={t('yourPartner')}
+          subtitle="Loading..."
+        />
+        <Section variant="elevated" className="loom-gradient-subtle">
+          <div className="flex items-center space-x-4 mb-6">
+            <div className="w-16 h-16 rounded-full bg-gray-200 animate-pulse"></div>
+            <div className="min-w-0 flex-1">
+              <div className="h-6 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2 mt-2 animate-pulse"></div>
+            </div>
+          </div>
+        </Section>
+      </div>
+    );
+  }
+
+  if (partnerData?.data) {
+    const partner = partnerData.data;
     return (
       <div className="container py-4 sm:py-8 space-y-6 sm:space-y-8">
         <PageHeader
@@ -189,7 +231,7 @@ const Partner = () => {
       />
 
       {/* Invite Link Display */}
-      {!partner && inviteUrl && (
+      {!partnerData?.data && inviteUrl && (
         <Section variant="elevated" className="loom-gradient-subtle">
           <div className="text-center mb-4">
             <h3 className="font-semibold text-lg mb-2">{t('shareInviteLink')}</h3>

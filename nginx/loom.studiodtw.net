@@ -32,9 +32,11 @@ server {
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
+    # Prevent nginx from redirecting trailing slashes
+    proxy_redirect off;
   }
 
-  # WebSocket routes
+  # WebSocket routes - handle both legacy /ws/ and new /api/partner/ws
   location /ws/ {
     proxy_pass http://127.0.0.1:4100/ws/;
     proxy_http_version 1.1;
@@ -44,6 +46,50 @@ server {
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 86400;
+    proxy_send_timeout 86400;
+  }
+
+  # Partner WebSocket endpoint - Force WebSocket upgrade for all requests to this path
+  location /api/partner/ws {
+    proxy_pass http://127.0.0.1:4100/api/partner/ws$is_args$args;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    # Cloudflare-specific headers to force WebSocket upgrade
+    proxy_set_header CF-RAY $http_cf_ray;
+    proxy_set_header CF-Connecting-IP $http_cf_connecting_ip;
+    proxy_set_header CF-IPCountry $http_cf_ipcountry;
+    proxy_set_header CF-Visitor $http_cf_visitor;
+    # Force WebSocket upgrade for Cloudflare
+    proxy_buffering off;
+    proxy_cache off;
+    proxy_read_timeout 86400;
+    proxy_send_timeout 86400;
+  }
+
+  # Event WebSocket endpoints - Force WebSocket upgrade
+  location ~ ^/api/events/([^/]+)/ws$ {
+    proxy_pass http://127.0.0.1:4100/api/events/$1/ws$is_args$args;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    # Cloudflare-specific headers to force WebSocket upgrade
+    proxy_set_header CF-RAY $http_cf_ray;
+    proxy_set_header CF-Connecting-IP $http_cf_connecting_ip;
+    proxy_set_header CF-IPCountry $http_cf_ipcountry;
+    proxy_set_header CF-Visitor $http_cf_visitor;
+    # Force WebSocket upgrade for Cloudflare
+    proxy_buffering off;
+    proxy_cache off;
     proxy_read_timeout 86400;
     proxy_send_timeout 86400;
   }

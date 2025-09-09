@@ -95,26 +95,58 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     return User(**user_doc)
 async def get_current_user_ws(token: str) -> Optional[User]:
     """Get current authenticated user for WebSocket connections"""
+    import logging
+    logger = logging.getLogger(__name__)
+
+    logger.info("WebSocket token validation started")
+
     try:
+        logger.info("Decoding JWT token...")
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        user_id = payload.get("sub")
-        if user_id is None:
+        logger.info(f"JWT payload: {payload}")
+
+        token_type = payload.get("type")
+        logger.info(f"Token type: {token_type}")
+
+        if token_type != "access":
+            logger.error(f"Invalid token type: {token_type}, expected 'access'")
             return None
+
+        user_id = payload.get("sub")
+        logger.info(f"User ID from token: {user_id}")
+
+        if user_id is None:
+            logger.error("No user_id in token payload")
+            return None
+
         token_data = TokenData(user_id=str(user_id))
-    except JWTError:
+        logger.info(f"TokenData created: {token_data.user_id}")
+
+    except JWTError as e:
+        logger.error(f"JWT decode error: {e}")
         return None
 
+    logger.info("Checking database connection...")
     db = get_database()
     if db is None:
+        logger.error("Database connection not available")
         return None
+
+    logger.info(f"Looking up user in database: {token_data.user_id}")
     from bson import ObjectId
     user_doc = await db.users.find_one({"_id": ObjectId(token_data.user_id)})
     if user_doc is None:
+        logger.error(f"User not found in database: {token_data.user_id}")
         return None
+
+    logger.info(f"User found: {user_doc.get('email', 'unknown')}")
 
     # Convert ObjectId to string for Pydantic validation
     user_doc["_id"] = str(user_doc["_id"])
-    return User(**user_doc)
+    user = User(**user_doc)
+    logger.info(f"User object created successfully: {user.id}")
+
+    return user
 
 
 async def authenticate_user(email: str, password: str) -> Optional[User]:

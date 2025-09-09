@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { useAuthState } from '../contexts/AuthContext';
+import { useCallback, useRef, useEffect } from 'react';
+import { useWebSocketBase, WebSocketMessage as BaseWebSocketMessage } from './useWebSocketBase';
 import { EventMessage, ChecklistItem } from '../types';
 
 export interface WebSocketMessage {
@@ -9,128 +9,78 @@ export interface WebSocketMessage {
 
 export interface UseWebSocketReturn {
   isConnected: boolean;
-  connect: (eventId: string) => void;
+  isConnecting: boolean;
+  isReconnecting: boolean;
+  connectionAttempts: number;
+  lastConnectedAt: Date | null;
+  lastDisconnectedAt: Date | null;
+  lastError: string | null;
+  connect: () => void;
   disconnect: () => void;
   sendMessage: (message: WebSocketMessage) => void;
+  getConnectionInfo: () => {
+    url: string;
+    readyState: number;
+    bufferedAmount: number;
+  } | null;
 }
 
 export const useWebSocket = (eventId: string | null, onMessage: (message: WebSocketMessage) => void): UseWebSocketReturn => {
-  const { user } = useAuthState();
-  const [isConnected, setIsConnected] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<number | null>(null);
-  const reconnectAttempts = useRef(0);
-  const maxReconnectAttempts = 5;
+  const baseWebSocketRef = useRef<ReturnType<typeof useWebSocketBase> | null>(null);
 
-  const getWebSocketUrl = useCallback((eventId: string) => {
-    const token = localStorage.getItem('access_token');
+  const getWebSocketUrl = useCallback(() => {
+    if (!eventId) {
+      return '';
+    }
     // Prefer VITE_API_URL (origin) then VITE_API_BASE_URL (may include /api)
-    const rawBase = (import.meta as any).env.VITE_API_URL || (import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:7500/api';
-    // Strip trailing /api if present to get the service origin
-    const httpOrigin = String(rawBase).replace(/\/?api\/?$/, '');
+    const rawBase = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:7500/api';
+    // Strip trailing /api and anything after it to get the service origin
+    const httpOrigin = String(rawBase).replace(/\/api.*$/, '');
     const wsOrigin = httpOrigin.replace(/^http/, 'ws');
-    // Backend uses API_V1_STR = '/api'
-    return `${wsOrigin}/api/events/${eventId}/ws?token=${token}`;
-  }, []);
+    // Backend uses API_V1_STR = '/api' and endpoint is /api/events/{event_id}/ws
+    const finalUrl = `${wsOrigin}/api/events/${eventId}/ws`;
+    return finalUrl;
+  }, [eventId]);
 
-  const connect = useCallback((targetEventId: string) => {
-    if (!user || wsRef.current?.readyState === WebSocket.OPEN) {
-      return;
+  const handleMessage = useCallback((message: BaseWebSocketMessage) => {
+    // Type assertion since we know the message structure
+    onMessage(message as unknown as WebSocketMessage);
+  }, [onMessage]);
+
+  const baseWebSocket = useWebSocketBase(
+    getWebSocketUrl,
+    handleMessage,
+    {
+      maxReconnectAttempts: 5,
+      baseReconnectDelay: 1000,
+      maxReconnectDelay: 30000,
+      heartbeatInterval: 30000,
+      connectionTimeout: 10000,
+      messageQueueSize: 50,
     }
+  );
 
-    try {
-      const wsUrl = getWebSocketUrl(targetEventId);
-      const ws = new WebSocket(wsUrl);
+  // Keep ref updated with latest baseWebSocket
+  useEffect(() => {
+    baseWebSocketRef.current = baseWebSocket;
+  }, [baseWebSocket]);
 
-      ws.onopen = () => {
-        console.log('WebSocket connected to event:', targetEventId);
-        setIsConnected(true);
-        reconnectAttempts.current = 0;
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const message: WebSocketMessage = JSON.parse(event.data);
-          onMessage(message);
-        } catch (error) {
-          console.error('Failed to parse WebSocket message:', error);
-        }
-      };
-
-      ws.onclose = (event) => {
-        console.log('WebSocket disconnected:', event.code, event.reason);
-        setIsConnected(false);
-        wsRef.current = null;
-
-        // Attempt to reconnect if not a normal closure
-        if (event.code !== 1000 && reconnectAttempts.current < maxReconnectAttempts) {
-          reconnectAttempts.current++;
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-
-          reconnectTimeoutRef.current = setTimeout(() => {
-            console.log(`Attempting to reconnect (${reconnectAttempts.current}/${maxReconnectAttempts})...`);
-            connect(targetEventId);
-          }, delay);
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
-
-      wsRef.current = ws;
-    } catch (error) {
-      console.error('Failed to create WebSocket connection:', error);
+  // Override connect to only work when eventId is available
+  const connect = useCallback(() => {
+    if (eventId && baseWebSocketRef.current) {
+      baseWebSocketRef.current.connect();
     }
-  }, [user, getWebSocketUrl, onMessage]);
-
-  const disconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-
-    if (wsRef.current) {
-      wsRef.current.close(1000, 'Component unmounting');
-      wsRef.current = null;
-    }
-
-    setIsConnected(false);
-    reconnectAttempts.current = 0;
-  }, []);
+  }, [eventId]);
 
   const sendMessage = useCallback((message: WebSocketMessage) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(message));
-    } else {
-      console.warn('WebSocket is not connected, cannot send message');
+    if (baseWebSocketRef.current) {
+      baseWebSocketRef.current.sendMessage(message as unknown as BaseWebSocketMessage);
     }
   }, []);
 
-  // Auto-connect when eventId changes
-  useEffect(() => {
-    if (eventId) {
-      connect(eventId);
-    } else {
-      disconnect();
-    }
-
-    return () => {
-      disconnect();
-    };
-  }, [eventId, connect, disconnect]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      disconnect();
-    };
-  }, [disconnect]);
-
   return {
-    isConnected,
+    ...baseWebSocket,
     connect,
-    disconnect,
     sendMessage,
   };
 };

@@ -6,14 +6,18 @@ import {
   Sun,
   Monitor,
   Info,
-  LogOut
+  LogOut,
+  Users,
+  UserX
 } from 'lucide-react';
 import { useAuthState, useAuthDispatch, useUpdateProfile } from '../contexts/AuthContext';
 import { useTheme, useLanguage, useUIActions } from '../contexts/UIContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '../i18n';
-
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { partnerQueries } from '../api/queries';
+import { Partner } from '../types';
 const Settings = () => {
   const { user } = useAuthState();
   const authDispatch = useAuthDispatch();
@@ -24,6 +28,35 @@ const Settings = () => {
   const { addToast } = useToastContext();
   const { t } = useTranslation();
   const [displayNameInput, setDisplayNameInput] = useState(user?.display_name || '');
+
+  // Partner queries
+  const { data: partnerData, isLoading: isLoadingPartner } = useQuery({
+    queryKey: ['partner'],
+    queryFn: partnerQueries.getPartner,
+    refetchOnWindowFocus: false,
+  });
+
+  const queryClient = useQueryClient();
+
+  const disconnectMutation = useMutation({
+    mutationFn: partnerQueries.disconnectPartner,
+    onSuccess: () => {
+      // Invalidate partner query to refetch
+      queryClient.invalidateQueries({ queryKey: ['partner'] });
+      addToast({
+        type: 'success',
+        title: 'Partner disconnected',
+        description: 'You have been disconnected from your partner.',
+      });
+    },
+    onError: (error) => {
+      addToast({
+        type: 'error',
+        title: 'Disconnect failed',
+        description: error?.message || 'Failed to disconnect from partner. Please try again.',
+      });
+    },
+  });
 
   // Debounced display name update
   useEffect(() => {
@@ -63,6 +96,12 @@ const Settings = () => {
       title: 'Logged out',
       description: 'You have been successfully logged out.',
     });
+  };
+
+  const handleDisconnectPartner = () => {
+    if (window.confirm('Are you sure you want to disconnect from your partner?')) {
+      disconnectMutation.mutate();
+    }
   };
 
   const handleUpdateProfile = async (field: string, value: string) => {
@@ -160,6 +199,54 @@ const Settings = () => {
           </div>
         </div>
       </div>
+
+      {/* Partner */}
+      <div className="loom-card">
+        <div className="flex items-center space-x-3 mb-4">
+          <Users className="w-5 h-5 text-[hsl(var(--loom-primary))]" />
+          <h2 className="font-medium">{t('partnerConnection')}</h2>
+        </div>
+
+        {isLoadingPartner ? (
+          <div className="text-center py-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[hsl(var(--loom-primary))] mx-auto"></div>
+            <p className="text-sm text-[hsl(var(--loom-text-muted))] mt-2">Loading partner info...</p>
+          </div>
+        ) : partnerData?.data ? (
+          <div className="space-y-4">
+            <div className="flex items-center space-x-4 p-3 bg-[hsl(var(--loom-surface))] rounded-[var(--loom-radius-md)]">
+              <div className={cn(
+                'w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold',
+                partnerData.data.color_preference === 'user' ? 'bg-[hsl(var(--loom-user))]' : 'bg-[hsl(var(--loom-partner))]'
+              )}>
+                {partnerData.data.display_name.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium">{partnerData.data.display_name}</h3>
+                <p className="text-sm text-[hsl(var(--loom-text-muted))]">
+                  Connected {partnerData.data.connected_at ? new Date(partnerData.data.connected_at).toLocaleDateString() : 'recently'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleDisconnectPartner}
+              disabled={disconnectMutation.isPending}
+              className="w-full loom-btn-danger flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <UserX className="w-4 h-4" />
+              <span>{disconnectMutation.isPending ? 'Disconnecting...' : 'Disconnect Partner'}</span>
+            </button>
+          </div>
+        ) : (
+          <div className="text-center py-6">
+            <Users className="w-12 h-12 text-[hsl(var(--loom-text-muted))] mx-auto mb-3" />
+            <p className="text-[hsl(var(--loom-text-muted))]">No partners connected</p>
+            <p className="text-sm text-[hsl(var(--loom-text-muted))] mt-1">
+              Connect with someone to start sharing your schedule
+           </p>
+         </div>
+       )}
+     </div>
 
       {/* Language */}
       <div className="loom-card">

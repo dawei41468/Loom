@@ -7,35 +7,35 @@
   </defs>
 
   <!-- Main circular background -->
-  <circle cx="90" cy="90" r="85" fill="url(#loomGradientApple)" />
+  <circle cx="90" cy="90" r="75" fill="url(#loomGradientApple)" />
 
   <!-- Inner white circle -->
-  <circle cx="90" cy="90" r="70" fill="white" />
+  <circle cx="90" cy="90" r="60" fill="white" />
 
   <!-- Weaving pattern -->
   <g stroke="hsl(263, 70%, 50%)" stroke-width="2.5" fill="none">
     <!-- Vertical threads -->
-    <line x1="45" y1="30" x2="45" y2="150" />
-    <line x1="67.5" y1="30" x2="67.5" y2="150" />
-    <line x1="90" y1="30" x2="90" y2="150" />
-    <line x1="112.5" y1="30" x2="112.5" y2="150" />
-    <line x1="135" y1="30" x2="135" y2="150" />
+    <line x1="48" y1="35" x2="48" y2="145" />
+    <line x1="67.5" y1="35" x2="67.5" y2="145" />
+    <line x1="90" y1="35" x2="90" y2="145" />
+    <line x1="112.5" y1="35" x2="112.5" y2="145" />
+    <line x1="132" y1="35" x2="132" y2="145" />
   </g>
 
   <!-- Horizontal threads -->
   <g stroke="hsl(195, 85%, 45%)" stroke-width="2.5" fill="none">
-    <line x1="30" y1="60" x2="150" y2="60" />
-    <line x1="30" y1="90" x2="150" y2="90" />
-    <line x1="30" y1="120" x2="150" y2="120" />
+    <line x1="35" y1="63" x2="145" y2="63" />
+    <line x1="35" y1="90" x2="145" y2="90" />
+    <line x1="35" y1="117" x2="145" y2="117" />
   </g>
 
   <!-- Connecting nodes -->
-  <circle cx="45" cy="60" r="3.5" fill="hsl(45, 90%, 55%)" />
+  <circle cx="48" cy="63" r="3.5" fill="hsl(45, 90%, 55%)" />
   <circle cx="67.5" cy="90" r="3.5" fill="hsl(45, 90%, 55%)" />
-  <circle cx="90" cy="120" r="3.5" fill="hsl(45, 90%, 55%)" />
-  <circle cx="112.5" cy="60" r="3.5" fill="hsl(45, 90%, 55%)" />
-  <circle cx="135" cy="90" r="3.5" fill="hsl(45, 90%, 55%)" />
+  <circle cx="90" cy="117" r="3.5" fill="hsl(45, 90%, 55%)" />
+  <circle cx="112.5" cy="63" r="3.5" fill="hsl(45, 90%, 55%)" />
+  <circle cx="132" cy="90" r="3.5" fill="hsl(45, 90%, 55%)" />
 
   <!-- Subtle glow effect -->
-  <circle cx="90" cy="90" r="85" fill="none" stroke="url(#loomGradientApple)" stroke-width="1" opacity="0.3" />
+  <circle cx="90" cy="90" r="75" fill="none" stroke="url(#loomGradientApple)" stroke-width="1" opacity="0.3" />
 </svg>
