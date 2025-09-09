@@ -15,7 +15,7 @@ type UIAction =
 
 // 3. Initial State
 const initialState: UIState = {
-  theme: 'system',
+  theme: 'light',
   language: 'en',
 };
 

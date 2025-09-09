@@ -1,10 +1,9 @@
 // Partner Management Page
 import React, { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Heart, Mail, UserPlus, QrCode, Camera, Copy, Check } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Heart, QrCode, Camera, Copy, Check } from 'lucide-react';
 import { useAuthState, useAuthDispatch } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
-import { apiClient } from '../api/client';
 import { partnerQueries } from '@/api/queries';
 import { PageHeader } from '../components/ui/page-header';
 import { Section } from '../components/ui/section';
@@ -14,7 +13,6 @@ import QRCodeModal from '../components/QRCodeModal';
 import QRScannerModal from '../components/QRScannerModal';
 
 const Partner = () => {
-  const [email, setEmail] = useState('');
   const { user, partner } = useAuthState();
   const authDispatch = useAuthDispatch();
   const { addToast } = useToastContext();
@@ -47,26 +45,6 @@ const Partner = () => {
     }
   }, [partner]);
 
-  const inviteMutation = useMutation({
-    mutationFn: (email: string) => apiClient.invitePartner(email),
-    onSuccess: () => {
-      addToast({
-        type: 'success',
-        title: t('invitationSent'),
-        description: t('partnerInvitationSent'),
-      });
-      setEmail('');
-      // Invalidate partner query to refresh data
-      queryClient.invalidateQueries({ queryKey: ['partner'] });
-    },
-    onError: (error: Error) => {
-      addToast({
-        type: 'error',
-        title: t('failedToSendInvitation'),
-        description: error.message,
-      });
-    },
-  });
 
   const handleCopyInvite = async () => {
     const urlToCopy = inviteUrl || 'https://loom.studiodtw.net/invite/request';
@@ -115,28 +93,14 @@ const Partner = () => {
             const checkResponse = await partnerQueries.checkInviteToken(token);
 
             if (checkResponse.data) {
-              // Create partnership invitation from inviter to current user
-              const inviteResponse = await apiClient.invitePartner(user.email);
+              addToast({
+                type: 'success',
+                title: 'Connected!',
+                description: `You're now connected with ${checkResponse.data.inviter.display_name}!`,
+              });
 
-              if (inviteResponse.data?.partnership_id) {
-                // Accept the partnership automatically
-                await apiClient.acceptPartnership(inviteResponse.data.partnership_id);
-
-                addToast({
-                  type: 'success',
-                  title: 'Connected!',
-                  description: `You're now connected with ${checkResponse.data.inviter.display_name}!`,
-                });
-
-                // Refresh partner data
-                queryClient.invalidateQueries({ queryKey: ['partner'] });
-              } else {
-                addToast({
-                  type: 'error',
-                  title: 'Connection failed',
-                  description: 'Unable to establish the connection. Please try again.',
-                });
-              }
+              // Refresh partner data
+              queryClient.invalidateQueries({ queryKey: ['partner'] });
             } else {
               addToast({
                 type: 'error',
@@ -149,7 +113,7 @@ const Partner = () => {
             addToast({
               type: 'error',
               title: 'Connection failed',
-              description: 'Unable to connect. Please try the traditional invite method.',
+              description: 'Unable to connect. Please try again.',
             });
           }
         } else {
@@ -264,72 +228,6 @@ const Partner = () => {
         </Section>
       )}
 
-      <Section variant="elevated" className="loom-gradient-subtle">
-        <div className="text-center mb-6">
-          <div className="w-20 h-20 rounded-full loom-gradient-primary flex items-center justify-center mx-auto mb-4">
-            <UserPlus className="w-10 h-10 text-white" />
-          </div>
-          <h3 className="font-semibold text-lg mb-2">{t('inviteYourPartner')}</h3>
-          <p className="text-sm text-[hsl(var(--loom-text-muted))] max-w-md mx-auto mb-4">
-            {t('noPartnerConnectedYet')}
-          </p>
-          <p className="text-sm text-[hsl(var(--loom-text-muted))] max-w-md mx-auto">
-            {t('sendInvitationDescription')}
-          </p>
-        </div>
-
-        <div className="loom-card max-w-md mx-auto">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (email.trim()) {
-                inviteMutation.mutate(email.trim());
-              }
-            }}
-            className="space-y-4"
-          >
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-2">
-                {t('partnersEmailAddress')}
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={t('partnerExampleEmail')}
-                className="w-full px-4 py-3 rounded-md border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))]"
-                required
-                disabled={inviteMutation.isPending}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={inviteMutation.isPending || !email.trim()}
-              className="loom-btn-primary w-full hover-scale disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {inviteMutation.isPending ? (
-                <div className="flex items-center justify-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>{t('sendingInvitation')}</span>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center space-x-2">
-                  <Mail className="w-4 h-4" />
-                  <span>{t('sendInvitation')}</span>
-                </div>
-              )}
-            </button>
-          </form>
-        </div>
-
-        <div className="text-center mt-6">
-          <p className="text-xs text-[hsl(var(--loom-text-muted))]">
-            {t('partnerWillReceiveEmail')}
-          </p>
-        </div>
-      </Section>
 
       <Section title={t('whatYouWillShare')}>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -345,7 +243,7 @@ const Partner = () => {
 
           <div className="text-center p-4">
             <div className="w-12 h-12 rounded-full bg-[hsl(var(--loom-primary-light))] flex items-center justify-center mx-auto mb-3">
-              <Mail className="w-6 h-6 text-[hsl(var(--loom-primary))]" />
+              <Heart className="w-6 h-6 text-[hsl(var(--loom-primary))]" />
             </div>
             <h4 className="font-medium mb-2">{t('timeProposals')}</h4>
             <p className="text-sm text-[hsl(var(--loom-text-muted))]">
@@ -355,7 +253,7 @@ const Partner = () => {
 
           <div className="text-center p-4">
             <div className="w-12 h-12 rounded-full bg-[hsl(var(--loom-primary-light))] flex items-center justify-center mx-auto mb-3">
-              <UserPlus className="w-6 h-6 text-[hsl(var(--loom-primary))]" />
+              <Heart className="w-6 h-6 text-[hsl(var(--loom-primary))]" />
             </div>
             <h4 className="font-medium mb-2">{t('availabilitySync')}</h4>
             <p className="text-sm text-[hsl(var(--loom-text-muted))]">
