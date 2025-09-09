@@ -222,7 +222,7 @@ const Partner = () => {
             </button>
             <button className="loom-btn-ghost flex items-center justify-center space-x-2" onClick={handleScanQRCode}>
               <Camera className="w-4 h-4" />
-              <span>Scan QR Code</span>
+              <span>{t('scanQrCode')}</span>
             </button>
           </div>
         </Section>
@@ -268,14 +268,14 @@ const Partner = () => {
         isOpen={showQRModal}
         onClose={() => setShowQRModal(false)}
         inviteUrl={inviteUrl}
-        title="Your Invite QR Code"
+        title={t('yourInviteQrCode')}
       />
 
       <QRScannerModal
         isOpen={showQRScanner}
         onClose={() => setShowQRScanner(false)}
         onScanSuccess={handleQRScanSuccess}
-        title="Scan QR Code"
+        title={t('scanQrCode')}
       />
     </div>
   );
