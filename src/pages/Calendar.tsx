@@ -11,6 +11,9 @@ import { useQuery } from '@tanstack/react-query';
 import { queryKeys, eventQueries } from '../api/queries';
 import { useToastContext } from '../contexts/ToastContext';
 import { useTranslation } from '../i18n';
+import { useAuthState } from '../contexts/AuthContext';
+import EventList from '../components/EventList';
+import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfDay, endOfDay } from 'date-fns';
 
 interface CalendarEventType {
   id: string;
@@ -28,6 +31,7 @@ const CalendarPage = () => {
   const { setEventFilter, setEvents } = useEventsActions();
   const { addToast } = useToastContext();
   const { t } = useTranslation();
+  const { user, partner } = useAuthState();
   const [currentView, setCurrentView] = useState<'month' | 'week' | 'day'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showFilters, setShowFilters] = useState(false);
@@ -72,26 +76,26 @@ const CalendarPage = () => {
   }, []);
 
 
+  // Compute filtered events once for both calendar and list views
+  const filteredEvents = useMemo(() => {
+    if (!events) return [] as Event[];
+    return events.filter((event) => {
+      switch (filter.type) {
+        case 'mine':
+          return user ? event.created_by === user.id : true;
+        case 'partner':
+          return partner ? event.created_by === partner.id : false;
+        case 'shared':
+          return event.attendees.length > 1;
+        case 'all':
+        default:
+          return true;
+      }
+    });
+  }, [events, filter.type, user, partner]);
+
   // Transform events for calendar
   const calendarEvents = useMemo(() => {
-    let filteredEvents = events;
-
-    // Apply filtering based on filter.type
-    if (filter.type !== 'all') {
-      filteredEvents = events.filter(event => {
-        switch (filter.type) {
-          case 'mine':
-            return event.created_by === events.find(e => e.id === event.id)?.created_by;
-          case 'partner':
-            return event.attendees.length === 1; // Simplified - single attendee events
-          case 'shared':
-            return event.attendees.length > 1;
-          default:
-            return true;
-        }
-      });
-    }
-
     return filteredEvents.map(event => ({
       id: event.id,
       title: event.title,
@@ -99,7 +103,7 @@ const CalendarPage = () => {
       end: new Date(event.end_time),
       resource: event,
     }));
-  }, [events, filter]);
+  }, [filteredEvents]);
 
   const handleEventClick = (event: CalendarEventType) => {
     navigate(`/event/${event.id}`);
@@ -139,6 +143,26 @@ const CalendarPage = () => {
     }
   };
 
+  // Derive date range for current view to keep list in sync with calendar frame
+  const currentRange = useMemo(() => {
+    if (currentView === 'month') {
+      return {
+        start: startOfWeek(startOfMonth(currentDate)),
+        end: endOfWeek(endOfMonth(currentDate)),
+      };
+    }
+    if (currentView === 'week') {
+      return {
+        start: startOfWeek(currentDate),
+        end: endOfWeek(currentDate),
+      };
+    }
+    // day view
+    return {
+      start: startOfDay(currentDate),
+      end: endOfDay(currentDate),
+    };
+  }, [currentView, currentDate]);
 
   return (
     <div className="container py-4 sm:py-8 space-y-4 sm:space-y-6">
@@ -217,6 +241,15 @@ const CalendarPage = () => {
           </div>
         )}
       </Section>
+      {/* Events List under the calendar */}
+      <div>
+        <EventList
+          events={filteredEvents}
+          range={currentRange}
+          isLoading={isLoading}
+          onEventClick={(id) => navigate(`/event/${id}`)}
+        />
+      </div>
     </div>
   );
 };

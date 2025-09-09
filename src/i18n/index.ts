@@ -70,6 +70,12 @@ export const translations = {
     nextPeriod: 'Next period',
     loadingEvents: 'Loading events...',
     failedToLoadEvents: 'Failed to load events. Please try again.',
+    // EventList
+    eventDeleted: 'Event deleted',
+    eventDeletedDesc: 'The event has been successfully deleted.',
+    confirmDeleteEvent: 'Are you sure you want to delete this event?',
+    noEventsInRange: 'No events in this range',
+    adjustViewOrFilters: 'Try adjusting the view or filters.',
     
     // Add Event
     proposeTime: 'Propose Time',
@@ -397,6 +403,12 @@ export const translations = {
     nextPeriod: '下一时段',
     loadingEvents: '加载活动...',
     failedToLoadEvents: '加载活动失败。请重试。',
+    // EventList
+    eventDeleted: '活动已删除',
+    eventDeletedDesc: '该活动已成功删除。',
+    confirmDeleteEvent: '您确定要删除此活动吗？',
+    noEventsInRange: '此范围内没有活动',
+    adjustViewOrFilters: '请尝试调整视图或筛选器。',
     
     // Add Event
     proposeTime: '提议时间',
