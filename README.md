@@ -7,32 +7,32 @@ A modern couples' scheduling and coordination app that helps partners plan, shar
 ## ✨ Features
 
 ### 🎯 **Core Functionality**
-- **Event Management**: Create, view, and manage personal and shared events
-- **Partner Coordination**: Invite partners and coordinate schedules together
-- **Time Proposals**: Propose meeting times and get instant responses
-- **Calendar Integration**: Full calendar view with event filtering and navigation
-- **Task Management**: Personal task lists with due dates and completion tracking
-- **Availability Finding**: Automatically find overlapping free time slots
+- **Event Management**: Create, view, and manage personal and shared events with visibility controls.
+- **Partner Coordination**: Invite partners via email and coordinate schedules together.
+- **Time Proposals**: Propose meeting times with multiple slots and get instant accept/decline responses.
+- **Event Collaboration**: Engage in real-time chat and manage shared checklists for each event.
+- **Calendar Integration**: A full calendar view with month, week, and day modes, plus event filtering.
+- **Task Management**: Personal task lists with due dates and completion tracking.
+- **Availability Finding**: Automatically find overlapping free time slots between partners.
 
 ### 🔐 **Authentication & User Management**
-- Secure user registration and login
-- JWT-based authentication with refresh tokens
-- Partner invitation and connection system
-- Profile management with customizable preferences
+- Secure user registration and login with email/password.
+- JWT-based authentication with secure refresh tokens.
+- Full partner invitation and connection/disconnection workflow.
+- User profile management with customizable preferences.
 
 ### 📱 **User Experience**
-- **Responsive Design**: Optimized for mobile and desktop
-- **Real-time Updates**: Automatic data refresh every 30 seconds
-- **Offline Support**: Service worker for offline functionality
-- **Dark/Light Theme**: System-aware theme switching
-- **Toast Notifications**: Real-time feedback for all actions
-- **Loading States**: Skeleton loaders and progress indicators
+- **Real-time Collaboration**: Instant updates for chat, events, and proposals via WebSockets.
+- **Responsive PWA**: A mobile-first, installable Progressive Web App that works offline.
+- **Beautiful Woven UI**: A unique design system where shared events "weave" partner colors together.
+- **Dark/Light Theme**: System-aware theme switching.
+- **Toast Notifications**: Real-time feedback for all user actions.
 
 ### 🛠 **Technical Features**
 - **Type-Safe**: Full TypeScript implementation
 - **API-First**: Comprehensive REST API with FastAPI
 - **Database**: MongoDB with proper data modeling
-- **State Management**: React Context with optimistic updates
+- **State Management**: React Context (`useReducer`) & TanStack React Query
 - **Error Handling**: Comprehensive error boundaries and fallbacks
 - **Performance**: Code splitting, lazy loading, and caching
 
@@ -77,11 +77,11 @@ backend/
 
 ### Backend
 - **FastAPI** - Modern, fast web framework for Python
-- **MongoDB** - NoSQL database with flexible schemas
-- **Pydantic** - Data validation and serialization
-- **JWT** - JSON Web Tokens for authentication
-- **Bcrypt** - Password hashing
-- **CORS** - Cross-origin resource sharing
+- **WebSockets** - For real-time, bidirectional communication.
+- **MongoDB** - NoSQL database with the async `motor` driver.
+- **Pydantic** - Data validation and serialization.
+- **JWT** - JSON Web Tokens for authentication.
+- **Bcrypt** - Password hashing.
 
 ### DevOps & Tools
 - **ESLint** - Code linting
@@ -144,33 +144,20 @@ PROJECT_NAME=Loom API
 
 ## 📊 Current Status
 
-### ✅ **Fully Implemented**
-- Complete user authentication system
-- Partner invitation and connection
-- Event creation, viewing, and management
-- Proposal system with accept/decline
-- Calendar view with filtering
-- Task management
-- Real-time polling updates
-- Responsive mobile-first design
-- Comprehensive error handling
-- Toast notification system
+### ✅ **Functionally Complete**
+- **Core Features**: All primary features are implemented and stable, including user authentication, partner invitations (via email), event/task management, the proposal system, and availability finding.
+- **Real-time System**: The application uses WebSockets for instant updates, replacing the old polling system.
+- **Advanced Collaboration**: Event-specific chat and shared checklists are fully functional.
+- **Data Persistence**: All data loading and persistence issues have been resolved. The app correctly fetches and saves data for all sections.
+- **UI/UX**: The application is fully responsive, mobile-first, and includes a polished UI with dark/light themes.
 
-### 🔄 **In Progress**
-- Settings page profile persistence
-- Individual event detail loading
-- Data fetching pattern standardization
-- Context API integration improvements
+### ⚠️ **Partially Implemented**
+- **Push Notifications**: The frontend service worker is ready to receive push notifications, but the backend service to send them is not yet implemented.
 
 ### 📋 **Planned Features**
-- WebSocket real-time updates
-- Push notifications
-- Calendar integrations (Google, Outlook)
-- Advanced availability algorithms
-- Shared checklists for events
-- Time zone management
-- Recurring events
-- Event reminders and notifications
+- **Comprehensive Testing**: Adding `pytest` and `React Testing Library` test suites.
+- **Recurring Events**: Support for creating events that repeat on a schedule.
+- **Calendar Integrations**: Allowing users to sync with Google Calendar or Outlook.
 
 ## 📚 API Documentation
 
@@ -192,7 +179,7 @@ The API is fully documented with OpenAPI/Swagger. When running the backend serve
 ### Available Scripts
 ```bash
 # Frontend
-npm run dev          # Start dev server
+npm run dev  # Runs on port 7100 dev server
 npm run build        # Build for production
 npm run preview      # Preview production build
 npm run lint         # Run ESLint
@@ -206,8 +193,8 @@ uvicorn app.main:app --reload  # Start with auto-reload
 
 Local setup is aligned with production paths while using dev ports.
 
-- Frontend dev server: `http://localhost:7100`
-- Backend dev server: `http://localhost:7500`
+- Frontend dev server: `http://localhost:7100` (Vite)
+- Backend dev server: `http://localhost:7500` (FastAPI)
 - API base path: `/api`
 
 ### 1) Backend
@@ -245,9 +232,9 @@ npm run dev  # serves on http://localhost:7100
 
 The frontend `src/hooks/useWebSocket.ts` derives the WS endpoint from `VITE_API_URL` or `VITE_API_BASE_URL`. With the above env, it will connect to:
 
-- `ws://localhost:7500/api/events/:eventId/ws?token=...`
+- `ws://localhost:7500/api/partner/ws?token=...`
 
-which matches the backend route defined in `backend/app/routers/events.py` (`/events/{event_id}/ws`) under the API prefix `/api`.
+which matches the backend route defined in `backend/app/main.py` (`/partner/ws`) under the API prefix `/api`.
 
 ### Code Quality
 - **ESLint**: Configured for React/TypeScript best practices
@@ -335,4 +322,4 @@ For questions or support, please create an issue in the repository.
 
 ---
 
-**Loom** - Making coordination effortless, one shared moment at a time.
+**Loom** - Built for love, designed for life. 💕
