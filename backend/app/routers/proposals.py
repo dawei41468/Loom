@@ -188,6 +188,7 @@ async def accept_proposal(
         print(f"Failed to send WebSocket notification for proposal acceptance: {e}")
     
     # Create event from accepted proposal
+    # IMPORTANT: store user ids as strings to match queries in events router
     event_dict = {
         "title": proposal.title,
         "description": proposal.description,
@@ -195,8 +196,8 @@ async def accept_proposal(
         "end_time": selected_time_slot.end_time,
         "location": proposal.location,
         "visibility": "shared",
-        "attendees": [proposal.proposed_by, proposal.proposed_to],
-        "created_by": proposal.proposed_by,
+        "attendees": [str(proposal.proposed_by), str(proposal.proposed_to)],
+        "created_by": str(proposal.proposed_by),
         "reminders": [10],  # Default 10 minute reminder
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc)
@@ -226,11 +227,11 @@ async def accept_proposal(
     try:
         await manager.notify_event_created(
             str(proposal.proposed_by),
-            event.model_dump()
+            event.model_dump(mode='json')
         )
         await manager.notify_event_created(
             str(proposal.proposed_to),
-            event.model_dump()
+            event.model_dump(mode='json')
         )
     except Exception as e:
         # Log the error but don't fail the request

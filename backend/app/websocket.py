@@ -42,6 +42,21 @@ class ConnectionManager:
 
         logger.debug("WebSocket ConnectionManager initialized")
 
+    def _serialize_for_json(self, obj):
+        """Recursively convert datetimes to ISO strings to make payload JSON-serializable."""
+        if isinstance(obj, datetime):
+            # Ensure timezone-aware and serialize
+            if obj.tzinfo is None:
+                obj = obj.replace(tzinfo=timezone.utc)
+            return obj.isoformat().replace('+00:00', 'Z')
+        if isinstance(obj, dict):
+            return {k: self._serialize_for_json(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [self._serialize_for_json(v) for v in obj]
+        if isinstance(obj, tuple):
+            return tuple(self._serialize_for_json(v) for v in obj)
+        return obj
+
     async def connect(self, websocket: WebSocket, event_id: str, user: User) -> bool:
         """Connect a WebSocket to an event room"""
         try:
@@ -124,7 +139,7 @@ class ConnectionManager:
                 continue
 
             try:
-                await websocket.send_json(message)
+                await websocket.send_json(self._serialize_for_json(message))
                 conn_info['last_activity'] = datetime.now(timezone.utc)
             except Exception as e:
                 logger.error(f"Failed to send message to user {user_id} in event {event_id}: {e}")
@@ -186,7 +201,7 @@ class ConnectionManager:
         if user_id in self.partner_connections:
             try:
                 websocket = self.partner_connections[user_id]['websocket']
-                await websocket.send_json(message)
+                await websocket.send_json(self._serialize_for_json(message))
                 self.partner_connections[user_id]['last_activity'] = datetime.now(timezone.utc)
                 logger.debug(f"Sent '{message.get('type')}' notification to user {user_id}")
             except Exception as e:
@@ -261,7 +276,7 @@ class ConnectionManager:
 
             for message in messages_to_send:
                 try:
-                    await websocket.send_json(message)
+                    await websocket.send_json(self._serialize_for_json(message))
                     logger.debug(f"Sent queued message to user {user_id}")
                 except Exception as e:
                     logger.error(f"Failed to send queued message to user {user_id}: {e}")

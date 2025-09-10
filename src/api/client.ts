@@ -168,8 +168,31 @@ class ApiClient {
           throw new Error('Authentication failed. Please login again.');
         }
 
-        const errorData = await response.json().catch(() => ({ detail: response.statusText }));
-        throw new Error(errorData.detail || `API Error: ${response.statusText}`);
+        // Try to parse JSON error body for more details (e.g., FastAPI validation errors)
+        const text = await response.text();
+        let errorMessage = `API Error: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = JSON.parse(text);
+          // FastAPI validation error shape: { detail: [{ loc, msg, type }, ...] }
+          if (Array.isArray(errorData?.detail)) {
+            const msgs = errorData.detail.map((d: any) => {
+              const loc = Array.isArray(d?.loc) ? d.loc.slice(1).join('.') : undefined; // slice to drop 'body'
+              const msg = d?.msg || JSON.stringify(d);
+              return loc ? `${loc}: ${msg}` : msg;
+            }).join('; ');
+            errorMessage = msgs || errorMessage;
+          } else if (typeof errorData?.detail === 'string') {
+            errorMessage = errorData.detail;
+          } else if (typeof errorData?.message === 'string') {
+            errorMessage = errorData.message;
+          } else {
+            errorMessage = text || errorMessage;
+          }
+        } catch {
+          // Not JSON; use raw text if available
+          if (text) errorMessage = text;
+        }
+        throw new Error(errorMessage);
       }
 
       // Handle cases with no content

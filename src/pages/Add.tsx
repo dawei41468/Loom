@@ -5,7 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format, addDays, addHours } from 'date-fns';
 import { X, MapPin, Clock, Users, Bell, Calendar } from 'lucide-react';
 import { useEventsActions } from '../contexts/EventsContext';
-import { useAuthState } from '../contexts/AuthContext';
+import { useAuthState, useAuthDispatch } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
 import { TimePicker } from '../components/ui/TimePicker';
@@ -19,6 +19,7 @@ const Add = () => {
   const [searchParams] = useSearchParams();
   const { addEvent, addProposal } = useEventsActions();
   const { user, partner } = useAuthState();
+  const authDispatch = useAuthDispatch();
   const { addToast } = useToastContext();
   const { t } = useTranslation();
 
@@ -54,6 +55,26 @@ const Add = () => {
     { value: 30, label: t('thirtyMin') },
     { value: 60, label: t('oneHour') },
   ];
+
+  // Ensure partner is loaded for proposal flow
+  useEffect(() => {
+    const loadPartnerIfNeeded = async () => {
+      if (!isProposal) return;
+      const validId = partner && /^[a-fA-F0-9]{24}$/.test(partner.id);
+      if (!validId) {
+        try {
+          const resp = await apiClient.getPartner();
+          if (resp?.data) {
+            authDispatch({ type: 'SET_PARTNER', payload: resp.data });
+          }
+        } catch {
+          // ignore
+        }
+      }
+    };
+    loadPartnerIfNeeded();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isProposal]);
 
   const parseNaturalLanguage = (input: string) => {
     // Simple NL parsing - in real app, would use more sophisticated parsing
@@ -279,24 +300,78 @@ const Add = () => {
     setIsSubmitting(true);
 
     try {
-      const startDateTime = convertTimeToISO(startTime, date);
-      const endDateTime = convertTimeToISO(endTime, date);
+      let startDateTime = convertTimeToISO(startTime, date);
+      let endDateTime = convertTimeToISO(endTime, date);
+      // If end <= start for the same day, treat end as next day (crossing midnight)
+      const sCheck = Date.parse(startDateTime);
+      const eCheck = Date.parse(endDateTime);
+      if (!isNaN(sCheck) && !isNaN(eCheck) && eCheck <= sCheck) {
+        const nextDay = format(addDays(new Date(date), 1), 'yyyy-MM-dd');
+        endDateTime = convertTimeToISO(endTime, nextDay);
+      }
 
       if (isProposal && partner) {
         // Create proposal
-        const times = proposalSlots.map((slot) => ({
-          start_time: convertTimeToISO(slot.startTime, slot.date),
-          end_time: convertTimeToISO(slot.endTime, slot.date),
-        }));
+        const times = proposalSlots.map((slot) => {
+          const s = convertTimeToISO(slot.startTime, slot.date);
+          let e = convertTimeToISO(slot.endTime, slot.date);
+          const sNum = Date.parse(s);
+          const eNum = Date.parse(e);
+          if (!isNaN(sNum) && !isNaN(eNum) && eNum <= sNum) {
+            // Cross midnight: roll end to next day
+            const next = format(addDays(new Date(slot.date), 1), 'yyyy-MM-dd');
+            e = convertTimeToISO(slot.endTime, next);
+          }
+          return { start_time: s, end_time: e };
+        });
 
-        const proposal = await apiClient.createProposal({
+        // Client-side validation to avoid backend 422
+        if (!times.length) {
+          addToast({ type: 'error', title: 'Missing time', description: 'Please add at least one time slot.' });
+          return;
+        }
+        const bad = times.find((s) => {
+          const s1 = Date.parse(s.start_time);
+          const s2 = Date.parse(s.end_time);
+          // Only enforce when both sides parse to valid timestamps
+          return !isNaN(s1) && !isNaN(s2) && s2 <= s1;
+        });
+        if (bad) {
+          addToast({ type: 'error', title: 'Invalid time slot', description: `End time must be after start time (${bad.start_time} – ${bad.end_time}).` });
+          return;
+        }
+        // Validate partner id looks like a Mongo ObjectId (24 hex chars). If invalid, try fetching once.
+        if (!/^[a-fA-F0-9]{24}$/.test(partner.id)) {
+          try {
+            const resp = await apiClient.getPartner();
+            if (resp?.data && /^[a-fA-F0-9]{24}$/.test(resp.data.id)) {
+              authDispatch({ type: 'SET_PARTNER', payload: resp.data });
+            } else {
+              addToast({ type: 'error', title: 'Partner not ready', description: 'Please reconnect your partner and try again.' });
+              return;
+            }
+          } catch {
+            addToast({ type: 'error', title: 'Partner not ready', description: 'Please reconnect your partner and try again.' });
+            return;
+          }
+        }
+
+        const proposalPayload = {
           title,
           description: description || undefined,
           message: proposalMessage || undefined,
           proposed_times: times,
           location: location || undefined,
-          proposed_to: partner.id,
-        });
+          proposed_to: partner.id as string,
+        };
+        // Extra safety: ensure proposed_to is present
+        if (!proposalPayload.proposed_to) {
+          console.error('Missing proposed_to. Partner state:', partner);
+          addToast({ type: 'error', title: 'Partner not ready', description: 'Could not determine partner id. Please reload and try again.' });
+          return;
+        }
+        console.log('Submitting proposal payload:', proposalPayload);
+        const proposal = await apiClient.createProposal(proposalPayload);
 
         addProposal(proposal.data);
         addToast({
@@ -328,10 +403,11 @@ const Add = () => {
 
       navigate('/');
     } catch (error) {
+      const message = error instanceof Error ? error.message : t('pleaseTryAgain');
       addToast({
         type: 'error',
-        title: t('failedToCreateEvent'),
-        description: t('pleaseTryAgain'),
+        title: isProposal ? 'Failed to create proposal' : t('failedToCreateEvent'),
+        description: message,
       });
     } finally {
       setIsSubmitting(false);

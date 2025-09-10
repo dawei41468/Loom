@@ -40,8 +40,15 @@ const eventsReducer = (state: EventsState, action: EventsAction): EventsState =>
   switch (action.type) {
     case 'SET_EVENTS':
       return { ...state, events: action.payload };
-    case 'ADD_EVENT':
-      return { ...state, events: [...state.events, action.payload] };
+    case 'ADD_EVENT': {
+      const exists = state.events.some(e => e.id === action.payload.id);
+      return exists
+        ? {
+            ...state,
+            events: state.events.map(e => (e.id === action.payload.id ? action.payload : e)),
+          }
+        : { ...state, events: [...state.events, action.payload] };
+    }
     case 'UPDATE_EVENT':
       return {
         ...state,
@@ -62,8 +69,15 @@ const eventsReducer = (state: EventsState, action: EventsAction): EventsState =>
       return { ...state, calendarView: action.payload };
     case 'SET_PROPOSALS':
       return { ...state, proposals: action.payload };
-    case 'ADD_PROPOSAL':
-      return { ...state, proposals: [...state.proposals, action.payload] };
+    case 'ADD_PROPOSAL': {
+      const exists = state.proposals.some(p => p.id === action.payload.id);
+      return exists
+        ? {
+            ...state,
+            proposals: state.proposals.map(p => (p.id === action.payload.id ? action.payload : p)),
+          }
+        : { ...state, proposals: [...state.proposals, action.payload] };
+    }
     case 'UPDATE_PROPOSAL':
       return {
         ...state,

@@ -19,7 +19,7 @@ const Index = () => {
   const navigate = useNavigate();
   const events = useEvents();
   const proposals = useProposals();
-  const { setEvents, setProposals } = useEventsActions();
+  const { setEvents, setProposals, updateProposal, removeProposal, addEvent } = useEventsActions();
   const { user, partner } = useAuthState();
   const { addToast } = useToastContext();
   const queryClient = useQueryClient();
@@ -33,9 +33,18 @@ const Index = () => {
       proposalId: string;
       selectedTimeSlot: { start_time: string; end_time: string }
     }) => apiClient.acceptProposal(proposalId, selectedTimeSlot),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: ['proposals'] });
+    onSuccess: (resp) => {
+      // Update local state immediately
+      const accepted = resp.data?.proposal;
+      const createdEvent = resp.data?.event;
+      if (accepted?.id) {
+        updateProposal(accepted.id, accepted);
+        // Optionally remove from list if you don't want accepted proposals to show
+        // removeProposal(accepted.id);
+      }
+      if (createdEvent) {
+        addEvent(createdEvent);
+      }
       addToast({
         type: 'success',
         title: t('proposalAccepted'),
@@ -53,8 +62,11 @@ const Index = () => {
 
   const declineProposalMutation = useMutation({
     mutationFn: (proposalId: string) => apiClient.declineProposal(proposalId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['proposals'] });
+    onSuccess: (resp) => {
+      const declined = resp.data;
+      if (declined?.id) {
+        updateProposal(declined.id, declined);
+      }
       addToast({
         type: 'info',
         title: t('proposalDeclined'),
@@ -209,38 +221,46 @@ const Index = () => {
                         ))}
                       </div>
                     )}
+                    {proposal.proposed_times?.length === 1 && (
+                      <p className="text-xs sm:text-sm mt-2">
+                        {format(parseISO(proposal.proposed_times[0].start_time), 'MMM d, h:mm a')} – {format(parseISO(proposal.proposed_times[0].end_time), 'h:mm a')}
+                      </p>
+                    )}
                     {proposal.message && (
                       <p className="text-xs sm:text-sm mt-2 line-clamp-2">{proposal.message}</p>
                     )}
                   </div>
-                  <div className="flex space-x-2 sm:ml-4">
-                    <button
-                      onClick={() => {
-                        const idx = selectedSlots[proposal.id] ?? 0;
-                        const slot = proposal.proposed_times[idx] || proposal.proposed_times[0];
-                        if (slot) {
-                          acceptProposalMutation.mutate({
-                            proposalId: proposal.id,
-                            selectedTimeSlot: {
-                              start_time: slot.start_time,
-                              end_time: slot.end_time,
-                            },
-                          });
-                        }
-                      }}
-                      disabled={acceptProposalMutation.isPending}
-                      className="loom-chip loom-chip-primary text-xs hover-scale flex-1 sm:flex-initial"
-                    >
-                      {acceptProposalMutation.isPending ? t('accepting') : t('accept')}
-                    </button>
-                    <button
-                      onClick={() => declineProposalMutation.mutate(proposal.id)}
-                      disabled={declineProposalMutation.isPending}
-                      className="loom-chip text-xs hover-scale border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] flex-1 sm:flex-initial"
-                    >
-                      {declineProposalMutation.isPending ? t('declining') : t('decline')}
-                    </button>
-                  </div>
+                  {/* Only the recipient should see Accept/Decline */}
+                  {proposal.proposed_to === user?.id && (
+                    <div className="flex space-x-2 sm:ml-4">
+                      <button
+                        onClick={() => {
+                          const idx = selectedSlots[proposal.id] ?? 0;
+                          const slot = proposal.proposed_times[idx] || proposal.proposed_times[0];
+                          if (slot) {
+                            acceptProposalMutation.mutate({
+                              proposalId: proposal.id,
+                              selectedTimeSlot: {
+                                start_time: slot.start_time,
+                                end_time: slot.end_time,
+                              },
+                            });
+                          }
+                        }}
+                        disabled={acceptProposalMutation.isPending}
+                        className="loom-chip loom-chip-primary text-xs hover-scale flex-1 sm:flex-initial"
+                      >
+                        {acceptProposalMutation.isPending ? t('accepting') : t('accept')}
+                      </button>
+                      <button
+                        onClick={() => declineProposalMutation.mutate(proposal.id)}
+                        disabled={declineProposalMutation.isPending}
+                        className="loom-chip text-xs hover-scale border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] flex-1 sm:flex-initial"
+                      >
+                        {declineProposalMutation.isPending ? t('declining') : t('decline')}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
