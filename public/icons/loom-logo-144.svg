@@ -14,27 +14,25 @@
 
   <!-- Weaving pattern -->
   <g stroke="hsl(263, 70%, 50%)" stroke-width="2" fill="none">
-    <!-- Vertical threads -->
-    <line x1="39" y1="28" x2="39" y2="116" />
-    <line x1="54" y1="28" x2="54" y2="116" />
-    <line x1="72" y1="28" x2="72" y2="116" />
-    <line x1="90" y1="28" x2="90" y2="116" />
-    <line x1="105" y1="28" x2="105" y2="116" />
+    <!-- Vertical threads (4), 16px spacing centered on x=72; vertical span 40.5->103.5 -->
+    <line x1="48" y1="40.5" x2="48" y2="103.5" />
+    <line x1="64" y1="40.5" x2="64" y2="103.5" />
+    <line x1="80" y1="40.5" x2="80" y2="103.5" />
+    <line x1="96" y1="40.5" x2="96" y2="103.5" />
   </g>
 
-  <!-- Horizontal threads -->
+  <!-- Horizontal threads (3), 16px spacing centered on y=72; equal protrusion p=16 beyond verticals -->
   <g stroke="hsl(195, 85%, 45%)" stroke-width="2" fill="none">
-    <line x1="28" y1="51" x2="116" y2="51" />
-    <line x1="28" y1="72" x2="116" y2="72" />
-    <line x1="28" y1="93" x2="116" y2="93" />
+    <line x1="32" y1="56" x2="112" y2="56" />
+    <line x1="32" y1="72" x2="112" y2="72" />
+    <line x1="32" y1="88" x2="112" y2="88" />
   </g>
 
-  <!-- Connecting nodes -->
-  <circle cx="39" cy="51" r="3" fill="hsl(45, 90%, 55%)" />
-  <circle cx="54" cy="72" r="3" fill="hsl(45, 90%, 55%)" />
-  <circle cx="72" cy="93" r="3" fill="hsl(45, 90%, 55%)" />
-  <circle cx="90" cy="51" r="3" fill="hsl(45, 90%, 55%)" />
-  <circle cx="105" cy="72" r="3" fill="hsl(45, 90%, 55%)" />
+  <!-- Connecting nodes (4), at intersections -->
+  <circle cx="48" cy="56" r="3" fill="hsl(45, 90%, 55%)" />
+  <circle cx="64" cy="72" r="3" fill="hsl(45, 90%, 55%)" />
+  <circle cx="80" cy="88" r="3" fill="hsl(45, 90%, 55%)" />
+  <circle cx="96" cy="56" r="3" fill="hsl(45, 90%, 55%)" />
 
   <!-- Subtle glow effect -->
   <circle cx="72" cy="72" r="60" fill="none" stroke="url(#loomGradient)" stroke-width="1" opacity="0.3" />

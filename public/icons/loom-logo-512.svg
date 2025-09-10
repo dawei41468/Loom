@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="loomGradient512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:hsl(263, 70%, 50%);stop-opacity:1" />
+      <stop offset="100%" style="stop-color:hsl(195, 85%, 45%);stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Main circular background -->
+  <circle cx="256" cy="256" r="224" fill="url(#loomGradient512)" />
+
+  <!-- Inner white circle -->
+  <circle cx="256" cy="256" r="192" fill="white" />
+
+  <!-- Weaving pattern -->
+  <g stroke="hsl(263, 70%, 50%)" stroke-width="8" fill="none" stroke-linecap="round">
+    <!-- Vertical threads (4), 56px spacing centered on x=256 -->
+    <line x1="172" y1="144" x2="172" y2="368" />
+    <line x1="228" y1="144" x2="228" y2="368" />
+    <line x1="284" y1="144" x2="284" y2="368" />
+    <line x1="340" y1="144" x2="340" y2="368" />
+  </g>
+
+  <g stroke="hsl(195, 85%, 45%)" stroke-width="8" fill="none" stroke-linecap="round">
+    <!-- Horizontal threads (3), 56px spacing centered on y=256, equal protrusion p=56 beyond verticals -->
+    <line x1="116" y1="200" x2="396" y2="200" />
+    <line x1="116" y1="256" x2="396" y2="256" />
+    <line x1="116" y1="312" x2="396" y2="312" />
+  </g>
+
+  <!-- Connecting nodes (4), at intersections -->
+  <circle cx="172" cy="200" r="10" fill="hsl(45, 90%, 55%)" />
+  <circle cx="228" cy="256" r="10" fill="hsl(45, 90%, 55%)" />
+  <circle cx="284" cy="312" r="10" fill="hsl(45, 90%, 55%)" />
+  <circle cx="340" cy="200" r="10" fill="hsl(45, 90%, 55%)" />
+
+  <!-- Subtle glow effect -->
+  <circle cx="256" cy="256" r="224" fill="none" stroke="url(#loomGradient512)" stroke-width="3" opacity="0.3" />
+</svg>

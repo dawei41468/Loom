@@ -19,15 +19,45 @@
       "purpose": "any maskable"
     },
     {
+      "src": "/icons/loom-logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
       "src": "/icons/loom-logo-144.svg",
       "sizes": "144x144",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
+      "src": "/icons/loom-logo-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/loom-logo-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/loom-logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
       "src": "/icons/loom-apple-touch-icon.svg",
       "sizes": "180x180",
       "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/loom-apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],
@@ -39,8 +69,16 @@
       "url": "/add",
       "icons": [
         {
-          "src": "/icons/shortcut-add.png",
-          "sizes": "96x96"
+          "src": "/icons/loom-logo-144.svg",
+          "sizes": "144x144",
+          "type": "image/svg+xml",
+          "purpose": "any"
+        },
+        {
+          "src": "/icons/loom-logo-144.png",
+          "sizes": "144x144",
+          "type": "image/png",
+          "purpose": "any"
         }
       ]
     },
@@ -51,8 +89,16 @@
       "url": "/calendar",
       "icons": [
         {
-          "src": "/icons/shortcut-calendar.png", 
-          "sizes": "96x96"
+          "src": "/icons/loom-logo-144.svg", 
+          "sizes": "144x144",
+          "type": "image/svg+xml",
+          "purpose": "any"
+        },
+        {
+          "src": "/icons/loom-logo-144.png",
+          "sizes": "144x144",
+          "type": "image/png",
+          "purpose": "any"
         }
       ]
     }

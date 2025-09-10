@@ -22,29 +22,29 @@ const LoomLogo: React.FC<LoomLogoProps> = ({ size = 'md', className = '' }) => {
         {/* Weaving threads */}
         <svg
           viewBox="0 0 24 24"
-          className="w-6 h-6"
+          className="w-7 h-7"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
-          {/* Vertical threads */}
+          {/* Vertical threads (4), enlarged grid with padding (does not touch edge) */}
           <path
-            d="M6 4v16M10 4v16M14 4v16M18 4v16"
+            d="M4.5 3v18M9.5 3v18M14.5 3v18M19.5 3v18"
             stroke="hsl(var(--loom-primary))"
             strokeWidth="1.5"
             strokeLinecap="round"
           />
           {/* Horizontal weaving threads */}
           <path
-            d="M4 8h16M4 12h16M4 16h16"
+            d="M0.5 7H23.5M0.5 12H23.5M0.5 17H23.5"
             stroke="hsl(var(--loom-secondary))"
             strokeWidth="1.5"
             strokeLinecap="round"
           />
-          {/* Connecting nodes */}
-          <circle cx="6" cy="8" r="1" fill="hsl(var(--loom-accent))" />
-          <circle cx="10" cy="12" r="1" fill="hsl(var(--loom-accent))" />
-          <circle cx="14" cy="16" r="1" fill="hsl(var(--loom-accent))" />
-          <circle cx="18" cy="8" r="1" fill="hsl(var(--loom-accent))" />
+          {/* Connecting nodes at intersections (patterned) */}
+          <circle cx="4.5" cy="7" r="1" fill="hsl(var(--loom-accent))" />
+          <circle cx="9.5" cy="12" r="1" fill="hsl(var(--loom-accent))" />
+          <circle cx="14.5" cy="17" r="1" fill="hsl(var(--loom-accent))" />
+          <circle cx="19.5" cy="7" r="1" fill="hsl(var(--loom-accent))" />
         </svg>
       </div>
 
