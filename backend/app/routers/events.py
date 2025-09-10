@@ -38,7 +38,7 @@ async def get_events(current_user: User = Depends(get_current_user)):
     events = []
     async for event_doc in events_cursor:
         event = Event(**event_doc)
-        events.append(event.model_dump())
+        events.append(event.model_dump(mode='json'))
     
     return ApiResponse(data=events, message="Events retrieved successfully")
 
@@ -102,9 +102,9 @@ async def create_event(
 
     # Notify partner about the new event if they exist
     if partnership and partner_id:
-        await manager.notify_event_created(partner_id, event.model_dump())
+        await manager.notify_event_created(partner_id, event.model_dump(mode='json'))
 
-    return ApiResponse(data=event.model_dump(), message="Event created successfully")
+    return ApiResponse(data=event.model_dump(mode='json'), message="Event created successfully")
 
 
 @router.get("/{event_id}", response_model=ApiResponse)
@@ -147,7 +147,7 @@ async def get_event(
             detail="Access denied to this event"
         )
     
-    return ApiResponse(data=event.model_dump(), message="Event retrieved successfully")
+    return ApiResponse(data=event.model_dump(mode='json'), message="Event retrieved successfully")
 
 
 @router.put("/{event_id}", response_model=ApiResponse)
@@ -210,7 +210,7 @@ async def update_event(
         )
     event = Event(**updated_event)
     
-    return ApiResponse(data=event.model_dump(), message="Event updated successfully")
+    return ApiResponse(data=event.model_dump(mode='json'), message="Event updated successfully")
 
 
 @router.delete("/{event_id}", response_model=ApiResponse)
@@ -319,7 +319,7 @@ async def get_event_messages(
     messages = []
     async for message_doc in messages_cursor:
         message = EventMessage(**message_doc)
-        messages.append(message.model_dump())
+        messages.append(message.model_dump(mode='json'))
 
     return ApiResponse(data=messages, message="Messages retrieved successfully")
 
@@ -386,10 +386,10 @@ async def send_event_message(
     # Broadcast the new message to all connected clients in this event
     await manager.broadcast_to_event(event_id, {
         "type": "new_message",
-        "data": message.model_dump()
+        "data": message.model_dump(mode='json')
     })
 
-    return ApiResponse(data=message.model_dump(), message="Message sent successfully")
+    return ApiResponse(data=message.model_dump(mode='json'), message="Message sent successfully")
 
 
 @router.delete("/{event_id}/messages/{message_id}", response_model=ApiResponse)
@@ -495,7 +495,7 @@ async def get_event_checklist(
     checklist_items = []
     async for item_doc in checklist_cursor:
         item = ChecklistItem(**item_doc)
-        checklist_items.append(item.model_dump())
+        checklist_items.append(item.model_dump(mode='json'))
 
     return ApiResponse(data=checklist_items, message="Checklist items retrieved successfully")
 
@@ -562,10 +562,10 @@ async def create_checklist_item(
     # Broadcast the new checklist item to all connected clients in this event
     await manager.broadcast_to_event(event_id, {
         "type": "new_checklist_item",
-        "data": item.model_dump()
+        "data": item.model_dump(mode='json')
     })
 
-    return ApiResponse(data=item.model_dump(), message="Checklist item created successfully")
+    return ApiResponse(data=item.model_dump(mode='json'), message="Checklist item created successfully")
 
 
 @router.put("/{event_id}/checklist/{item_id}", response_model=ApiResponse)
@@ -659,10 +659,10 @@ async def update_checklist_item(
     # Broadcast the checklist item update to all connected clients in this event
     await manager.broadcast_to_event(event_id, {
         "type": "update_checklist_item",
-        "data": item.model_dump()
+        "data": item.model_dump(mode='json')
     })
 
-    return ApiResponse(data=item.model_dump(), message="Checklist item updated successfully")
+    return ApiResponse(data=item.model_dump(mode='json'), message="Checklist item updated successfully")
 
 
 @router.delete("/{event_id}/checklist/{item_id}", response_model=ApiResponse)

@@ -286,7 +286,7 @@ const Index = () => {
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-sm sm:text-base line-clamp-1">{event.title}</h3>
                         <p className="text-xs sm:text-sm opacity-90 mt-1 line-clamp-1">
-                          {format(parseISO(event.end_time), 'h:mm a')}
+                          {formatEventTime(event)}
                           {event.location && ` • ${event.location}`}
                         </p>
                       </div>

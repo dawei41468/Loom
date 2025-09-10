@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Literal
 from pydantic import BaseModel, Field, ConfigDict
 from pydantic.functional_serializers import field_serializer
@@ -133,6 +133,14 @@ class TimeSlot(BaseModel):
     start_time: datetime
     end_time: datetime
 
+    # Ensure datetimes are serialized with explicit UTC 'Z' to avoid ambiguity
+    @field_serializer('start_time', 'end_time')
+    def serialize_times(self, value: datetime):
+        if value.tzinfo is None:
+            # Assume naive datetimes are UTC in storage
+            value = value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
+
 
 class EventBase(BaseModel):
     title: str
@@ -147,6 +155,13 @@ class EventBase(BaseModel):
     @field_serializer('attendees')
     def serialize_attendees(self, value):
         return [str(attendee) for attendee in value]
+
+    # Serialize start/end with explicit UTC 'Z'
+    @field_serializer('start_time', 'end_time')
+    def serialize_event_times(self, value: datetime):
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
 
 
 class EventCreate(EventBase):
@@ -176,6 +191,13 @@ class Event(MongoBaseModel, EventBase):
     @field_serializer('created_by')
     def serialize_created_by(self, value):
         return str(value)
+
+    # Serialize created/updated with explicit UTC 'Z'
+    @field_serializer('created_at', 'updated_at')
+    def serialize_audit_times(self, value: datetime):
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
 
 
 # Proposal Models
