@@ -39,10 +39,55 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
   const { t } = useTranslation();
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const weekHeaderRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setCurrentDate(date);
   }, [date]);
+
+  // Auto-scroll to 07:00 when entering week/day views
+  useEffect(() => {
+    if (view !== 'week' && view !== 'day') return;
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const scrollToSeven = () => {
+      const target = container.querySelector('[data-hour="7"]') as HTMLElement | null;
+      if (!target) return;
+      const headerHeight = view === 'week' ? (weekHeaderRef.current?.offsetHeight ?? 0) : 0;
+      const targetRect = target.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const top = targetRect.top - containerRect.top + container.scrollTop - headerHeight;
+      container.scrollTop = Math.max(0, Math.round(top));
+    };
+
+    // Ensure layout is ready before measuring
+    requestAnimationFrame(() => {
+      requestAnimationFrame(scrollToSeven);
+    });
+  }, [view]);
+
+  // Also auto-scroll when navigating dates within week/day views
+  useEffect(() => {
+    if (view !== 'week' && view !== 'day') return;
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const scrollToSeven = () => {
+      const target = container.querySelector('[data-hour="7"]') as HTMLElement | null;
+      if (!target) return;
+      const headerHeight = view === 'week' ? (weekHeaderRef.current?.offsetHeight ?? 0) : 0;
+      const targetRect = target.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const top = targetRect.top - containerRect.top + container.scrollTop - headerHeight;
+      container.scrollTop = Math.max(0, Math.round(top));
+    };
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(scrollToSeven);
+    });
+  }, [currentDate, view]);
 
   const navigateDate = (direction: 'prev' | 'next') => {
     let newDate: Date;
@@ -159,7 +204,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
 
     return (
       <div className="custom-calendar-week">
-        <div className="grid grid-cols-8 gap-1">
+        <div ref={weekHeaderRef} className="grid grid-cols-8 gap-1 sticky top-0 z-10 bg-[hsl(var(--loom-surface))] border-b border-[hsl(var(--loom-border))]">
           {/* Time column */}
           <div className="text-sm font-medium text-[hsl(var(--loom-text-muted))] py-2">{t('time')}</div>
           {days.map(day => {
@@ -176,7 +221,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
 
         {/* Time slots */}
         {Array.from({ length: 24 }, (_, hour) => (
-          <div key={hour} className="grid grid-cols-8 gap-1 border-t border-[hsl(var(--loom-border))]">
+          <div key={hour} data-hour={hour} className="grid grid-cols-8 gap-1 border-t border-[hsl(var(--loom-border))]">
             <div className="text-xs text-[hsl(var(--loom-text-muted))] py-2 pr-2 text-right">
               {format(new Date().setHours(hour, 0, 0, 0), 'HH:mm')}
             </div>
@@ -247,7 +292,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
             });
 
             return (
-              <div key={hour} className="flex border-b border-[hsl(var(--loom-border))]">
+              <div key={hour} data-hour={hour} className="flex border-b border-[hsl(var(--loom-border))]">
                 <div className="w-16 text-xs text-[hsl(var(--loom-text-muted))] py-2 pr-2 text-right">
                   {format(new Date().setHours(hour, 0, 0, 0), 'HH:mm')}
                 </div>
@@ -288,7 +333,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
   return (
     <div
       className={`custom-calendar ${className}`}
-      style={{ height }}
+      style={{ height: view === 'month' ? 'auto' : height }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -335,11 +380,18 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
       </div>
 
       {/* Calendar Content */}
-      <div className="overflow-auto" style={{ height: `calc(${height} - 120px)` }}>
-        {view === 'month' && renderMonthView()}
-        {view === 'week' && renderWeekView()}
-        {view === 'day' && renderDayView()}
-      </div>
+      {view === 'month' ? (
+        // In month view, avoid internal scroll to show the full month grid
+        <div>
+          {renderMonthView()}
+        </div>
+      ) : (
+        // For week/day, keep internal scrolling for the time grid
+        <div ref={scrollRef} className="overflow-auto" style={{ height: `calc(${height} - 120px)` }}>
+          {view === 'week' && renderWeekView()}
+          {view === 'day' && renderDayView()}
+        </div>
+      )}
     </div>
   );
 };
