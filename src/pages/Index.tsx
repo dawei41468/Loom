@@ -1,6 +1,6 @@
 // Main Today View - Dashboard
 import * as React from 'react';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { format, isToday, isTomorrow, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { Plus, Clock, MapPin, Users, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -24,6 +24,9 @@ const Index = () => {
   const { addToast } = useToastContext();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+
+  // Track selected time slot per proposal (index in proposed_times)
+  const [selectedSlots, setSelectedSlots] = useState<Record<string, number>>({});
 
   const acceptProposalMutation = useMutation({
     mutationFn: ({ proposalId, selectedTimeSlot }: {
@@ -187,18 +190,40 @@ const Index = () => {
                     <p className="loom-text-muted text-xs sm:text-sm">
                       {t('from')} {proposal.proposed_by === user?.id ? t('you') : partner?.display_name}
                     </p>
+                    {proposal.proposed_times?.length > 1 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {proposal.proposed_times.map((slot, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() =>
+                              setSelectedSlots((prev) => ({ ...prev, [proposal.id]: idx }))
+                            }
+                            className={`loom-chip text-xs ${
+                              (selectedSlots[proposal.id] ?? 0) === idx
+                                ? 'loom-chip-primary'
+                                : 'border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))]'
+                            }`}
+                          >
+                            {format(parseISO(slot.start_time), 'MMM d, h:mm a')} – {format(parseISO(slot.end_time), 'h:mm a')}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {proposal.message && (
+                      <p className="text-xs sm:text-sm mt-2 line-clamp-2">{proposal.message}</p>
+                    )}
                   </div>
                   <div className="flex space-x-2 sm:ml-4">
                     <button
                       onClick={() => {
-                        // For now, accept the first proposed time slot
-                        const firstTimeSlot = proposal.proposed_times[0];
-                        if (firstTimeSlot) {
+                        const idx = selectedSlots[proposal.id] ?? 0;
+                        const slot = proposal.proposed_times[idx] || proposal.proposed_times[0];
+                        if (slot) {
                           acceptProposalMutation.mutate({
                             proposalId: proposal.id,
                             selectedTimeSlot: {
-                              start_time: firstTimeSlot.start_time,
-                              end_time: firstTimeSlot.end_time,
+                              start_time: slot.start_time,
+                              end_time: slot.end_time,
                             },
                           });
                         }

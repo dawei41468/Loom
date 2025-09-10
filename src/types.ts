@@ -40,6 +40,7 @@ export interface Proposal {
   id: string;
   title: string;
   description?: string;
+  message?: string;
   proposed_times: {
     start_time: string;
     end_time: string;

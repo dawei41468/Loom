@@ -236,7 +236,15 @@ class ApiClient {
     return this.request<ApiResponse<Proposal[]>>('/proposals');
   }
 
-  async createProposal(proposal: Omit<Proposal, 'id' | 'status' | 'created_at' | 'updated_at'>): Promise<ApiResponse<Proposal>> {
+  // Matches backend ProposalCreate shape (no proposed_by; backend derives from auth)
+  async createProposal(proposal: {
+    title: string;
+    description?: string;
+    message?: string;
+    proposed_times: { start_time: string; end_time: string }[];
+    location?: string;
+    proposed_to: string;
+  }): Promise<ApiResponse<Proposal>> {
     return this.request<ApiResponse<Proposal>>('/proposals', {
       method: 'POST',
       body: JSON.stringify(proposal),
@@ -246,7 +254,7 @@ class ApiClient {
   async acceptProposal(proposalId: string, selectedTimeSlot: { start_time: string; end_time: string }): Promise<ApiResponse<{ proposal: Proposal; event: Event }>> {
     return this.request<ApiResponse<{ proposal: Proposal; event: Event }>>(`/proposals/${proposalId}/accept`, {
       method: 'POST',
-      body: JSON.stringify({ selected_time_slot: selectedTimeSlot }),
+      body: JSON.stringify(selectedTimeSlot),
     });
   }
 

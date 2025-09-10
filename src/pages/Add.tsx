@@ -36,6 +36,14 @@ const Add = () => {
   const [reminders, setReminders] = useState([10]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Proposal: support multiple proposed time slots (minimal UX)
+  const [proposalSlots, setProposalSlots] = useState<{ date: string; startTime: string; endTime: string }[]>([
+    { date, startTime, endTime },
+  ]);
+
+  // Proposal: optional message to partner
+  const [proposalMessage, setProposalMessage] = useState('');
+
   // Natural language suggestions
   const [nlInput, setNlInput] = useState('');
 
@@ -107,6 +115,21 @@ const Add = () => {
       const nextFriday = addDays(new Date(), (5 - new Date().getDay() + 7) % 7 || 7);
       setDate(format(nextFriday, 'yyyy-MM-dd'));
     }
+
+    // Keep first proposal slot in sync when proposing (only when there's exactly 1 slot)
+    if (isProposal && proposalSlots.length === 1) {
+      setProposalSlots((prev) => {
+        const first = prev[0] || { date, startTime, endTime };
+        return [
+          {
+            date,
+            startTime,
+            endTime,
+          },
+          ...prev.slice(1),
+        ];
+      });
+    }
   };
 
   const handleNLInputChange = (input: string) => {
@@ -124,25 +147,106 @@ const Add = () => {
     );
   };
 
+  // Proposal slots helpers
+  const addProposalSlot = () => {
+    setProposalSlots((prev) => [
+      ...prev,
+      {
+        date,
+        startTime,
+        endTime,
+      },
+    ]);
+  };
+
+  const removeProposalSlot = (index: number) => {
+    setProposalSlots((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
+  };
+
+  const updateProposalSlot = (
+    index: number,
+    updates: Partial<{ date: string; startTime: string; endTime: string }>
+  ) => {
+    setProposalSlots((prev) => prev.map((slot, i) => (i === index ? { ...slot, ...updates } : slot)));
+  };
+
   // Helper function to convert TimePicker format to ISO datetime
   const convertTimeToISO = (timeString: string, dateString: string) => {
-    // Parse "9:00 AM" format
-    const match = timeString.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-    if (!match) return new Date(`${dateString}T12:00:00`).toISOString();
+    // Accept formats: "2:14 PM", "2:14pm", "14:14", "2 PM", "2pm"
+    const trimmed = (timeString || '').trim();
+    // 1) h:mm AM/PM (with or without space, case-insensitive)
+    let m = trimmed.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/i);
+    if (m) {
+      let hour = parseInt(m[1], 10);
+      const minute = m[2] ? parseInt(m[2], 10) : 0;
+      const ampm = m[3].toUpperCase();
+      if (ampm === 'PM' && hour !== 12) hour += 12;
+      if (ampm === 'AM' && hour === 12) hour = 0;
+      const time24 = `${hour.toString().padStart(2, '0')}:${minute
+        .toString()
+        .padStart(2, '0')}`;
+      return new Date(`${dateString}T${time24}`).toISOString();
+    }
+    // 2) 24h format: H:mm or H
+    m = trimmed.match(/^(\d{1,2})(?::(\d{2}))?$/);
+    if (m) {
+      const hour = Math.min(23, parseInt(m[1], 10));
+      const minute = m[2] ? Math.min(59, parseInt(m[2], 10)) : 0;
+      const time24 = `${hour.toString().padStart(2, '0')}:${minute
+        .toString()
+        .padStart(2, '0')}`;
+      return new Date(`${dateString}T${time24}`).toISOString();
+    }
+    // Fallback noon
+    return new Date(`${dateString}T12:00:00`).toISOString();
+  };
 
-    let hour = parseInt(match[1]);
-    const minute = parseInt(match[2]);
-    const ampm = match[3].toUpperCase();
+  // Compute end time string (display format like "h:mm AM/PM") that is 1 hour after the given start time string
+  const computeEndFromStart = (timeString: string): string => {
+    const trimmed = (timeString || '').trim();
 
-    // Convert to 24-hour format
-    if (ampm === 'PM' && hour !== 12) hour += 12;
-    if (ampm === 'AM' && hour === 12) hour = 0;
+    // Try AM/PM first
+    let m = trimmed.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/i);
+    if (m) {
+      let hour12 = parseInt(m[1], 10);
+      const minute = m[2] ? Math.min(59, parseInt(m[2], 10)) : 0;
+      const ampm = m[3].toUpperCase();
+      // to 24h
+      let hour24 = hour12 % 12;
+      if (ampm === 'PM') hour24 += 12;
+      // add 1 hour
+      hour24 = (hour24 + 1) % 24;
+      // back to 12h
+      const displayHour = (hour24 % 12) === 0 ? 12 : (hour24 % 12);
+      const displayAmpm = hour24 >= 12 ? 'PM' : 'AM';
+      return `${displayHour}:${minute.toString().padStart(2, '0')} ${displayAmpm}`;
+    }
 
-    const time24 = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-    return new Date(`${dateString}T${time24}`).toISOString();
+    // Fallback: 24h input like "14:05" or "14"
+    m = trimmed.match(/^(\d{1,2})(?::(\d{2}))?$/);
+    if (m) {
+      let hour24 = Math.min(23, parseInt(m[1], 10));
+      const minute = m[2] ? Math.min(59, parseInt(m[2], 10)) : 0;
+      hour24 = (hour24 + 1) % 24;
+      const displayHour = (hour24 % 12) === 0 ? 12 : (hour24 % 12);
+      const displayAmpm = hour24 >= 12 ? 'PM' : 'AM';
+      return `${displayHour}:${minute.toString().padStart(2, '0')} ${displayAmpm}`;
+    }
+
+    // Default to +1h from 12:00 PM => 1:00 PM
+    return '1:00 PM';
   };
 
   const handleSubmit = async () => {
+    // Guard: if proposing but no partner connected, prevent accidental event creation
+    if (isProposal && !partner) {
+      addToast({
+        type: 'error',
+        title: 'Unable to propose',
+        description: 'Please connect a partner before sending a proposal.',
+      });
+      return;
+    }
     if (!title.trim()) {
       addToast({
         type: 'error',
@@ -160,17 +264,17 @@ const Add = () => {
 
       if (isProposal && partner) {
         // Create proposal
+        const times = proposalSlots.map((slot) => ({
+          start_time: convertTimeToISO(slot.startTime, slot.date),
+          end_time: convertTimeToISO(slot.endTime, slot.date),
+        }));
+
         const proposal = await apiClient.createProposal({
           title,
           description: description || undefined,
-          proposed_times: [
-            {
-              start_time: startDateTime,
-              end_time: endDateTime,
-            },
-          ],
+          message: proposalMessage || undefined,
+          proposed_times: times,
           location: location || undefined,
-          proposed_by: user!.id,
           proposed_to: partner.id,
         });
 
@@ -229,7 +333,7 @@ const Add = () => {
         </h1>
         <button
           onClick={handleSubmit}
-          disabled={isSubmitting || !title.trim()}
+          disabled={isSubmitting || !title.trim() || (isProposal && !partner)}
           className="loom-btn-primary px-6 disabled:opacity-50"
         >
           {isSubmitting ? t('saving') : isProposal ? t('propose') : t('save')}
@@ -270,41 +374,107 @@ const Add = () => {
             <Clock className="w-5 h-5 text-[hsl(var(--loom-primary))]" />
             <span className="font-medium">{t('whenSection')}</span>
           </div>
-          
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium mb-2">{t('dateLabel')}</label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] opacity-0 absolute inset-0 z-10 cursor-pointer"
-                />
-                <div className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] flex items-center justify-between">
-                  <span>{format(new Date(date), 'MM/dd/yyyy')}</span>
-                  <Calendar className="w-4 h-4 text-[hsl(var(--loom-text-muted))]" />
+
+          {!isProposal ? (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium mb-2">{t('dateLabel')}</label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] opacity-0 absolute inset-0 z-10 cursor-pointer"
+                  />
+                  <div className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] flex items-center justify-between">
+                    <span>{format(new Date(date), 'MM/dd/yyyy')}</span>
+                    <Calendar className="w-4 h-4 text-[hsl(var(--loom-text-muted))]" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <TimePicker
+                    label={t('startTimeLabel')}
+                    value={startTime}
+                    onChange={(val) => {
+                      setStartTime(val);
+                      setEndTime(computeEndFromStart(val));
+                    }}
+                  />
+                </div>
+                <div>
+                  <TimePicker
+                    label={t('endTimeLabel')}
+                    value={endTime}
+                    onChange={setEndTime}
+                  />
                 </div>
               </div>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          ) : (
+            <div className="space-y-4">
+              {proposalSlots.map((slot, idx) => (
+                <div key={idx} className="space-y-3 border border-[hsl(var(--loom-border))] rounded-[var(--loom-radius-md)] p-3">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-medium">{t('dateLabel')} #{idx + 1}</label>
+                    {proposalSlots.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeProposalSlot(idx)}
+                        className="text-xs text-[hsl(var(--loom-text-muted))] hover:text-[hsl(var(--loom-text))]"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={slot.date}
+                      onChange={(e) => updateProposalSlot(idx, { date: e.target.value })}
+                      className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] opacity-0 absolute inset-0 z-10 cursor-pointer"
+                    />
+                    <div className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] flex items-center justify-between">
+                      <span>{format(new Date(slot.date), 'MM/dd/yyyy')}</span>
+                      <Calendar className="w-4 h-4 text-[hsl(var(--loom-text-muted))]" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <TimePicker
+                        label={t('startTimeLabel')}
+                        value={slot.startTime}
+                        onChange={(val) =>
+                          updateProposalSlot(idx, {
+                            startTime: val,
+                            endTime: computeEndFromStart(val),
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <TimePicker
+                        label={t('endTimeLabel')}
+                        value={slot.endTime}
+                        onChange={(val) => updateProposalSlot(idx, { endTime: val })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
               <div>
-                <TimePicker
-                  label={t('startTimeLabel')}
-                  value={startTime}
-                  onChange={setStartTime}
-                />
-              </div>
-              <div>
-                <TimePicker
-                  label={t('endTimeLabel')}
-                  value={endTime}
-                  onChange={setEndTime}
-                />
+                <button
+                  type="button"
+                  onClick={addProposalSlot}
+                  className="loom-chip border border-[hsl(var(--loom-border))]"
+                >
+                  + Add another time
+                </button>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Location */}
@@ -333,6 +503,20 @@ const Add = () => {
             className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] resize-none"
           />
         </div>
+
+        {/* Proposal message (only for proposals) */}
+        {isProposal && (
+          <div className="loom-card">
+            <label className="block text-sm font-medium mb-2">Message to partner (optional)</label>
+            <textarea
+              value={proposalMessage}
+              onChange={(e) => setProposalMessage(e.target.value)}
+              placeholder="Share context or a note with your proposal"
+              rows={2}
+              className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] resize-none"
+            />
+          </div>
+        )}
 
         {!isProposal && (
           <>
