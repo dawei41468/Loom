@@ -71,6 +71,33 @@ export const TimePicker = forwardRef<HTMLDivElement, TimePickerProps>(
       }
     }, [value, defaultValue, isInitialized]);
 
+    // Keep internal state in sync when external `value` changes after initialization
+    useEffect(() => {
+      if (!value) return;
+      // Only proceed if component already initialized; otherwise initial effect handles it
+      if (!isInitialized) return;
+      const match = value.match(/(\d{1,2}):(\d{2})\s?(AM|PM)/i);
+      if (match) {
+        let hour = parseInt(match[1]);
+        let minute = parseInt(match[2]);
+        const period = match[3].toUpperCase();
+
+        // Clamp ranges
+        if (hour < 1) hour = 1;
+        if (hour > 12) hour = 12;
+        if (minute < 0) minute = 0;
+        if (minute > 59) minute = 59;
+
+        const h = hour.toString().padStart(2, '0');
+        const m = minute.toString().padStart(2, '0');
+
+        // Only update if different to avoid unnecessary re-renders
+        if (h !== selectedHour) setSelectedHour(h);
+        if (m !== selectedMinute) setSelectedMinute(m);
+        if (period !== selectedPeriod) setSelectedPeriod(period);
+      }
+    }, [value, isInitialized, selectedHour, selectedMinute, selectedPeriod]);
+
     // Cleanup for HMR compatibility - reset initialization on unmount
     useEffect(() => {
       return () => {
@@ -290,9 +317,41 @@ export const TimePicker = forwardRef<HTMLDivElement, TimePickerProps>(
       };
     }, [isOpen]);
 
+    // Helper to get current selection based on scroll positions (to avoid waiting for debounce)
+    const getCurrentSelection = () => {
+      const itemHeight = 40;
+      // Hours
+      let hour = selectedHour;
+      if (hoursRef.current) {
+        const idx = Math.round(hoursRef.current.scrollTop / itemHeight);
+        const clamped = Math.max(0, Math.min(idx, hours.length - 1));
+        hour = hours[clamped];
+      }
+      // Minutes
+      let minute = selectedMinute;
+      if (minutesRef.current) {
+        const idx = Math.round(minutesRef.current.scrollTop / itemHeight);
+        const clamped = Math.max(0, Math.min(idx, minutes.length - 1));
+        minute = minutes[clamped];
+      }
+      // Period
+      let period = selectedPeriod;
+      if (!use24HourFormat && periodsRef.current) {
+        const idx = Math.round(periodsRef.current.scrollTop / itemHeight);
+        const clamped = Math.max(0, Math.min(idx, periods.length - 1));
+        period = periods[clamped];
+      }
+      return { hour, minute, period };
+    };
+
     // Handle done button click
     const handleDone = () => {
-      const formattedTime = formatTimeString(selectedHour, selectedMinute, selectedPeriod);
+      const { hour, minute, period } = getCurrentSelection();
+      const formattedTime = formatTimeString(hour, minute, period);
+      // Update internal state so header reflects what was confirmed
+      setSelectedHour(hour);
+      setSelectedMinute(minute);
+      setSelectedPeriod(period);
       onChange?.(formattedTime);
       handleOpenChange(false);
     };
