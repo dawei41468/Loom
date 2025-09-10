@@ -22,7 +22,7 @@ import { useToastContext } from '../contexts/ToastContext';
 import { Event } from '../types';
 import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { queryKeys, eventQueries } from '../api/queries';
+import { queryKeys, eventQueries, partnerQueries } from '../api/queries';
 import { apiClient } from '../api/client';
 import EventChat from '../components/EventChat';
 import EventChecklist from '../components/EventChecklist';
@@ -38,6 +38,15 @@ const EventDetail = () => {
   const [activeTab, setActiveTab] = useState<'details' | 'chat' | 'checklist'>('details');
   const [showFullDetails, setShowFullDetails] = useState(true);
   const queryClient = useQueryClient();
+  const isDev = import.meta.env.MODE !== 'production';
+
+  // Ensure partner info is available for rendering attendees
+  const { data: partnerResponse } = useQuery({
+    queryKey: queryKeys.partner,
+    queryFn: partnerQueries.getPartner,
+    enabled: !!user,
+  });
+  const partnerForDisplay = partnerResponse?.data || partner;
 
   // First try to find event in context
   const contextEvent = events.find(e => e.id === id);
@@ -170,14 +179,26 @@ const EventDetail = () => {
     }
   };
 
-  const renderDetailsTab = () => (
+  const renderDetailsTab = () => {
+    // Derive attendees for display: always include the current user; include partner if associated
+    const attendeesSet = new Set<string>(event.attendees || []);
+    if (user?.id) attendeesSet.add(user.id);
+    if (
+      partnerForDisplay?.id &&
+      (attendeesSet.has(partnerForDisplay.id) || event.created_by === partnerForDisplay.id || event.visibility === 'shared')
+    ) {
+      attendeesSet.add(partnerForDisplay.id);
+    }
+    const attendeesToDisplay = Array.from(attendeesSet);
+
+    return (
     <div className="space-y-6">
       {/* Event Header */}
       <div className={`event-block-${eventType} p-6`}>
         <div className="flex items-start justify-between mb-2">
           <h1 className="text-xl font-semibold text-[hsl(var(--loom-text))]">{event.title}</h1>
           <div className="flex items-center space-x-2">
-            {isShared && <Users className="w-5 h-5 !text-[hsl(var(--loom-text))]" />}
+            {attendeesToDisplay.length > 1 && <Users className="w-5 h-5 !text-[hsl(var(--loom-text))]" />}
             <button
               onClick={() => setShowFullDetails(!showFullDetails)}
               className="p-1 hover:bg-white/20 rounded"
@@ -225,7 +246,7 @@ const EventDetail = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-[hsl(var(--loom-text-muted))]">Created by</span>
-                <span>{event.created_by === user?.id ? 'You' : partner?.display_name}</span>
+                <span>{event.created_by === user?.id ? 'You' : partnerForDisplay?.display_name}</span>
               </div>
             </div>
           </div>
@@ -239,12 +260,12 @@ const EventDetail = () => {
             </div>
           )}
 
-          {event.attendees.length > 0 && (
+          {attendeesToDisplay.length > 0 && (
             <div className="loom-card">
               <h3 className="font-medium mb-3">Attendees</h3>
               <div className="space-y-2">
-                {event.attendees.map((attendeeId) => {
-                  const attendee = attendeeId === user?.id ? user : partner;
+                {attendeesToDisplay.map((attendeeId) => {
+                  const attendee = attendeeId === user?.id ? user : partnerForDisplay;
                   if (!attendee) return null;
                   
                   return (
@@ -262,6 +283,20 @@ const EventDetail = () => {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {isDev && (
+            <div className="loom-card">
+              <h3 className="font-medium mb-3">Debug</h3>
+              <div className="text-xs font-mono space-y-1 text-[hsl(var(--loom-text))]">
+                <div>event.id: {event.id}</div>
+                <div>event.created_by: {String(event.created_by)}</div>
+                <div>event.attendees: {JSON.stringify(event.attendees)}</div>
+                <div>derived.attendeesToDisplay: {JSON.stringify(attendeesToDisplay)}</div>
+                <div>user.id: {user?.id || 'null'}</div>
+                <div>partnerForDisplay.id: {partnerForDisplay?.id || 'null'}</div>
               </div>
             </div>
           )}
@@ -284,7 +319,8 @@ const EventDetail = () => {
         </div>
       )}
     </div>
-  );
+    );
+  };
 
   const renderChatTab = () => {
     // Check if there's an access error

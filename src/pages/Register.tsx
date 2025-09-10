@@ -71,6 +71,28 @@ const Register = () => {
               description: 'Your account has been created successfully.',
             });
             
+            // If user arrived via invite link, auto-connect to inviter as partner
+            try {
+              const inviteToken = sessionStorage.getItem('inviteToken');
+              if (inviteToken) {
+                const connectResp = await apiClient.connectPartner({ invite_token: inviteToken });
+                if (connectResp?.data) {
+                  dispatch({ type: 'SET_PARTNER', payload: connectResp.data });
+                  addToast({
+                    type: 'success',
+                    title: 'Partner connected!',
+                    description: `You are now connected with ${connectResp.data.display_name}.`,
+                  });
+                }
+              }
+            } catch (e) {
+              console.error('Auto-connect via invite failed:', e);
+              // Non-fatal; continue navigation
+            } finally {
+              sessionStorage.removeItem('inviteToken');
+              sessionStorage.removeItem('inviterInfo');
+            }
+
             // Navigate based on onboarding status
             if (userResponse.data.is_onboarded) {
               navigate('/');

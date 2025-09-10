@@ -50,6 +50,29 @@ const Login = () => {
             description: 'You have successfully logged in.',
           });
           
+          // If user arrived via invite link, auto-connect to inviter as partner
+          try {
+            const inviteToken = sessionStorage.getItem('inviteToken');
+            if (inviteToken) {
+              const connectResp = await apiClient.connectPartner({ invite_token: inviteToken });
+              if (connectResp?.data) {
+                // We cannot access useAuthDispatch here again; dispatch is available
+                dispatch({ type: 'SET_PARTNER', payload: connectResp.data });
+                addToast({
+                  type: 'success',
+                  title: 'Partner connected!',
+                  description: `You are now connected with ${connectResp.data.display_name}.`,
+                });
+              }
+            }
+          } catch (e) {
+            console.error('Auto-connect via invite failed:', e);
+            // Non-fatal; continue navigation
+          } finally {
+            sessionStorage.removeItem('inviteToken');
+            sessionStorage.removeItem('inviterInfo');
+          }
+
           // Navigate based on onboarding status
           console.log('User onboarding status:', userResponse.data.is_onboarded);
           if (userResponse.data.is_onboarded) {
