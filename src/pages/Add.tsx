@@ -170,7 +170,8 @@ const Add = () => {
     setProposalSlots((prev) => prev.map((slot, i) => (i === index ? { ...slot, ...updates } : slot)));
   };
 
-  // Helper function to convert TimePicker format to ISO datetime
+  // Helper function to build an ISO 8601 datetime string WITH local timezone offset (e.g., 2025-09-10T19:00:00+08:00)
+  // Sending an explicit offset prevents the backend from misinterpreting local times as UTC.
   const convertTimeToISO = (timeString: string, dateString: string) => {
     // Accept formats: "2:14 PM", "2:14pm", "14:14", "2 PM", "2pm"
     const trimmed = (timeString || '').trim();
@@ -185,7 +186,14 @@ const Add = () => {
       const time24 = `${hour.toString().padStart(2, '0')}:${minute
         .toString()
         .padStart(2, '0')}`;
-      return new Date(`${dateString}T${time24}`).toISOString();
+      // Build a Date in local time to compute the actual offset
+      const localDate = new Date(`${dateString}T${time24}:00`);
+      const tzMinutes = localDate.getTimezoneOffset(); // minutes behind UTC; e.g., -480 for +08:00 returns -480? Actually for +08, getTimezoneOffset() = -480
+      const sign = tzMinutes > 0 ? '-' : '+';
+      const abs = Math.abs(tzMinutes);
+      const offH = String(Math.floor(abs / 60)).padStart(2, '0');
+      const offM = String(abs % 60).padStart(2, '0');
+      return `${dateString}T${time24}:00${sign}${offH}:${offM}`;
     }
     // 2) 24h format: H:mm or H
     m = trimmed.match(/^(\d{1,2})(?::(\d{2}))?$/);
@@ -195,10 +203,22 @@ const Add = () => {
       const time24 = `${hour.toString().padStart(2, '0')}:${minute
         .toString()
         .padStart(2, '0')}`;
-      return new Date(`${dateString}T${time24}`).toISOString();
+      const localDate = new Date(`${dateString}T${time24}:00`);
+      const tzMinutes = localDate.getTimezoneOffset();
+      const sign = tzMinutes > 0 ? '-' : '+';
+      const abs = Math.abs(tzMinutes);
+      const offH = String(Math.floor(abs / 60)).padStart(2, '0');
+      const offM = String(abs % 60).padStart(2, '0');
+      return `${dateString}T${time24}:00${sign}${offH}:${offM}`;
     }
     // Fallback noon
-    return new Date(`${dateString}T12:00:00`).toISOString();
+    const localDate = new Date(`${dateString}T12:00:00`);
+    const tzMinutes = localDate.getTimezoneOffset();
+    const sign = tzMinutes > 0 ? '-' : '+';
+    const abs = Math.abs(tzMinutes);
+    const offH = String(Math.floor(abs / 60)).padStart(2, '0');
+    const offM = String(abs % 60).padStart(2, '0');
+    return `${dateString}T12:00:00${sign}${offH}:${offM}`;
   };
 
   // Compute end time string (display format like "h:mm AM/PM") that is 1 hour after the given start time string

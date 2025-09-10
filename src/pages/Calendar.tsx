@@ -13,7 +13,7 @@ import { useToastContext } from '../contexts/ToastContext';
 import { useTranslation } from '../i18n';
 import { useAuthState } from '../contexts/AuthContext';
 import EventList from '../components/EventList';
-import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfDay, endOfDay } from 'date-fns';
+import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfDay, endOfDay, parseISO } from 'date-fns';
 
 interface CalendarEventType {
   id: string;
@@ -99,8 +99,8 @@ const CalendarPage = () => {
     return filteredEvents.map(event => ({
       id: event.id,
       title: event.title,
-      start: new Date(event.start_time),
-      end: new Date(event.end_time),
+      start: parseISO(event.start_time),
+      end: parseISO(event.end_time),
       resource: event,
     }));
   }, [filteredEvents]);
@@ -221,10 +221,11 @@ const CalendarPage = () => {
           </div>
         ) : (
           <div
-            style={{
-              height: calendarHeight,
-              minHeight: '300px'
-            }}
+            style={
+              currentView === 'month'
+                ? { minHeight: '300px' }
+                : { height: calendarHeight, minHeight: '300px' }
+            }
             className="w-full"
           >
             <CustomCalendar
@@ -235,7 +236,7 @@ const CalendarPage = () => {
               onNavigate={setCurrentDate}
               onSelectEvent={handleEventClick}
               onSelectSlot={handleSlotSelect}
-              height={calendarHeight}
+              height={currentView === 'month' ? undefined : calendarHeight}
               className="loom-calendar"
             />
           </div>

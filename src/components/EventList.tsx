@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO, isAfter, isBefore, startOfDay, endOfDay, isToday, isTomorrow } from 'date-fns';
-import { Clock, MapPin, Users, Bell, Edit3, Trash2 } from 'lucide-react';
+import { Clock, MapPin, Users, Bell, Trash2 } from 'lucide-react';
 import { Event } from '../types';
 import { useTranslation } from '../i18n';
 import { useAuthState } from '../contexts/AuthContext';
@@ -119,8 +119,8 @@ const EventList: React.FC<EventListProps> = ({ events, range, isLoading, onEvent
                   onClick={() => handleClick(ev.id)}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="shrink-0 w-10 text-[hsl(var(--loom-primary))] text-sm font-medium">
-                      {format(start, 'HH:mm')}
+                    <div className="shrink-0 w-12 text-[hsl(var(--loom-primary))] text-sm font-medium">
+                      {format(start, 'h:mm a')}
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -130,11 +130,6 @@ const EventList: React.FC<EventListProps> = ({ events, range, isLoading, onEvent
                           {ev.reminders && ev.reminders.length > 0 && (
                             <Bell className="w-4 h-4 text-[hsl(var(--loom-primary))] shrink-0" />
                           )}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-[hsl(var(--loom-border))] text-[hsl(var(--loom-text-muted))]">
-                            {ev.visibility.replace('_', ' ')}
-                          </span>
                         </div>
                       </div>
 
@@ -158,14 +153,10 @@ const EventList: React.FC<EventListProps> = ({ events, range, isLoading, onEvent
                       </div>
                     </div>
 
-                    <div className="shrink-0 flex items-center gap-1">
-                      <button
-                        className="p-2 rounded-md hover:bg-[hsl(var(--loom-border))]"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/event/${ev.id}`); }}
-                        aria-label={t('edit')}
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
+                    <div className="shrink-0 flex flex-col items-end gap-1">
+                      <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-[hsl(var(--loom-border))] text-[hsl(var(--loom-text-muted))]">
+                        {ev.visibility.replace('_', ' ')}
+                      </span>
                       {isOwner && (
                         <button
                           className="p-2 rounded-md hover:bg-[hsl(var(--loom-border))]"

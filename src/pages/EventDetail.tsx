@@ -177,15 +177,15 @@ const EventDetail = () => {
         <div className="flex items-start justify-between mb-2">
           <h1 className="text-xl font-semibold text-[hsl(var(--loom-text))]">{event.title}</h1>
           <div className="flex items-center space-x-2">
-            {isShared && <Users className="w-5 h-5 text-white" />}
+            {isShared && <Users className="w-5 h-5 !text-[hsl(var(--loom-text))]" />}
             <button
               onClick={() => setShowFullDetails(!showFullDetails)}
               className="p-1 hover:bg-white/20 rounded"
             >
               {showFullDetails ? (
-                <EyeOff className="w-4 h-4 text-white" />
+                <EyeOff className="w-4 h-4 !text-[hsl(var(--loom-text))]" />
               ) : (
-                <Eye className="w-4 h-4 text-white" />
+                <Eye className="w-4 h-4 !text-[hsl(var(--loom-text))]" />
               )}
             </button>
           </div>
