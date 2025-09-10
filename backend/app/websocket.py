@@ -40,13 +40,13 @@ class ConnectionManager:
         # Shutdown flag
         self.shutting_down = False
 
-        logger.info("WebSocket ConnectionManager initialized")
+        logger.debug("WebSocket ConnectionManager initialized")
 
     async def connect(self, websocket: WebSocket, event_id: str, user: User) -> bool:
         """Connect a WebSocket to an event room"""
         try:
             # User is pre-authenticated by the endpoint
-            logger.info(f"Connecting user {user.id} to event {event_id}")
+            logger.debug(f"Connecting user {user.id} to event {event_id}")
 
             # Check connection limits
             if self.user_connection_counts[str(user.id)] >= settings.WS_MAX_CONNECTIONS_PER_USER:
@@ -59,7 +59,7 @@ class ConnectionManager:
                 await websocket.close(code=1008)  # Policy violation
                 return False
 
-            logger.info(f"WebSocket authentication successful for user {user.id}, event {event_id}")
+            logger.debug(f"WebSocket authentication successful for user {user.id}, event {event_id}")
 
             # Create connection metadata
             connection_info = {
@@ -80,7 +80,7 @@ class ConnectionManager:
             # Send any queued messages
             await self.send_queued_messages(str(user.id), websocket)
 
-            logger.info(f"User {user.id} connected to event {event_id}. Total connections: user={self.user_connection_counts[str(user.id)]}, room={self.room_connection_counts[event_id]}")
+            logger.debug(f"User {user.id} connected to event {event_id}. Total connections: user={self.user_connection_counts[str(user.id)]}, room={self.room_connection_counts[event_id]}")
             return True
 
         except Exception as e:
@@ -102,7 +102,7 @@ class ConnectionManager:
                     # Stop heartbeat
                     await self._stop_heartbeat(user_id, event_id)
 
-                    logger.info(f"WebSocket disconnected from event {event_id} for user {user_id}")
+                    logger.debug(f"WebSocket disconnected from event {event_id} for user {user_id}")
                     break
 
             # Clean up empty rooms
@@ -139,7 +139,7 @@ class ConnectionManager:
         user_id = str(user.id)
         try:
             # User is pre-authenticated by the endpoint
-            logger.info(f"Connecting user {user_id} for partner notifications")
+            logger.debug(f"Connecting user {user_id} for partner notifications")
 
             # Check connection limit
             if self.user_connection_counts[user_id] >= settings.WS_MAX_CONNECTIONS_PER_USER:
@@ -164,7 +164,7 @@ class ConnectionManager:
             # Send any queued messages
             await self.send_queued_messages(user_id, websocket)
 
-            logger.info(f"User {user_id} connected for partner notifications")
+            logger.debug(f"User {user_id} connected for partner notifications")
             return True
 
         except Exception as e:
@@ -179,7 +179,7 @@ class ConnectionManager:
             # Stop heartbeat
             await self._stop_heartbeat(user_id, 'partner')
             del self.partner_connections[user_id]
-            logger.info(f"Partner WebSocket disconnected for user {user_id}")
+            logger.debug(f"Partner WebSocket disconnected for user {user_id}")
 
     async def _send_notification(self, user_id: str, message: dict):
         """Send a notification to a specific user, queuing if offline."""
@@ -188,7 +188,7 @@ class ConnectionManager:
                 websocket = self.partner_connections[user_id]['websocket']
                 await websocket.send_json(message)
                 self.partner_connections[user_id]['last_activity'] = datetime.now(timezone.utc)
-                logger.info(f"Sent '{message.get('type')}' notification to user {user_id}")
+                logger.debug(f"Sent '{message.get('type')}' notification to user {user_id}")
             except Exception as e:
                 logger.error(f"Failed to send notification to user {user_id}: {e}")
                 await self.disconnect_partner(user_id)

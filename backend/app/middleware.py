@@ -74,10 +74,11 @@ def setup_middleware(app):
     """
     Setup all middleware for the FastAPI application.
     """
-    # Add rate limiting middleware
-    app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-    app.add_middleware(SlowAPIMiddleware)
+    # Add rate limiting middleware in non-development environments only
+    if getattr(settings, "ENV", "dev") not in {"dev", "development"}:
+        app.state.limiter = limiter
+        app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+        app.add_middleware(SlowAPIMiddleware)
 
     # Add logging middleware
     app.middleware("http")(logging_middleware)

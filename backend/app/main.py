@@ -1,4 +1,5 @@
 from fastapi import FastAPI, WebSocket
+import logging
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from .config import settings
@@ -26,13 +27,29 @@ app = FastAPI(
 )
 
 # CORS middleware
-app.add_middleware(
-    CORSMiddleware,
+logger = logging.getLogger(__name__)
+cors_kwargs = dict(
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+if getattr(settings, "ENV", "dev") in {"dev", "development"}:
+    # In development, allow localhost variants on any port
+    cors_kwargs["allow_origin_regex"] = r"^https?://(localhost|127\\.0\\.0\\.1|\\[::1\\]):\\d+$"
+    logger.info(
+        "ENV=%s - CORS enabled for development with origins: %s and regex: %s",
+        getattr(settings, "ENV", "dev"),
+        settings.CORS_ORIGINS,
+        cors_kwargs["allow_origin_regex"],
+    )
+else:
+    logger.info(
+        "ENV=%s - CORS enabled with explicit origins: %s",
+        getattr(settings, "ENV", "dev"),
+        settings.CORS_ORIGINS,
+    )
+app.add_middleware(CORSMiddleware, **cors_kwargs)
 
 # Security middleware (rate limiting and logging)
 setup_middleware(app)
@@ -61,6 +78,8 @@ async def partner_websocket(websocket: WebSocket):
     # Handle the partner WebSocket connection
     await ws.handle_partner_websocket_connection(websocket, user)
 
+
+ 
 
 # Include routers (HTTP routes registered after WebSocket routes)
 app.include_router(auth.router, prefix=settings.API_V1_STR)

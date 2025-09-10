@@ -54,3 +54,8 @@ async def health():
 @app.get(f"{settings.API_V1_STR}/health")
 async def api_health():
     return {"ok": True, "api_version": "v1"}
+
+# Seamless dev/prod: delegate to the unified FastAPI app defined in app.main
+# This ensures WebSocket endpoints and dev-only behavior reside in a single place.
+from app.main import app as unified_app
+app = unified_app
