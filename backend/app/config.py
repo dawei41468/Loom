@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:7100", "http://localhost:7500"]
 
+    # Frontend base URL (used to generate absolute links like partner invites)
+    FRONTEND_BASE_URL: str = "http://localhost:7100"
+
     # Email/SMTP Settings (optional)
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587

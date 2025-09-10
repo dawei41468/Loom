@@ -17,8 +17,26 @@ ssh -i ${SSH_KEY_PATH} ${SERVER_USER}@${SERVER_IP} "mkdir -p ${REMOTE_BASE_DIR}"
 # Create the target backend directory on the server
 ssh -i ${SSH_KEY_PATH} ${SERVER_USER}@${SERVER_IP} "mkdir -p ${REMOTE_APP_DIR}"
 
-# Create a tar archive of the backend directory, excluding venv, and extract it on the server
-(cd backend && tar --no-xattr --exclude=venv --exclude='.env.production' -czf - .) | ssh -i ${SSH_KEY_PATH} ${SERVER_USER}@${SERVER_IP} "tar -xzf - -C ${REMOTE_APP_DIR}"
+# Create a tar archive of the backend directory with safe excludes, then extract it on the server
+# Notes:
+# - Exclude local virtualenvs (venv/.venv)
+# - Exclude all env files; we keep the server's .env.production and don't ship secrets
+# - Exclude macOS metadata files (._*, .DS_Store)
+# - Exclude logs, __pycache__, .git and pyc files
+(cd backend && tar \
+  --no-xattr \
+  --exclude=venv \
+  --exclude=.venv \
+  --exclude=.git \
+  --exclude='__pycache__' \
+  --exclude='*.pyc' \
+  --exclude='*.pyo' \
+  --exclude='*.log' \
+  --exclude='.DS_Store' \
+  --exclude='._*' \
+  --exclude='.env' \
+  --exclude='.env.*' \
+  -czf - .) | ssh -i ${SSH_KEY_PATH} ${SERVER_USER}@${SERVER_IP} "tar -xzf - -C ${REMOTE_APP_DIR}"
 
 if [ $? -ne 0 ]; then
   echo "Failed to copy backend code. Exiting."

@@ -3,6 +3,7 @@ from ..models import Partnership, Partner, User, ApiResponse, InviteToken, Invit
 from ..auth import get_current_user
 from ..database import get_database
 from ..websocket import manager, handle_partner_websocket_connection
+from ..config import settings
 from bson import ObjectId
 from datetime import datetime, timedelta, timezone
 import secrets
@@ -38,8 +39,9 @@ async def generate_invite_token(
 
     result = await db.invite_tokens.insert_one(invite_token_dict)
 
-    # Generate the invite URL
-    invite_url = f"https://loom.studiodtw.net/invite/{token}"
+    # Generate the invite URL based on environment-specific FRONTEND_BASE_URL
+    base = settings.FRONTEND_BASE_URL.rstrip('/')
+    invite_url = f"{base}/invite/{token}"
 
     return ApiResponse(
         data={
