@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useAuthState } from '../contexts/AuthContext';
+import { apiClient } from '../api/client';
 
 export interface WebSocketMessage {
   type: string;
@@ -171,7 +172,7 @@ export const useWebSocketBase = (
     }
   }, []);
 
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (!token || state.isConnecting) {
       return;
     }
@@ -184,6 +185,9 @@ export const useWebSocketBase = (
     });
 
     try {
+      // Ensure access token is valid before attempting connection
+      await apiClient.ensureValidAccessToken();
+
       const wsUrl = getWebSocketUrlWithToken();
       console.log('Creating WebSocket connection to:', wsUrl);
       const ws = new WebSocket(wsUrl);

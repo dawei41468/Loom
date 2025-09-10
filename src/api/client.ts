@@ -43,6 +43,49 @@ class ApiClient {
     this.refreshToken = refreshToken;
   }
 
+  // Decode a JWT without verifying signature to read the payload
+  private decodeJwt(token: string): { exp?: number } | null {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      const payload = parts[1];
+      const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+      return JSON.parse(decodeURIComponent(escape(json)));
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Ensure the access token is valid and not near expiry.
+   * If missing or expiring within the next 60 seconds, attempt to refresh using the refresh token.
+   */
+  public async ensureValidAccessToken(): Promise<void> {
+    // If no token set, nothing to ensure
+    if (!this.token) return;
+
+    const payload = this.decodeJwt(this.token);
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const bufferSeconds = 60; // refresh a bit before expiry
+
+    if (!payload?.exp || payload.exp <= nowSeconds + bufferSeconds) {
+      // Token expired or close to expiring, try refresh if available
+      if (!this.refreshToken) return;
+      try {
+        if (this.isRefreshing && this.refreshPromise) {
+          await this.refreshPromise;
+        } else {
+          this.isRefreshing = true;
+          this.refreshPromise = this.refreshTokens();
+          await this.refreshPromise;
+        }
+      } finally {
+        this.isRefreshing = false;
+        this.refreshPromise = null;
+      }
+    }
+  }
+
   private async refreshTokens(): Promise<Token> {
     if (!this.refreshToken) {
       throw new Error('No refresh token available');
