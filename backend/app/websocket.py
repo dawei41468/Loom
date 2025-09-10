@@ -3,7 +3,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 import json
 import logging
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict, deque
 import weakref
 
@@ -66,8 +66,8 @@ class ConnectionManager:
                 'websocket': websocket,
                 'user_id': str(user.id),
                 'event_id': event_id,
-                'connected_at': datetime.utcnow(),
-                'last_activity': datetime.utcnow()
+                'connected_at': datetime.now(timezone.utc),
+                'last_activity': datetime.now(timezone.utc)
             }
 
             self.active_connections[event_id].append(connection_info)
@@ -125,7 +125,7 @@ class ConnectionManager:
 
             try:
                 await websocket.send_json(message)
-                conn_info['last_activity'] = datetime.utcnow()
+                conn_info['last_activity'] = datetime.now(timezone.utc)
             except Exception as e:
                 logger.error(f"Failed to send message to user {user_id} in event {event_id}: {e}")
                 disconnected.append(websocket)
@@ -151,8 +151,8 @@ class ConnectionManager:
             connection_info = {
                 'websocket': websocket,
                 'user_id': user_id,
-                'connected_at': datetime.utcnow(),
-                'last_activity': datetime.utcnow()
+                'connected_at': datetime.now(timezone.utc),
+                'last_activity': datetime.now(timezone.utc)
             }
 
             self.partner_connections[user_id] = connection_info
@@ -187,7 +187,7 @@ class ConnectionManager:
             try:
                 websocket = self.partner_connections[user_id]['websocket']
                 await websocket.send_json(message)
-                self.partner_connections[user_id]['last_activity'] = datetime.utcnow()
+                self.partner_connections[user_id]['last_activity'] = datetime.now(timezone.utc)
                 logger.info(f"Sent '{message.get('type')}' notification to user {user_id}")
             except Exception as e:
                 logger.error(f"Failed to send notification to user {user_id}: {e}")
@@ -284,10 +284,10 @@ class ConnectionManager:
                     try:
                         # Send ping
                         await asyncio.wait_for(
-                            websocket.send_json({"type": "ping", "timestamp": datetime.utcnow().isoformat()}),
+                            websocket.send_json({"type": "ping", "timestamp": datetime.now(timezone.utc).isoformat()}),
                             timeout=settings.WS_PING_TIMEOUT
                         )
-                        self.last_heartbeat[task_key] = datetime.utcnow()
+                        self.last_heartbeat[task_key] = datetime.now(timezone.utc)
                     except asyncio.TimeoutError:
                         logger.warning(f"Heartbeat ping timeout for user {user_id} in {room_id}")
                         # Connection is likely dead, disconnect
@@ -388,7 +388,7 @@ async def handle_websocket_connection(websocket: WebSocket, event_id: str, user:
                     # Update last activity on pong
                     for conn_info in manager.active_connections.get(event_id, []):
                         if conn_info['websocket'] == websocket:
-                            conn_info['last_activity'] = datetime.utcnow()
+                            conn_info['last_activity'] = datetime.now(timezone.utc)
                             break
                 else:
                     logger.debug(f"Received message from event {event_id}: {data}")
@@ -425,7 +425,7 @@ async def handle_partner_websocket_connection(websocket: WebSocket, user: User):
                 elif message.get('type') == 'pong':
                     # Update last activity on pong
                     if user_id in manager.partner_connections:
-                        manager.partner_connections[user_id]['last_activity'] = datetime.utcnow()
+                        manager.partner_connections[user_id]['last_activity'] = datetime.now(timezone.utc)
                 else:
                     logger.debug(f"Received message from partner {user_id}: {data}")
             except json.JSONDecodeError:

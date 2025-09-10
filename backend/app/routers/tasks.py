@@ -4,7 +4,7 @@ from bson import ObjectId
 from ..models import Task, TaskCreate, TaskUpdate, User, ApiResponse
 from ..auth import get_current_user
 from ..database import get_database
-from datetime import datetime
+from datetime import datetime, timezone
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -25,7 +25,7 @@ async def get_tasks(current_user: User = Depends(get_current_user)):
     tasks = []
     async for task_doc in tasks_cursor:
         task = Task(**task_doc)
-        tasks.append(task.dict())
+        tasks.append(task.model_dump())
     
     return ApiResponse(data=tasks, message="Tasks retrieved successfully")
 
@@ -44,11 +44,11 @@ async def create_task(
         )
     
     # Create task document
-    task_dict = task_data.dict()
+    task_dict = task_data.model_dump()
     task_dict["created_by"] = str(current_user.id)
     task_dict["completed"] = False
-    task_dict["created_at"] = datetime.utcnow()
-    task_dict["updated_at"] = datetime.utcnow()
+    task_dict["created_at"] = datetime.now(timezone.utc)
+    task_dict["updated_at"] = datetime.now(timezone.utc)
     
     # Insert task into database
     result = await db.tasks.insert_one(task_dict)
@@ -62,7 +62,7 @@ async def create_task(
         )
     
     task = Task(**created_task)
-    return ApiResponse(data=task.dict(), message="Task created successfully")
+    return ApiResponse(data=task.model_dump(), message="Task created successfully")
 
 
 @router.get("/{task_id}", response_model=ApiResponse)
@@ -102,7 +102,7 @@ async def get_task(
             detail="Access denied to this task"
         )
     
-    return ApiResponse(data=task.dict(), message="Task retrieved successfully")
+    return ApiResponse(data=task.model_dump(), message="Task retrieved successfully")
 
 
 @router.patch("/{task_id}/toggle", response_model=ApiResponse)
@@ -147,7 +147,7 @@ async def toggle_task(
         {
             "$set": {
                 "completed": new_status,
-                "updated_at": datetime.utcnow()
+                "updated_at": datetime.now(timezone.utc)
             }
         }
     )
@@ -167,7 +167,7 @@ async def toggle_task(
         )
     
     task = Task(**updated_task)
-    return ApiResponse(data=task.dict(), message="Task status updated successfully")
+    return ApiResponse(data=task.model_dump(), message="Task status updated successfully")
 
 
 @router.put("/{task_id}", response_model=ApiResponse)
@@ -207,8 +207,8 @@ async def update_task(
         )
     
     # Update task
-    update_data = task_update.dict(exclude_unset=True)
-    update_data["updated_at"] = datetime.utcnow()
+    update_data = task_update.model_dump(exclude_unset=True)
+    update_data["updated_at"] = datetime.now(timezone.utc)
     
     result = await db.tasks.update_one(
         {"_id": ObjectId(task_id)},
@@ -230,7 +230,7 @@ async def update_task(
         )
     
     task = Task(**updated_task)
-    return ApiResponse(data=task.dict(), message="Task updated successfully")
+    return ApiResponse(data=task.model_dump(), message="Task updated successfully")
 
 
 @router.delete("/{task_id}", response_model=ApiResponse)

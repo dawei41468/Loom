@@ -4,7 +4,7 @@ from ..auth import get_current_user
 from ..database import get_database
 from ..websocket import manager, handle_partner_websocket_connection
 from bson import ObjectId
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import secrets
 
 router = APIRouter(prefix="/partner", tags=["partner"])
@@ -25,7 +25,7 @@ async def generate_invite_token(
 
     # Generate a secure random token
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.utcnow() + timedelta(days=invite_data.expires_in_days)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=invite_data.expires_in_days)
 
     # Create invite token document
     invite_token_dict = {
@@ -33,7 +33,7 @@ async def generate_invite_token(
         "created_by": str(current_user.id),
         "expires_at": expires_at,
         "used": False,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc)
     }
 
     result = await db.invite_tokens.insert_one(invite_token_dict)
@@ -65,7 +65,7 @@ async def check_invite_token(token: str):
     invite_token = await db.invite_tokens.find_one({
         "token": token,
         "used": False,
-        "expires_at": {"$gt": datetime.utcnow()}
+        "expires_at": {"$gt": datetime.now(timezone.utc)}
     })
 
     if not invite_token:
@@ -122,7 +122,7 @@ async def connect_partner(
     invite_token = await db.invite_tokens.find_one({
         "token": token,
         "used": False,
-        "expires_at": {"$gt": datetime.utcnow()}
+        "expires_at": {"$gt": datetime.now(timezone.utc)}
     })
 
     if not invite_token:
@@ -159,7 +159,7 @@ async def connect_partner(
         "user2_id": str(current_user.id),
         "status": "accepted",
         "invited_by": inviter_id,
-        "accepted_at": datetime.utcnow(),
+        "accepted_at": datetime.now(timezone.utc),
         "created_at": invite_token["created_at"]
     }
     await db.partnerships.insert_one(partnership_dict)
@@ -190,7 +190,7 @@ async def connect_partner(
     # WebSocket notifications
     await manager.notify_partner_connection(inviter_id, str(current_user.id))
 
-    return ApiResponse(data=partner.dict(), message="Successfully connected with partner")
+    return ApiResponse(data=partner.model_dump(), message="Successfully connected with partner")
 
 
 @router.get("", response_model=ApiResponse)
@@ -236,7 +236,7 @@ async def get_partner(current_user: User = Depends(get_current_user)):
     }
 
     partner = Partner(**partner_data)
-    return ApiResponse(data=partner.dict(), message="Partner retrieved successfully")
+    return ApiResponse(data=partner.model_dump(), message="Partner retrieved successfully")
 
 
 @router.delete("", response_model=ApiResponse)

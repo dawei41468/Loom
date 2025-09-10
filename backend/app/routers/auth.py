@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer
 from slowapi import Limiter
@@ -52,7 +52,7 @@ async def register(request: Request, user_data: UserCreate):
         )
 
     # Create new user
-    user_dict = user_data.dict(exclude={"password"})
+    user_dict = user_data.model_dump(exclude={"password"})
     user_dict["password_hash"] = get_password_hash(user_data.password)
     user_dict["is_onboarded"] = False
     
@@ -71,7 +71,7 @@ async def register(request: Request, user_data: UserCreate):
     created_user.pop("password_hash", None)
     user = User(**created_user)
     
-    return ApiResponse(data=user.dict(), message="User registered successfully")
+    return ApiResponse(data=user.model_dump(), message="User registered successfully")
 
 
 @router.post("/login", response_model=Token)
@@ -127,7 +127,7 @@ async def refresh_token(request: Request, refresh_token_request: dict):
 @router.get("/me", response_model=ApiResponse)
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current user information"""
-    return ApiResponse(data=current_user.dict(), message="User info retrieved successfully")
+    return ApiResponse(data=current_user.model_dump(), message="User info retrieved successfully")
 
 
 @router.put("/me", response_model=ApiResponse)
@@ -157,7 +157,7 @@ async def update_current_user(
         update_data["is_onboarded"] = user_update["is_onboarded"]
 
     if update_data:
-        update_data["updated_at"] = datetime.utcnow()
+        update_data["updated_at"] = datetime.now(timezone.utc)
         result = await db.users.update_one(
             {"_id": current_user.id},
             {"$set": update_data}
@@ -180,4 +180,4 @@ async def update_current_user(
     updated_user.pop("password_hash", None)
     user = User(**updated_user)
 
-    return ApiResponse(data=user.dict(), message="User updated successfully")
+    return ApiResponse(data=user.model_dump(), message="User updated successfully")

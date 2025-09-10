@@ -1,5 +1,5 @@
 from typing import List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from ..models import AvailabilitySlot, AvailabilityRequest, User, ApiResponse
 from ..auth import get_current_user
@@ -22,7 +22,7 @@ async def find_overlap(
         )
     
     # Calculate date range
-    start_date = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    start_date = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     end_date = start_date + timedelta(days=request.date_range_days)
     
     # Get all events for the current user in the date range
@@ -110,7 +110,7 @@ async def find_overlap(
     available_slots = available_slots[:10]
     
     # Convert to dict format for response
-    slots_data = [slot.dict() for slot in available_slots]
+    slots_data = [slot.model_dump() for slot in available_slots]
     
     return ApiResponse(
         data=slots_data,

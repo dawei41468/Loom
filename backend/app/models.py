@@ -184,6 +184,7 @@ class ProposalBase(BaseModel):
     description: Optional[str] = None
     proposed_times: List[TimeSlot]
     location: Optional[str] = None
+    message: Optional[str] = None
     proposed_to: PyObjectId  # User ID
 
     @field_serializer('proposed_to')

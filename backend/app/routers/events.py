@@ -11,7 +11,7 @@ try:
 except ImportError:
     # Fallback for when running as module
     from ..websocket import manager, handle_websocket_connection
-from datetime import datetime
+from datetime import datetime, timezone
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -38,7 +38,7 @@ async def get_events(current_user: User = Depends(get_current_user)):
     events = []
     async for event_doc in events_cursor:
         event = Event(**event_doc)
-        events.append(event.dict())
+        events.append(event.model_dump())
     
     return ApiResponse(data=events, message="Events retrieved successfully")
 
@@ -57,10 +57,10 @@ async def create_event(
         )
 
     # Create event document
-    event_dict = event_data.dict()
+    event_dict = event_data.model_dump()
     event_dict["created_by"] = str(current_user.id)
-    event_dict["created_at"] = datetime.utcnow()
-    event_dict["updated_at"] = datetime.utcnow()
+    event_dict["created_at"] = datetime.now(timezone.utc)
+    event_dict["updated_at"] = datetime.now(timezone.utc)
 
     # Ensure current user is in attendees
     if str(current_user.id) not in event_dict["attendees"]:
@@ -102,9 +102,9 @@ async def create_event(
 
     # Notify partner about the new event if they exist
     if partnership and partner_id:
-        await manager.notify_event_created(partner_id, event.dict())
+        await manager.notify_event_created(partner_id, event.model_dump())
 
-    return ApiResponse(data=event.dict(), message="Event created successfully")
+    return ApiResponse(data=event.model_dump(), message="Event created successfully")
 
 
 @router.get("/{event_id}", response_model=ApiResponse)
@@ -147,7 +147,7 @@ async def get_event(
             detail="Access denied to this event"
         )
     
-    return ApiResponse(data=event.dict(), message="Event retrieved successfully")
+    return ApiResponse(data=event.model_dump(), message="Event retrieved successfully")
 
 
 @router.put("/{event_id}", response_model=ApiResponse)
@@ -187,8 +187,8 @@ async def update_event(
         )
     
     # Update event
-    update_data = event_update.dict(exclude_unset=True)
-    update_data["updated_at"] = datetime.utcnow()
+    update_data = event_update.model_dump(exclude_unset=True)
+    update_data["updated_at"] = datetime.now(timezone.utc)
     
     result = await db.events.update_one(
         {"_id": ObjectId(event_id)},
@@ -210,7 +210,7 @@ async def update_event(
         )
     event = Event(**updated_event)
     
-    return ApiResponse(data=event.dict(), message="Event updated successfully")
+    return ApiResponse(data=event.model_dump(), message="Event updated successfully")
 
 
 @router.delete("/{event_id}", response_model=ApiResponse)
@@ -319,7 +319,7 @@ async def get_event_messages(
     messages = []
     async for message_doc in messages_cursor:
         message = EventMessage(**message_doc)
-        messages.append(message.dict())
+        messages.append(message.model_dump())
 
     return ApiResponse(data=messages, message="Messages retrieved successfully")
 
@@ -364,11 +364,11 @@ async def send_event_message(
         )
 
     # Create message document
-    message_dict = message_data.dict()
+    message_dict = message_data.model_dump()
     message_dict["event_id"] = event_id
     message_dict["sender_id"] = str(current_user.id)
-    message_dict["created_at"] = datetime.utcnow()
-    message_dict["updated_at"] = datetime.utcnow()
+    message_dict["created_at"] = datetime.now(timezone.utc)
+    message_dict["updated_at"] = datetime.now(timezone.utc)
 
     # Insert message into database
     result = await db.event_messages.insert_one(message_dict)
@@ -386,10 +386,10 @@ async def send_event_message(
     # Broadcast the new message to all connected clients in this event
     await manager.broadcast_to_event(event_id, {
         "type": "new_message",
-        "data": message.dict()
+        "data": message.model_dump()
     })
 
-    return ApiResponse(data=message.dict(), message="Message sent successfully")
+    return ApiResponse(data=message.model_dump(), message="Message sent successfully")
 
 
 @router.delete("/{event_id}/messages/{message_id}", response_model=ApiResponse)
@@ -495,7 +495,7 @@ async def get_event_checklist(
     checklist_items = []
     async for item_doc in checklist_cursor:
         item = ChecklistItem(**item_doc)
-        checklist_items.append(item.dict())
+        checklist_items.append(item.model_dump())
 
     return ApiResponse(data=checklist_items, message="Checklist items retrieved successfully")
 
@@ -540,11 +540,11 @@ async def create_checklist_item(
         )
 
     # Create checklist item document
-    item_dict = item_data.dict()
+    item_dict = item_data.model_dump()
     item_dict["event_id"] = event_id
     item_dict["created_by"] = str(current_user.id)
-    item_dict["created_at"] = datetime.utcnow()
-    item_dict["updated_at"] = datetime.utcnow()
+    item_dict["created_at"] = datetime.now(timezone.utc)
+    item_dict["updated_at"] = datetime.now(timezone.utc)
 
     # Insert item into database
     result = await db.event_checklist_items.insert_one(item_dict)
@@ -562,10 +562,10 @@ async def create_checklist_item(
     # Broadcast the new checklist item to all connected clients in this event
     await manager.broadcast_to_event(event_id, {
         "type": "new_checklist_item",
-        "data": item.dict()
+        "data": item.model_dump()
     })
 
-    return ApiResponse(data=item.dict(), message="Checklist item created successfully")
+    return ApiResponse(data=item.model_dump(), message="Checklist item created successfully")
 
 
 @router.put("/{event_id}/checklist/{item_id}", response_model=ApiResponse)
@@ -622,14 +622,14 @@ async def update_checklist_item(
         )
 
     # Prepare update data
-    update_data = item_update.dict(exclude_unset=True)
-    update_data["updated_at"] = datetime.utcnow()
+    update_data = item_update.model_dump(exclude_unset=True)
+    update_data["updated_at"] = datetime.now(timezone.utc)
 
     # Handle completion tracking
     if "completed" in update_data:
         if update_data["completed"]:
             update_data["completed_by"] = str(current_user.id)
-            update_data["completed_at"] = datetime.utcnow()
+            update_data["completed_at"] = datetime.now(timezone.utc)
         else:
             update_data["completed_by"] = None
             update_data["completed_at"] = None
@@ -659,10 +659,10 @@ async def update_checklist_item(
     # Broadcast the checklist item update to all connected clients in this event
     await manager.broadcast_to_event(event_id, {
         "type": "update_checklist_item",
-        "data": item.dict()
+        "data": item.model_dump()
     })
 
-    return ApiResponse(data=item.dict(), message="Checklist item updated successfully")
+    return ApiResponse(data=item.model_dump(), message="Checklist item updated successfully")
 
 
 @router.delete("/{event_id}/checklist/{item_id}", response_model=ApiResponse)

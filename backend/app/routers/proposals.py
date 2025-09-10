@@ -5,7 +5,7 @@ from ..models import Proposal, ProposalCreate, User, ApiResponse, Event, TimeSlo
 from ..auth import get_current_user
 from ..database import get_database
 from ..websocket import manager
-from datetime import datetime
+from datetime import datetime, timezone
 
 router = APIRouter(prefix="/proposals", tags=["proposals"])
 
@@ -31,7 +31,7 @@ async def get_proposals(current_user: User = Depends(get_current_user)):
     proposals = []
     async for proposal_doc in proposals_cursor:
         proposal = Proposal(**proposal_doc)
-        proposals.append(proposal.dict())
+        proposals.append(proposal.model_dump())
     
     return ApiResponse(data=proposals, message="Proposals retrieved successfully")
 
@@ -65,11 +65,11 @@ async def create_proposal(
         )
     
     # Create proposal document
-    proposal_dict = proposal_data.dict()
+    proposal_dict = proposal_data.model_dump()
     proposal_dict["proposed_by"] = str(current_user.id)
     proposal_dict["status"] = "pending"
-    proposal_dict["created_at"] = datetime.utcnow()
-    proposal_dict["updated_at"] = datetime.utcnow()
+    proposal_dict["created_at"] = datetime.now(timezone.utc)
+    proposal_dict["updated_at"] = datetime.now(timezone.utc)
     
     # Insert proposal into database
     result = await db.proposals.insert_one(proposal_dict)
@@ -89,7 +89,7 @@ async def create_proposal(
         await manager.notify_proposal_created(
             str(proposal_data.proposed_to),
             {
-                "proposal": proposal.dict(),
+                "proposal": proposal.model_dump(),
                 "message": f"New proposal from {current_user.display_name}"
             }
         )
@@ -97,7 +97,7 @@ async def create_proposal(
         # Log the error but don't fail the request
         print(f"Failed to send WebSocket notification: {e}")
 
-    return ApiResponse(data=proposal.dict(), message="Proposal created successfully")
+    return ApiResponse(data=proposal.model_dump(), message="Proposal created successfully")
 
 
 @router.post("/{proposal_id}/accept", response_model=ApiResponse)
@@ -146,7 +146,7 @@ async def accept_proposal(
         )
     
     # Validate that selected time slot is one of the proposed times
-    time_slot_dict = selected_time_slot.dict()
+    time_slot_dict = selected_time_slot.model_dump()
     valid_slot = False
     for proposed_time in proposal.proposed_times:
         if (proposed_time.start_time == selected_time_slot.start_time and 
@@ -167,7 +167,7 @@ async def accept_proposal(
             "$set": {
                 "status": "accepted",
                 "accepted_time_slot": time_slot_dict,
-                "updated_at": datetime.utcnow()
+                "updated_at": datetime.now(timezone.utc)
             }
         }
     )
@@ -180,7 +180,7 @@ async def accept_proposal(
             await manager.notify_proposal_updated(
                 str(proposal.proposed_by),
                 {
-                    "proposal": proposal_obj.dict(),
+                    "proposal": proposal_obj.model_dump(),
                     "message": f"Proposal accepted by {current_user.display_name}"
                 }
             )
@@ -198,8 +198,8 @@ async def accept_proposal(
         "attendees": [proposal.proposed_by, proposal.proposed_to],
         "created_by": proposal.proposed_by,
         "reminders": [10],  # Default 10 minute reminder
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc)
     }
     
     event_result = await db.events.insert_one(event_dict)
@@ -222,10 +222,24 @@ async def accept_proposal(
     proposal = Proposal(**updated_proposal)
     event = Event(**created_event)
     
+    # Notify both users that an event has been created from the proposal
+    try:
+        await manager.notify_event_created(
+            str(proposal.proposed_by),
+            event.model_dump()
+        )
+        await manager.notify_event_created(
+            str(proposal.proposed_to),
+            event.model_dump()
+        )
+    except Exception as e:
+        # Log the error but don't fail the request
+        print(f"Failed to send event_created WebSocket notification: {e}")
+
     return ApiResponse(
         data={
-            "proposal": proposal.dict(),
-            "event": event.dict()
+            "proposal": proposal.model_dump(),
+            "event": event.model_dump()
         },
         message="Proposal accepted and event created successfully"
     )
@@ -281,7 +295,7 @@ async def decline_proposal(
         {
             "$set": {
                 "status": "declined",
-                "updated_at": datetime.utcnow()
+                "updated_at": datetime.now(timezone.utc)
             }
         }
     )
@@ -294,7 +308,7 @@ async def decline_proposal(
             await manager.notify_proposal_updated(
                 str(proposal.proposed_by),
                 {
-                    "proposal": proposal_obj.dict(),
+                    "proposal": proposal_obj.model_dump(),
                     "message": f"Proposal declined by {current_user.display_name}"
                 }
             )
@@ -316,7 +330,7 @@ async def decline_proposal(
         )
     
     proposal = Proposal(**updated_proposal)
-    return ApiResponse(data=proposal.dict(), message="Proposal declined successfully")
+    return ApiResponse(data=proposal.model_dump(), message="Proposal declined successfully")
 
 
 @router.get("/{proposal_id}", response_model=ApiResponse)
@@ -357,4 +371,4 @@ async def get_proposal(
             detail="Access denied to this proposal"
         )
     
-    return ApiResponse(data=proposal.dict(), message="Proposal retrieved successfully")
+    return ApiResponse(data=proposal.model_dump(), message="Proposal retrieved successfully")
