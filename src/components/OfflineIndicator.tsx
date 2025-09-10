@@ -14,7 +14,7 @@ const OfflineIndicator: React.FC = () => {
 
   return (
     <div className={cn(
-      'fixed top-4 right-4 z-50 flex items-center space-x-2 px-3 py-2 rounded-lg shadow-lg transition-all duration-300',
+      'fixed right-4 z-30 flex items-center space-x-2 px-3 py-2 rounded-lg shadow-lg transition-all duration-300 top-[calc(env(safe-area-inset-top)+3.5rem+0.5rem)]',
       isOnline
         ? 'bg-[hsl(var(--loom-success))]/10 border border-[hsl(var(--loom-success))]/20 text-[hsl(var(--loom-success))]'
         : 'bg-[hsl(var(--loom-warning))]/10 border border-[hsl(var(--loom-warning))]/20 text-[hsl(var(--loom-warning))]'
