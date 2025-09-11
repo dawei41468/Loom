@@ -1,18 +1,23 @@
 // Lightweight Tasks Page
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { format, isToday, isTomorrow, parseISO, isPast } from 'date-fns';
 import { Plus, Check, Trash2, Calendar } from 'lucide-react';
-import { useTasks, useTasksActions } from '../contexts/TasksContext';
 import { useAuthState } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '../i18n';
 import TextInput from '../components/forms/TextInput';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryKeys, taskQueries } from '../api/queries';
 
 const Tasks = () => {
-  const tasks = useTasks();
-  const { addTask, updateTask, removeTask, setTasks } = useTasksActions();
+  const queryClient = useQueryClient();
+  const { data: tasksResp } = useQuery({
+    queryKey: queryKeys.tasks,
+    queryFn: taskQueries.getTasks,
+  });
+  const tasks = tasksResp?.data ?? [];
   const { user } = useAuthState();
   const { addToast } = useToastContext();
   const { t } = useTranslation();
@@ -20,53 +25,46 @@ const Tasks = () => {
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [showCompleted, setShowCompleted] = useState(false);
 
-  useEffect(() => {
-    const loadTasks = async () => {
-      try {
-        const response = await apiClient.getTasks();
-        setTasks(response.data);
-      } catch (error) {
-        addToast({
-          type: 'error',
-          title: t('failedToLoadTasks'),
-          description: t('pleaseTryRefreshing'),
-        });
-      }
-    };
-
-    loadTasks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addToast]); // setTasks is stable (dispatch-based) but would cause infinite loop if added
+  // Tasks are loaded via React Query
 
   const handleAddTask = async () => {
     if (!newTaskTitle.trim()) return;
 
     try {
-      // Optimistic add
       const tempId = `temp-${Date.now()}`;
-      addTask({
-        id: tempId,
-        title: newTaskTitle,
-        created_by: user!.id,
-        completed: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      } as any);
-
-      try {
-        const task = await apiClient.createTask({
+      // Optimistically add to cache
+      await queryClient.cancelQueries({ queryKey: queryKeys.tasks });
+      const previous = queryClient.getQueryData<any>(queryKeys.tasks);
+      queryClient.setQueryData<any>(queryKeys.tasks, (old: any) => {
+        const list = old?.data ?? old ?? [];
+        const temp = {
+          id: tempId,
           title: newTaskTitle,
           created_by: user!.id,
-        });
+          completed: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as any;
+        const next = [...list, temp];
+        return old?.data ? { ...old, data: next } : next;
+      });
+
+      try {
+        const task = await apiClient.createTask({ title: newTaskTitle, created_by: user!.id });
         // Replace optimistic with server result
-        removeTask(tempId);
-        addTask(task.data);
+        queryClient.setQueryData<any>(queryKeys.tasks, (old: any) => {
+          const list = old?.data ?? old ?? [];
+          const next = list.map((t: any) => (t.id === tempId ? task.data : t));
+          return old?.data ? { ...old, data: next } : next;
+        });
         setNewTaskTitle('');
         addToast({ type: 'success', title: t('taskAdded') });
       } catch (error) {
         // Rollback optimistic add
-        removeTask(tempId);
+        queryClient.setQueryData(queryKeys.tasks, previous);
         throw error;
+      } finally {
+        queryClient.invalidateQueries({ queryKey: queryKeys.tasks });
       }
     } catch (error) {
       addToast({
@@ -78,42 +76,49 @@ const Tasks = () => {
   };
 
   const handleToggleTask = async (taskId: string) => {
-    const current = tasks.find((t) => t.id === taskId);
+    const current = tasks.find((t: any) => t.id === taskId);
     if (!current) return;
-    const prev = { ...current };
-    // Optimistically toggle
-    updateTask(taskId, { completed: !current.completed } as any);
+    await queryClient.cancelQueries({ queryKey: queryKeys.tasks });
+    const previous = queryClient.getQueryData<any>(queryKeys.tasks);
+    // Optimistic toggle
+    queryClient.setQueryData<any>(queryKeys.tasks, (old: any) => {
+      const list = old?.data ?? old ?? [];
+      const next = list.map((t: any) => (t.id === taskId ? { ...t, completed: !current.completed } : t));
+      return old?.data ? { ...old, data: next } : next;
+    });
     try {
       const task = await apiClient.toggleTask(taskId);
-      updateTask(taskId, task.data);
-    } catch (error) {
-      // Rollback
-      updateTask(taskId, prev as any);
-      addToast({
-        type: 'error',
-        title: t('failedToUpdateTask'),
-        description: t('pleaseTryAgain'),
+      queryClient.setQueryData<any>(queryKeys.tasks, (old: any) => {
+        const list = old?.data ?? old ?? [];
+        const next = list.map((t: any) => (t.id === taskId ? task.data : t));
+        return old?.data ? { ...old, data: next } : next;
       });
+    } catch (error) {
+      queryClient.setQueryData(queryKeys.tasks, previous);
+      addToast({ type: 'error', title: t('failedToUpdateTask'), description: t('pleaseTryAgain') });
+    } finally {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks });
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    const prev = tasks.find((t) => t.id === taskId);
+    await queryClient.cancelQueries({ queryKey: queryKeys.tasks });
+    const previous = queryClient.getQueryData<any>(queryKeys.tasks);
     // Optimistically remove
-    removeTask(taskId);
+    queryClient.setQueryData<any>(queryKeys.tasks, (old: any) => {
+      const list = old?.data ?? old ?? [];
+      const next = list.filter((t: any) => t.id !== taskId);
+      return old?.data ? { ...old, data: next } : next;
+    });
     try {
       await apiClient.deleteTask(taskId);
       addToast({ type: 'success', title: t('taskDeleted') });
     } catch (error) {
       // Rollback
-      if (prev) {
-        addTask(prev as any);
-      }
-      addToast({
-        type: 'error',
-        title: t('failedToDeleteTask'),
-        description: t('pleaseTryAgain'),
-      });
+      queryClient.setQueryData(queryKeys.tasks, previous);
+      addToast({ type: 'error', title: t('failedToDeleteTask'), description: t('pleaseTryAgain') });
+    } finally {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks });
     }
   };
 

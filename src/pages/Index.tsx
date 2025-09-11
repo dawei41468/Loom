@@ -1,14 +1,14 @@
 // Main Today View - Dashboard
 import * as React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { format, isToday, isTomorrow, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { Plus, Clock, MapPin, Users, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEvents, useProposals, useEventsActions } from '../contexts/EventsContext';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthState } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
+import { queryKeys, eventQueries, proposalQueries } from '../api/queries';
 import { Event as LoomEvent } from '../types';
 import { PageHeader } from '../components/ui/page-header';
 import { EmptyState } from '../components/ui/empty-state';
@@ -17,13 +17,23 @@ import { useTranslation } from '../i18n';
 
 const Index = () => {
   const navigate = useNavigate();
-  const events = useEvents();
-  const proposals = useProposals();
-  const { setEvents, setProposals, updateProposal, removeProposal, addEvent } = useEventsActions();
   const { user, partner } = useAuthState();
   const { addToast } = useToastContext();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+
+  // React Query reads: events and proposals
+  const { data: eventsResp } = useQuery({
+    queryKey: queryKeys.events,
+    queryFn: eventQueries.getEvents,
+  });
+  const { data: proposalsResp } = useQuery({
+    queryKey: queryKeys.proposals,
+    queryFn: proposalQueries.getProposals,
+  });
+
+  const events = eventsResp?.data ?? [];
+  const proposals = proposalsResp?.data ?? [];
 
   // Track selected time slot per proposal (index in proposed_times)
   const [selectedSlots, setSelectedSlots] = useState<Record<string, number>>({});
@@ -34,20 +44,31 @@ const Index = () => {
       selectedTimeSlot: { start_time: string; end_time: string }
     }) => apiClient.acceptProposal(proposalId, selectedTimeSlot),
     onMutate: async ({ proposalId, selectedTimeSlot }) => {
-      const prev = proposals.find((p) => p.id === proposalId);
-      // Optimistically mark as accepted and set the chosen time slot
-      if (prev) {
-        updateProposal(proposalId, {
-          status: 'accepted',
-          accepted_time_slot: selectedTimeSlot,
-        } as any);
-      }
-      return { prev };
+      // Cancel queries to avoid races
+      await queryClient.cancelQueries({ queryKey: queryKeys.proposals });
+      await queryClient.cancelQueries({ queryKey: queryKeys.events });
+
+      // Snapshot previous
+      const prevProposals = queryClient.getQueryData<any>(queryKeys.proposals);
+      const prevEvents = queryClient.getQueryData<any>(queryKeys.events);
+
+      // Optimistically update proposal status
+      queryClient.setQueryData<any>(queryKeys.proposals, (old: any) => {
+        const list = old?.data ?? old ?? [];
+        const next = list.map((p: any) =>
+          String(p.id) === String(proposalId)
+            ? { ...p, status: 'accepted', accepted_time_slot: selectedTimeSlot }
+            : p
+        );
+        return old?.data ? { ...old, data: next } : next;
+      });
+
+      return { prevProposals, prevEvents };
     },
-    onError: (error: Error, variables, context) => {
-      // Rollback
-      if (context?.prev) {
-        updateProposal(context.prev.id, context.prev);
+    onError: (error: Error, _variables, context) => {
+      // Rollback proposals cache
+      if (context?.prevProposals !== undefined) {
+        queryClient.setQueryData(queryKeys.proposals, context.prevProposals);
       }
       addToast({
         type: 'error',
@@ -56,14 +77,22 @@ const Index = () => {
       });
     },
     onSuccess: (resp) => {
-      // Reconcile with server response
+      // Reconcile with server response: proposals + add created event
       const accepted = resp.data?.proposal;
       const createdEvent = resp.data?.event;
       if (accepted?.id) {
-        updateProposal(accepted.id, accepted);
+        queryClient.setQueryData<any>(queryKeys.proposals, (old: any) => {
+          const list = old?.data ?? old ?? [];
+          const next = list.map((p: any) => (String(p.id) === String(accepted.id) ? accepted : p));
+          return old?.data ? { ...old, data: next } : next;
+        });
       }
       if (createdEvent) {
-        addEvent(createdEvent);
+        queryClient.setQueryData<any>(queryKeys.events, (old: any) => {
+          const list = old?.data ?? old ?? [];
+          const next = [...list, createdEvent];
+          return old?.data ? { ...old, data: next } : next;
+        });
       }
       addToast({
         type: 'success',
@@ -71,20 +100,27 @@ const Index = () => {
         description: t('newEventCreated'),
       });
     },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.proposals });
+      queryClient.invalidateQueries({ queryKey: queryKeys.events });
+    }
   });
 
   const declineProposalMutation = useMutation({
     mutationFn: (proposalId: string) => apiClient.declineProposal(proposalId),
     onMutate: async (proposalId: string) => {
-      const prev = proposals.find((p) => p.id === proposalId);
-      if (prev) {
-        updateProposal(proposalId, { status: 'declined' } as any);
-      }
-      return { prev };
+      await queryClient.cancelQueries({ queryKey: queryKeys.proposals });
+      const prevProposals = queryClient.getQueryData<any>(queryKeys.proposals);
+      queryClient.setQueryData<any>(queryKeys.proposals, (old: any) => {
+        const list = old?.data ?? old ?? [];
+        const next = list.map((p: any) => (String(p.id) === String(proposalId) ? { ...p, status: 'declined' } : p));
+        return old?.data ? { ...old, data: next } : next;
+      });
+      return { prevProposals };
     },
-    onError: (error: Error, proposalId, context) => {
-      if (context?.prev) {
-        updateProposal(context.prev.id, context.prev);
+    onError: (error: Error, _proposalId, context) => {
+      if (context?.prevProposals !== undefined) {
+        queryClient.setQueryData(queryKeys.proposals, context.prevProposals);
       }
       addToast({
         type: 'error',
@@ -95,7 +131,11 @@ const Index = () => {
     onSuccess: (resp) => {
       const declined = resp.data;
       if (declined?.id) {
-        updateProposal(declined.id, declined);
+        queryClient.setQueryData<any>(queryKeys.proposals, (old: any) => {
+          const list = old?.data ?? old ?? [];
+          const next = list.map((p: any) => (String(p.id) === String(declined.id) ? declined : p));
+          return old?.data ? { ...old, data: next } : next;
+        });
       }
       addToast({
         type: 'info',
@@ -103,29 +143,12 @@ const Index = () => {
         description: t('proposalHasBeenDeclined'),
       });
     },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.proposals });
+    }
   });
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [eventsResponse, proposalsResponse] = await Promise.all([
-          apiClient.getEvents(),
-          apiClient.getProposals(),
-        ]);
-        setEvents(eventsResponse.data);
-        setProposals(proposalsResponse.data);
-      } catch (error) {
-        addToast({
-          type: 'error',
-          title: t('failedToLoadData'),
-          description: t('pleaseTryRefreshing'),
-        });
-      }
-    };
-
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Store actions are stable, don't include in deps
+  // Initial data now loaded via React Query
 
   const todayEvents = useMemo(() => {
     const today = new Date();

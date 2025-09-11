@@ -85,8 +85,19 @@ The frontend is modern and well-architected. These suggestions aim to further im
 
 ### 2. State Management
 
-*   **Consolidate State Management**: The current mix of React Context and `@tanstack/react-query` is effective.
-    *   **Suggestion**: For server-derived state, rely more heavily on `@tanstack/react-query`'s cache as the single source of truth instead of duplicating it in a React Context. This can simplify state logic and reduce boilerplate.
+*   **Consolidate State Management** ✅ **FULLY IMPLEMENTED**
+    *   React Query is the single source of truth for all server-derived data (events, proposals, tasks, event checklist).
+    *   React Contexts are used only for UI state (e.g., `filter`, `calendarView`, toasts, auth, UI flags).
+    *   Server-list state removed from contexts:
+        *   `src/contexts/EventsContext.tsx`: removed `events`/`proposals` and CRUD actions; kept UI-only state and actions (`setEventsLoading`, `setEventFilter`, `setCalendarView`).
+        *   `src/contexts/TasksContext.tsx`: unused; provider removed from `src/App.tsx` and exports cleaned up (`src/contexts/index.ts`).
+    *   Pages/components migrated to `useQuery` reads and cache-centered optimistic writes:
+        *   `Index.tsx`: events/proposals via `useQuery`; accept/decline update caches.
+        *   `Calendar.tsx`: events via `useQuery`; filter from `EventsContext`.
+        *   `EventDetail.tsx`: single event via `useQuery`; optimistic delete on caches.
+        *   `Add/submitters.ts`: optimistic create patches events/proposals caches using temp IDs with rollback.
+        *   `Tasks.tsx`: tasks via `useQuery`; optimistic add/toggle/delete update `queryKeys.tasks` cache with rollback.
+    *   All optimistic mutations use `onMutate`/`onError`/`onSettled` and invalidate queries to keep caches synced.
 
 *   **Optimistic Updates** ✅ **FULLY IMPLEMENTED**
     *   Implemented across key operations with `onMutate`/`onError`/`onSettled` patterns and cache rollbacks:

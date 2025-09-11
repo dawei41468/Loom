@@ -1,12 +1,11 @@
 import { Event, Proposal, Toast } from '../../types';
+import { QueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../../api/queries';
 
 interface Ctx {
   apiClient: any;
   addToast: (toast: Omit<Toast, 'id'>) => void;
-  addEvent: (event: any) => void;
-  addProposal: (proposal: any) => void;
-  removeEvent: (eventId: string) => void;
-  removeProposal: (proposalId: string) => void;
+  queryClient: QueryClient;
   t: (key: string) => string;
 }
 
@@ -25,7 +24,7 @@ export async function submitEvent(
   ctx: Ctx,
   options?: { successDescription?: string }
 ) {
-  const { apiClient, addToast, addEvent, removeEvent, t } = ctx;
+  const { apiClient, addToast, queryClient, t } = ctx;
   // Optimistic event stub
   const tempId = `temp-${Date.now()}`;
   const optimisticEvent: Partial<Event> & { id: string } = {
@@ -43,14 +42,21 @@ export async function submitEvent(
     updated_at: new Date().toISOString(),
   } as any;
 
-  // Add optimistically
-  addEvent(optimisticEvent as Event);
+  // Add optimistically to React Query cache
+  queryClient.setQueryData<any>(queryKeys.events, (old: any) => {
+    const list = old?.data ?? old ?? [];
+    const next = [...list, optimisticEvent];
+    return old?.data ? { ...old, data: next } : next;
+  });
 
   try {
     const event = await apiClient.createEvent(params);
     // Replace optimistic with server result
-    removeEvent(tempId);
-    addEvent(event.data);
+    queryClient.setQueryData<any>(queryKeys.events, (old: any) => {
+      const list = old?.data ?? old ?? [];
+      const next = list.map((e: Event) => (e.id === tempId ? event.data : e));
+      return old?.data ? { ...old, data: next } : next;
+    });
     addToast({
       type: 'success',
       title: t('eventCreated'),
@@ -59,7 +65,11 @@ export async function submitEvent(
     return event.data;
   } catch (error: any) {
     // Rollback optimistic add
-    removeEvent(tempId);
+    queryClient.setQueryData<any>(queryKeys.events, (old: any) => {
+      const list = old?.data ?? old ?? [];
+      const next = list.filter((e: Event) => e.id !== tempId);
+      return old?.data ? { ...old, data: next } : next;
+    });
     addToast({
       type: 'error',
       title: t('failedToCreateEvent'),
@@ -81,7 +91,7 @@ export async function submitProposal(
   ctx: Ctx,
   options?: { successDescription?: string }
 ) {
-  const { apiClient, addToast, addProposal, removeProposal, t } = ctx;
+  const { apiClient, addToast, queryClient, t } = ctx;
   const tempId = `temp-${Date.now()}`;
   const optimisticProposal: Partial<Proposal> & { id: string } = {
     id: tempId,
@@ -97,12 +107,20 @@ export async function submitProposal(
     updated_at: new Date().toISOString(),
   } as any;
 
-  addProposal(optimisticProposal as Proposal);
+  // Add optimistically to proposals cache
+  queryClient.setQueryData<any>(queryKeys.proposals, (old: any) => {
+    const list = old?.data ?? old ?? [];
+    const next = [...list, optimisticProposal];
+    return old?.data ? { ...old, data: next } : next;
+  });
 
   try {
     const proposal = await apiClient.createProposal(params);
-    removeProposal(tempId);
-    addProposal(proposal.data);
+    queryClient.setQueryData<any>(queryKeys.proposals, (old: any) => {
+      const list = old?.data ?? old ?? [];
+      const next = list.map((p: Proposal) => (p.id === tempId ? proposal.data : p));
+      return old?.data ? { ...old, data: next } : next;
+    });
     addToast({
       type: 'success',
       title: t('proposalSent'),
@@ -110,7 +128,11 @@ export async function submitProposal(
     });
     return proposal.data;
   } catch (error: any) {
-    removeProposal(tempId);
+    queryClient.setQueryData<any>(queryKeys.proposals, (old: any) => {
+      const list = old?.data ?? old ?? [];
+      const next = list.filter((p: Proposal) => p.id !== tempId);
+      return old?.data ? { ...old, data: next } : next;
+    });
     addToast({
       type: 'error',
       title: t('failedToCreateProposal') || 'Failed to create proposal',

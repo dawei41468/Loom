@@ -14,7 +14,6 @@ import {
   Eye,
   EyeOff,
 } from 'lucide-react';
-import { useEvents, useEventsActions } from '../contexts/EventsContext';
 import { useAuthState } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { Event } from '../types';
@@ -28,8 +27,6 @@ import EventChecklist from '../components/EventChecklist';
 const EventDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const events = useEvents();
-  const { removeEvent, addEvent } = useEventsActions();
   const { user, partner } = useAuthState();
   const { addToast } = useToastContext();
 
@@ -46,18 +43,14 @@ const EventDetail = () => {
   });
   const partnerForDisplay = partnerResponse?.data || partner;
 
-  // First try to find event in context
-  const contextEvent = events.find(e => e.id === id);
-
-  // Use React Query for individual event loading if not in context
+  // Load event exclusively via React Query
   const { data: eventData, isLoading: isLoadingEvent, error: eventError } = useQuery({
     queryKey: queryKeys.event(id!),
     queryFn: () => eventQueries.getEvent(id!),
-    enabled: !contextEvent && !!id, // Only run if event not in context and id exists
+    enabled: !!id,
   });
 
-  // Use context event or individually loaded event
-  const event = contextEvent || eventData?.data || null;
+  const event = eventData?.data || null;
 
   // Delete event mutation with optimistic update
   const deleteEventMutation = useMutation({
@@ -86,9 +79,6 @@ const EventDetail = () => {
         queryClient.setQueryData(queryKeys.event(eventId), undefined);
       }
 
-      // Update context mirror
-      removeEvent(eventId);
-
       return { prevEvents, prevEvent };
     },
     onError: (error, eventId, context) => {
@@ -99,11 +89,6 @@ const EventDetail = () => {
       }
       if (eventId && context?.prevEvent !== undefined) {
         queryClient.setQueryData(queryKeys.event(eventId), context.prevEvent);
-      }
-      // Restore in context if available
-      const restored = (context?.prevEvent as any)?.data ?? context?.prevEvent;
-      if (restored) {
-        try { addEvent(restored as Event); } catch {}
       }
       addToast({
         type: 'error',

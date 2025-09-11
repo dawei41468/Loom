@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Filter } from 'lucide-react';
-import { useEvents, useEventFilter, useEventsActions } from '../contexts/EventsContext';
+import { useEventFilter, useEventsActions } from '../contexts/EventsContext';
 import { Event } from '../types';
 import { PageHeader } from '../components/ui/page-header';
 import { Section } from '../components/ui/section';
@@ -26,9 +26,8 @@ interface CalendarEventType {
 
 const CalendarPage = () => {
   const navigate = useNavigate();
-  const events = useEvents();
   const filter = useEventFilter();
-  const { setEventFilter, setEvents } = useEventsActions();
+  const { setEventFilter } = useEventsActions();
   const { addToast } = useToastContext();
   const { t } = useTranslation();
   const { user, partner } = useAuthState();
@@ -43,12 +42,7 @@ const CalendarPage = () => {
     queryFn: eventQueries.getEvents,
   });
 
-  // Update context when data changes
-  useEffect(() => {
-    if (eventsData?.data) {
-      setEvents(eventsData.data);
-    }
-  }, [eventsData?.data, setEvents]); // setEvents is now memoized so it's safe to include
+  const events = eventsData?.data ?? [];
 
   // Handle errors
   useEffect(() => {

@@ -28,7 +28,6 @@ import ThemeProvider from './components/ThemeProvider';
 import { ToastProvider } from './contexts/ToastContext';
 import { AuthProvider, useAuthState } from './contexts/AuthContext';
 import { EventsProvider } from './contexts/EventsContext';
-import { TasksProvider } from './contexts/TasksContext';
 import { UIProvider } from './contexts/UIContext';
 
 // Hooks
@@ -179,25 +178,23 @@ const App = React.memo(() => {
         <ToastProvider>
           <AuthProvider>
             <EventsProvider>
-              <TasksProvider>
-                <UIProvider>
-                  <ThemeProvider>
-                    <BrowserRouter
-                      future={{
-                        v7_startTransition: true,
-                        v7_relativeSplatPath: true
-                      }}
-                    >
-                      <div className="min-h-screen bg-[hsl(var(--loom-bg))] text-[hsl(var(--loom-text))]">
-                        <PollingManager />
-                        <AuthenticatedSocketManager />
-                        <AppRoutes />
-                        <ToastContainer />
-                      </div>
-                    </BrowserRouter>
-                  </ThemeProvider>
-                </UIProvider>
-              </TasksProvider>
+              <UIProvider>
+                <ThemeProvider>
+                  <BrowserRouter
+                    future={{
+                      v7_startTransition: true,
+                      v7_relativeSplatPath: true,
+                    }}
+                  >
+                    <div className="min-h-screen bg-[hsl(var(--loom-bg))] text-[hsl(var(--loom-text))]">
+                      <PollingManager />
+                      <AuthenticatedSocketManager />
+                      <AppRoutes />
+                      <ToastContainer />
+                    </div>
+                  </BrowserRouter>
+                </ThemeProvider>
+              </UIProvider>
             </EventsProvider>
           </AuthProvider>
         </ToastProvider>

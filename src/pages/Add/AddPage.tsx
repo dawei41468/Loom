@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format, addDays, addHours } from 'date-fns';
 import { X, MapPin } from 'lucide-react';
-import { useEventsActions } from '../../contexts/EventsContext';
+// EventsContext no longer used for server-derived state
 import { useAuthState, useAuthDispatch } from '../../contexts/AuthContext';
 import { useToastContext } from '../../contexts/ToastContext';
 import { apiClient } from '../../api/client';
@@ -20,6 +20,7 @@ import { convertTimeToISO, computeEndFromStart } from '../../utils/datetime';
 import { parseTitle, parseTime, parseDay } from '../../utils/nlp';
 import { useProposalSlots } from './hooks/useProposalSlots';
 import { submitEvent, submitProposal } from './submitters';
+import { useQueryClient } from '@tanstack/react-query';
 import EventForm from './EventForm';
 import ProposalForm from './ProposalForm';
 
@@ -30,7 +31,7 @@ type VisibilityType = 'shared' | 'private' | 'title_only';
 const AddPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { addEvent, addProposal, removeEvent, removeProposal } = useEventsActions();
+  const queryClient = useQueryClient();
   const { user, partner } = useAuthState();
   const authDispatch = useAuthDispatch();
   const { addToast } = useToastContext();
@@ -220,7 +221,7 @@ const AddPage = () => {
           addToast({ type: 'error', title: 'Partner not ready', description: 'Could not determine partner id. Please reload and try again.' });
           return;
         }
-        await submitProposal(proposalPayload, { apiClient, addToast, addProposal, addEvent, removeProposal, removeEvent, t });
+        await submitProposal(proposalPayload, { apiClient, addToast, queryClient, t });
       } else {
         await submitEvent({
           title,
@@ -232,7 +233,7 @@ const AddPage = () => {
           attendees: includePartner && partner ? [user!.id, partner.id] : [user!.id],
           created_by: user!.id,
           reminders,
-        }, { apiClient, addToast, addEvent, addProposal, removeEvent, removeProposal, t });
+        }, { apiClient, addToast, queryClient, t });
       }
 
       navigate('/');

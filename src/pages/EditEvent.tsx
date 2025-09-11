@@ -5,7 +5,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { format, parseISO, addDays } from 'date-fns';
 import { MapPin, Clock, Users, Bell, X } from 'lucide-react';
 import { useAuthState } from '../contexts/AuthContext';
-import { useEventsActions } from '../contexts/EventsContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
 import { Event } from '../types';
@@ -23,7 +22,6 @@ const EditEvent = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, partner } = useAuthState();
-  const { updateEvent: updateEventInCtx } = useEventsActions();
   const { addToast } = useToastContext();
   const queryClient = useQueryClient();
 
@@ -126,9 +124,6 @@ const EditEvent = () => {
         const next = list.map((e: Event) => (String(e.id) === String(event.id) ? { ...e, ...payload } : e));
         return old?.data ? { ...old, data: next } : next;
       });
-
-      // Update context mirror
-      updateEventInCtx(event.id, payload);
 
       return { prevEvent, prevEvents };
     },
