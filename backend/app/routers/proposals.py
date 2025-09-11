@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from ..models import ProposalCreate, User, ApiResponse, TimeSlot
 from ..auth import get_current_user
-from ..services import get_proposal_service, ProposalService
+from ..service_layer.proposal_service import get_proposal_service, ProposalService
 
 router = APIRouter(prefix="/proposals", tags=["proposals"])
 

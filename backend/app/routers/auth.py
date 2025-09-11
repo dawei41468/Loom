@@ -8,7 +8,7 @@ from ..auth import authenticate_user, create_access_token, create_refresh_token,
 from ..database import get_database
 from ..config import settings
 from ..security import validate_password_strength, validate_email_format
-from bson import ObjectId
+from pymongo import ReturnDocument
 
 # Rate limiter for auth endpoints
 limiter = Limiter(key_func=get_remote_address)
@@ -158,19 +158,14 @@ async def update_current_user(
 
     if update_data:
         update_data["updated_at"] = datetime.now(timezone.utc)
-        result = await db.users.update_one(
+        updated_user = await db.users.find_one_and_update(
             {"_id": current_user.id},
-            {"$set": update_data}
+            {"$set": update_data},
+            return_document=ReturnDocument.AFTER
         )
+    else:
+        updated_user = await db.users.find_one({"_id": current_user.id})
 
-        if result.modified_count == 0:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to update user"
-            )
-
-    # Get updated user
-    updated_user = await db.users.find_one({"_id": current_user.id})
     if not updated_user:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

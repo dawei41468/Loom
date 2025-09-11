@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI
 import logging
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -7,12 +7,42 @@ from .database import connect_to_mongo, close_mongo_connection
 from .middleware import setup_middleware
 from .cache import cache_manager
 from .routers import auth, events, tasks, proposals, partner, availability, websockets
-from . import websocket as ws
+
+
+def _validate_security_settings():
+    """Validate critical security settings based on environment.
+
+    - In production, fail fast if SECRET_KEY appears to be a default placeholder.
+    - Warn if CORS settings are permissive.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # Fail fast on bad secrets in production
+    if getattr(settings, "ENV", "dev") in {"prod", "production"}:
+        default_secret_substr = "your-super-secure-secret-key-change-this"
+        if default_secret_substr in getattr(settings, "SECRET_KEY", ""):
+            raise RuntimeError(
+                "SECURITY: SECRET_KEY is using a default value in production. "
+                "Set a strong unique SECRET_KEY via environment variables."
+            )
+
+        # Ensure CORS is explicitly configured in production
+        if not getattr(settings, "CORS_ORIGINS", []):
+            raise RuntimeError(
+                "SECURITY: CORS_ORIGINS is empty in production. Configure allowed origins explicitly."
+            )
+    else:
+        # Development guidance
+        logger.info(
+            "Security (dev): Using development settings. Ensure SECRET_KEY and CORS are hardened in production."
+        )
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    _validate_security_settings()
     await connect_to_mongo()
     await cache_manager.initialize()
     yield

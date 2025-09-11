@@ -1,11 +1,10 @@
-from typing import Dict, List, Optional, Set, Deque, Any
+from typing import Dict, List, Optional, Deque, Any
 from fastapi import WebSocket, WebSocketDisconnect
 import json
 import logging
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from collections import defaultdict, deque
-import weakref
 
 # Import auth function - using absolute import to avoid relative import issues
 try:

@@ -159,6 +159,23 @@ PROJECT_NAME=Loom API
 - **Recurring Events**: Support for creating events that repeat on a schedule.
 - **Calendar Integrations**: Allowing users to sync with Google Calendar or Outlook.
 
+## 🛡️ Security
+
+The backend enforces basic configuration checks at startup to avoid insecure deployments.
+
+- **Production**
+  - Set `ENV=production` (or `prod`).
+  - Provide a strong, unique `SECRET_KEY` via environment variables. The app fails fast if a default placeholder is detected.
+  - Configure `CORS_ORIGINS` explicitly for allowed domains (e.g., your site origins). The app fails fast if empty in production.
+  - Auth endpoints are rate-limited (see `routers/auth.py`).
+  - WebSockets require a JWT token in the query string (see `routers/websockets.py` and `routers/events.py`).
+
+- **Development**
+  - Redis cache is disabled by default; the app falls back to an in-memory cache (`app/cache.py`).
+  - A reminder is logged at startup to harden `SECRET_KEY` and CORS in production.
+
+Refer to `backend/app/main.py` for the startup validation and `backend/app/config.py` for environment settings.
+
 ## 📚 API Documentation
 
 The API is fully documented with OpenAPI/Swagger. When running the backend server, visit:

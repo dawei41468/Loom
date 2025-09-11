@@ -1,12 +1,10 @@
-import json
-from typing import Any, Optional, Union
+from typing import Any, Optional
 from .config import settings
 from urllib.parse import urlparse
 
 # Import aiocache with fallback handling
 try:
     from aiocache import caches  # type: ignore
-    from aiocache.serializers import JsonSerializer  # type: ignore
     AIOCACHE_AVAILABLE = True
 except ImportError:
     AIOCACHE_AVAILABLE = False

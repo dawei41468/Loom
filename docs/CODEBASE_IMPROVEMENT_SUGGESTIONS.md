@@ -18,20 +18,42 @@ The backend is built on a solid foundation with FastAPI. The following suggestio
 *   **Centralize WebSocket Route Definitions**: The WebSocket endpoint is currently defined in `main.py`.
     *   **Suggestion**: Move the WebSocket endpoint definition to a new `routers/websockets.py` file to keep all routing logic organized within the `routers` directory.
 
-**Implementation Details**: Created `NotificationService` and `ProposalService` in `services.py`, extracted `serialize_for_json` to `utils.py`, centralized WebSocket routing in `routers/websockets.py`, and refactored `proposals.py` to use the service layer.
+**Implementation Details**: Created `NotificationService` in `services.py`, extracted `serialize_for_json` to `utils.py`, centralized WebSocket routing in `routers/websockets.py`, and refactored `proposals.py` to use a service-layer (`service_layer/proposal_service.py`).
 
-### 2. Performance and Scalability
+### 2. Performance and Scalability ✅ **FULLY IMPLEMENTED**
 
-*   **Optimize Database Queries**: In `proposals.py`, an extra database query is made to fetch the updated proposal after an update operation.
-    *   **Suggestion**: Use MongoDB's `find_one_and_update` method to return the updated document in a single operation, avoiding the extra database call in `accept_proposal` and `decline_proposal`.
+*   **Optimize Database Queries** ✅ Implemented
+    *   Previously: Endpoints often did `update` followed by `find` to fetch the updated document.
+    *   Now: Use MongoDB `find_one_and_update` with `ReturnDocument.AFTER` to return the updated document in a single operation across multiple areas:
+        *   Proposals: `service_layer/proposal_service.py` (`accept_proposal`, `decline_proposal`).
+        *   Events: `routers/events.py` → `EventsService.update_event()`.
+        *   Tasks: `routers/tasks.py` → `TasksService.toggle_task()` and `TasksService.update_task()`.
+        *   Auth: `routers/auth.py` → `update_current_user()`.
 
-*   **Asynchronous Operations**: Ensure all I/O-bound operations are fully asynchronous.
+*   **Asynchronous Operations** ✅ Maintained
     *   **Suggestion**: Continue using `motor` and ensure all database calls and external API requests are `await`ed to leverage FastAPI's asynchronous capabilities.
 
-### 3. Security
+**Additional Work Completed**
 
-*   **Configuration Management**: The use of environment variables is a good practice.
-    *   **Suggestion**: Ensure `.env` files are never committed to version control. For production, use a dedicated secret management service like AWS Secrets Manager or HashiCorp Vault.
+*   Service layer extraction beyond proposals:
+    *   `service_layer/events_service.py` (event CRUD),
+    *   `service_layer/event_messages_service.py` (event chat),
+    *   `service_layer/checklist_service.py` (event checklist),
+    *   `service_layer/tasks_service.py` (tasks),
+    *   `service_layer/partner_service.py` (partner flows).
+*   Routers (`events`, `tasks`, `partner`, `proposals`) now delegate to service methods; routers are thin and consistent.
+*   Development cache behavior improved: Redis disabled by default in `dev`, with robust in-memory fallback in `app/cache.py`.
+*   Codebase lint cleanup performed (unused imports, minor polish) — ruff checks pass.
+
+### 3. Security ✅ **BASIC IMPLEMENTATION COMPLETE**
+
+*   **Configuration Management**
+    *   ✅ `.env` files are gitignored; production secrets are server‑managed.
+    *   ✅ Startup validation added in `backend/app/main.py`:
+        *   Fail‑fast in production if `SECRET_KEY` is a default placeholder.
+        *   Fail‑fast in production if `CORS_ORIGINS` is empty (must be explicit).
+        *   Log guidance in development to harden settings for production.
+    *   ℹ️ Optional: Integrate a dedicated secrets manager (AWS Secrets Manager / Vault) — not required right now.
 
 ---
 

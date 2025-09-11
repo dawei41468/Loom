@@ -1,7 +1,6 @@
-from fastapi import APIRouter, WebSocket, Depends
+from fastapi import APIRouter, WebSocket
 from .. import websocket as ws
 from ..auth import get_current_user_ws
-from ..models import User
 
 router = APIRouter()
 
