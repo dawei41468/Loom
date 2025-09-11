@@ -21,8 +21,8 @@ import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys, eventQueries, partnerQueries } from '../api/queries';
 import { apiClient } from '../api/client';
-import EventChat from '../components/EventChat';
-import EventChecklist from '../components/EventChecklist';
+const EventChat = React.lazy(() => import('../components/EventChat'));
+const EventChecklist = React.lazy(() => import('../components/EventChecklist'));
 
 const EventDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -366,7 +366,9 @@ const EventDetail = () => {
 
     return (
       <div className="loom-card">
-        <EventChat eventId={event.id} hasAccess={true} />
+        <React.Suspense fallback={<div className="py-6 text-center text-sm text-[hsl(var(--loom-text-muted))]">Loading chat...</div>}>
+          <EventChat eventId={event.id} hasAccess={true} />
+        </React.Suspense>
       </div>
     );
   };
@@ -389,7 +391,9 @@ const EventDetail = () => {
 
     return (
       <div className="loom-card">
-        <EventChecklist eventId={event.id} />
+        <React.Suspense fallback={<div className="py-6 text-center text-sm text-[hsl(var(--loom-text-muted))]">Loading checklist...</div>}>
+          <EventChecklist eventId={event.id} />
+        </React.Suspense>
       </div>
     );
   };

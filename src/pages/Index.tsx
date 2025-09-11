@@ -23,17 +23,18 @@ const Index = () => {
   const { t } = useTranslation();
 
   // React Query reads: events and proposals
-  const { data: eventsResp } = useQuery({
+  const { data: events = [] } = useQuery({
     queryKey: queryKeys.events,
     queryFn: eventQueries.getEvents,
+    select: (resp) => resp.data ?? [],
+    staleTime: 30_000,
   });
-  const { data: proposalsResp } = useQuery({
+  const { data: proposals = [] } = useQuery({
     queryKey: queryKeys.proposals,
     queryFn: proposalQueries.getProposals,
+    select: (resp) => resp.data ?? [],
+    staleTime: 30_000,
   });
-
-  const events = eventsResp?.data ?? [];
-  const proposals = proposalsResp?.data ?? [];
 
   // Track selected time slot per proposal (index in proposed_times)
   const [selectedSlots, setSelectedSlots] = useState<Record<string, number>>({});
@@ -170,19 +171,19 @@ const Index = () => {
       .sort((a, b) => parseISO(a.start_time).getTime() - parseISO(b.start_time).getTime())[0];
   }, [events]);
 
-  const pendingProposals = proposals.filter(p => p.status === 'pending');
+  const pendingProposals = React.useMemo(() => proposals.filter(p => p.status === 'pending'), [proposals]);
 
-  const getEventType = (event: LoomEvent): 'user' | 'partner' | 'shared' => {
+  const getEventType = React.useCallback((event: LoomEvent): 'user' | 'partner' | 'shared' => {
     if (event.attendees.length > 1) return 'shared';
     if (event.created_by === user?.id) return 'user';
     return 'partner';
-  };
+  }, [user?.id]);
 
-  const formatEventTime = (event: LoomEvent) => {
+  const formatEventTime = React.useCallback((event: LoomEvent) => {
     const start = parseISO(event.start_time);
     const end = parseISO(event.end_time);
     return `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`;
-  };
+  }, []);
 
   const getNextUpText = (event: LoomEvent) => {
     const start = parseISO(event.start_time);

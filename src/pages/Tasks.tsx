@@ -13,11 +13,12 @@ import { queryKeys, taskQueries } from '../api/queries';
 
 const Tasks = () => {
   const queryClient = useQueryClient();
-  const { data: tasksResp } = useQuery({
+  const { data: tasks = [] } = useQuery({
     queryKey: queryKeys.tasks,
     queryFn: taskQueries.getTasks,
+    select: (resp) => resp.data ?? [],
+    staleTime: 30_000,
   });
-  const tasks = tasksResp?.data ?? [];
   const { user } = useAuthState();
   const { addToast } = useToastContext();
   const { t } = useTranslation();

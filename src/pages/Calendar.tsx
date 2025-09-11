@@ -37,12 +37,12 @@ const CalendarPage = () => {
   const [calendarHeight, setCalendarHeight] = useState('600px');
 
   // Use React Query for events data
-  const { data: eventsData, isLoading, error } = useQuery({
+  const { data: events = [], isLoading, error } = useQuery({
     queryKey: queryKeys.events,
     queryFn: eventQueries.getEvents,
+    select: (resp) => resp.data ?? [],
+    staleTime: 30_000,
   });
-
-  const events = eventsData?.data ?? [];
 
   // Handle errors
   useEffect(() => {

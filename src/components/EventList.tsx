@@ -201,4 +201,4 @@ const EventList: React.FC<EventListProps> = ({ events, range, isLoading, onEvent
   );
 };
 
-export default EventList;
+export default React.memo(EventList);
