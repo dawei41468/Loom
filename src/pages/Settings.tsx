@@ -15,6 +15,8 @@ import { useTheme, useLanguage, useUIActions } from '../contexts/UIContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '../i18n';
+import FormField from '../components/forms/FormField';
+import TextInput from '../components/forms/TextInput';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { partnerQueries } from '../api/queries';
 import { Partner } from '../types';
@@ -155,16 +157,16 @@ const Settings = () => {
         </div>
 
         <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium mb-2">{t('displayNameLabel')}</label>
-            <input
+          <FormField label={t('displayNameLabel')} htmlFor="display_name">
+            <TextInput
+              id="display_name"
+              name="display_name"
               type="text"
               value={displayNameInput}
               onChange={(e) => setDisplayNameInput(e.target.value)}
               disabled={isUpdating}
-              className="w-full px-3 py-2 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] disabled:opacity-50 disabled:cursor-not-allowed"
             />
-          </div>
+          </FormField>
 
           <div>
             <label className="block text-sm font-medium mb-2">{t('colorPreferenceLabel')}</label>

@@ -8,6 +8,10 @@ import { apiClient } from '../api/client';
 import { UserCreate } from '../types';
 import LoomLogo from '../components/LoomLogo';
 import { useTranslation } from '../i18n';
+import Form from '../components/forms/Form';
+import FormField from '../components/forms/FormField';
+import TextInput from '../components/forms/TextInput';
+import SubmitButton from '../components/forms/SubmitButton';
 
 const Register = () => {
   const [email, setEmail] = useState('');
@@ -141,101 +145,91 @@ const Register = () => {
         <div className="flex-1 px-6 pb-8 md:px-0 md:pb-12">
           <div className="max-w-md mx-auto md:max-w-lg">
             <div className="loom-card">
-            <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium mb-2 text-[hsl(var(--loom-text))]">
-                Display Name
-              </label>
-              <input
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="What should we call you?"
-                required
-                autoComplete="name"
-                className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:border-transparent"
-                disabled={isLoading}
-              />
-            </div>
+            <Form onSubmit={handleSubmit}>
+              <FormField label="Display Name" htmlFor="display_name" required>
+                <TextInput
+                  id="display_name"
+                  name="display_name"
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="What should we call you?"
+                  required
+                  autoComplete="name"
+                  disabled={isLoading}
+                />
+              </FormField>
 
-            <div>
-              <label className="block text-sm font-medium mb-2 text-[hsl(var(--loom-text))]">
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                required
-                autoComplete="email"
-                className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:border-transparent"
-                disabled={isLoading}
-              />
-            </div>
+              <FormField label="Email Address" htmlFor="email" required>
+                <TextInput
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  required
+                  autoComplete="email"
+                  disabled={isLoading}
+                />
+              </FormField>
 
-            <div>
-              <label className="block text-sm font-medium mb-2 text-[hsl(var(--loom-text))]">
-                Password
-              </label>
-              <div className="relative">
-                <input
+              <FormField label="Password" htmlFor="password" required>
+                <div className="relative">
+                  <TextInput
+                    id="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Create a password"
+                    required
+                    minLength={6}
+                    autoComplete="new-password"
+                    disabled={isLoading}
+                    className="pr-12"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[hsl(var(--loom-text-muted))] hover:text-[hsl(var(--loom-text))]"
+                    disabled={isLoading}
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </FormField>
+
+              <FormField label="Confirm Password" htmlFor="confirm_password" required>
+                <TextInput
+                  id="confirm_password"
+                  name="confirm_password"
                   type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Create a password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm your password"
                   required
                   minLength={6}
                   autoComplete="new-password"
-                  className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:border-transparent pr-12"
                   disabled={isLoading}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[hsl(var(--loom-text-muted))] hover:text-[hsl(var(--loom-text))]"
-                  disabled={isLoading}
-                  tabIndex={-1}
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-            </div>
+              </FormField>
 
-            <div>
-              <label className="block text-sm font-medium mb-2 text-[hsl(var(--loom-text))]">
-                Confirm Password
-              </label>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm your password"
-                required
-                minLength={6}
-                autoComplete="new-password"
-                className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:border-transparent"
-                disabled={isLoading}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading || !email || !displayName || !password || !confirmPassword}
-              className="loom-btn-primary w-full flex items-center justify-center space-x-2 disabled:opacity-50"
-            >
-              {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <UserPlus className="w-5 h-5" />
-              )}
-              <span>{isLoading ? t('creatingAccount') : t('createAccount')}</span>
-            </button>
-          </form>
+              <SubmitButton
+                isLoading={isLoading}
+                disabled={isLoading || !email || !displayName || !password || !confirmPassword}
+                aria-disabled={isLoading || !email || !displayName || !password || !confirmPassword}
+              >
+                {!isLoading && <UserPlus className="w-5 h-5" />}
+                <span>{isLoading ? t('creatingAccount') : t('createAccount')}</span>
+              </SubmitButton>
+            </Form>
 
           {/* Divider */}
           <div className="relative my-6">

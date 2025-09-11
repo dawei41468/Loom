@@ -8,6 +8,10 @@ import { apiClient } from '../api/client';
 import { UserLogin } from '../types';
 import LoomLogo from '../components/LoomLogo';
 import { useTranslation } from '../i18n';
+import Form from '../components/forms/Form';
+import FormField from '../components/forms/FormField';
+import TextInput from '../components/forms/TextInput';
+import SubmitButton from '../components/forms/SubmitButton';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -127,67 +131,61 @@ const Login = () => {
         <div className="flex-1 px-6 pb-8 md:px-0 md:pb-12">
           <div className="max-w-md mx-auto md:max-w-lg">
             <div className="loom-card">
-            <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium mb-2 text-[hsl(var(--loom-text))]">
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                required
-                autoComplete="email"
-                className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:border-transparent"
-                disabled={isLoading}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2 text-[hsl(var(--loom-text))]">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+            <Form onSubmit={handleSubmit}>
+              <FormField label="Email Address" htmlFor="email" required>
+                <TextInput
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
                   required
-                  autoComplete="current-password"
-                  className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:border-transparent pr-12"
+                  autoComplete="email"
                   disabled={isLoading}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[hsl(var(--loom-text-muted))] hover:text-[hsl(var(--loom-text))]"
-                  disabled={isLoading}
-                  tabIndex={-1}
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-            </div>
+              </FormField>
 
-            <button
-              type="submit"
-              disabled={isLoading || !email || !password}
-              className="loom-btn-primary w-full flex items-center justify-center space-x-2 disabled:opacity-50"
-            >
-              {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <LogIn className="w-5 h-5" />
-              )}
-              <span>{isLoading ? t('signingIn') : t('login')}</span>
-            </button>
-          </form>
+              <FormField label="Password" htmlFor="password" required>
+                <div className="relative">
+                  <TextInput
+                    id="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    required
+                    autoComplete="current-password"
+                    disabled={isLoading}
+                    className="pr-12"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[hsl(var(--loom-text-muted))] hover:text-[hsl(var(--loom-text))]"
+                    disabled={isLoading}
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </FormField>
+
+              <SubmitButton
+                isLoading={isLoading}
+                disabled={isLoading || !email || !password}
+                aria-disabled={isLoading || !email || !password}
+              >
+                {!isLoading && <LogIn className="w-5 h-5" />}
+                <span>{isLoading ? t('signingIn') : t('login')}</span>
+              </SubmitButton>
+            </Form>
 
           {/* Divider */}
           <div className="relative my-6">
