@@ -6,7 +6,7 @@ This document provides a comprehensive analysis of the codebase and offers sugge
 
 The backend is built on a solid foundation with FastAPI. The following suggestions focus on refining its structure and performance.
 
-### 1. Code Structure and Maintainability
+### 1. Code Structure and Maintainability ✅ **FULLY IMPLEMENTED**
 
 *   **Refactor `websocket.py`**: This file is large and handles multiple responsibilities.
     *   **Suggestion**: Create a `NotificationService` to handle the logic for sending WebSocket notifications (e.g., `notify_proposal_created`, `notify_event_created`). This will decouple notification logic from connection management.
@@ -17,6 +17,8 @@ The backend is built on a solid foundation with FastAPI. The following suggestio
 
 *   **Centralize WebSocket Route Definitions**: The WebSocket endpoint is currently defined in `main.py`.
     *   **Suggestion**: Move the WebSocket endpoint definition to a new `routers/websockets.py` file to keep all routing logic organized within the `routers` directory.
+
+**Implementation Details**: Created `NotificationService` and `ProposalService` in `services.py`, extracted `serialize_for_json` to `utils.py`, centralized WebSocket routing in `routers/websockets.py`, and refactored `proposals.py` to use the service layer.
 
 ### 2. Performance and Scalability
 

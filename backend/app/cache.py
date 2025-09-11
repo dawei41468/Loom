@@ -1,6 +1,7 @@
 import json
 from typing import Any, Optional, Union
 from .config import settings
+from urllib.parse import urlparse
 
 # Import aiocache with fallback handling
 try:
@@ -30,18 +31,53 @@ class CacheManager:
             return
 
         try:
+            # In development, do not use Redis even if enabled; prefer memory cache
+            if settings.ENV in {"dev", "development"}:
+                raise Exception("Redis disabled in development environment")
+
             if settings.CACHE_ENABLED and caches:
                 # Try Redis first
-                caches.set_config({  # type: ignore
+                # aiocache expects endpoint and port separately, not a full URL
+                redis_url = settings.CACHE_REDIS_URL
+                endpoint = redis_url
+                port = 6379
+                password = None
+                try:
+                    if redis_url.startswith("redis://") or redis_url.startswith("rediss://"):
+                        parsed = urlparse(redis_url)
+                        endpoint = parsed.hostname or "localhost"
+                        port = parsed.port or 6379
+                        password = parsed.password
+                    else:
+                        # Allow "host:port" or just host
+                        if ":" in redis_url:
+                            host_part, port_part = redis_url.split(":", 1)
+                            endpoint = host_part
+                            port = int(port_part)
+                        else:
+                            endpoint = redis_url
+                except Exception:
+                    # Fallback to defaults if parsing fails
+                    endpoint = "localhost"
+                    port = 6379
+                    password = None
+
+                config = {
                     'default': {
                         'cache': "aiocache.RedisCache",
-                        'endpoint': settings.CACHE_REDIS_URL,
+                        'endpoint': endpoint,
+                        'port': port,
                         'serializer': {
                             'class': "aiocache.serializers.JsonSerializer"
                         },
                         'ttl': settings.CACHE_TTL
                     }
-                })
+                }
+                # Optional auth if password provided
+                if password:
+                    config['default']['password'] = password  # type: ignore
+
+                caches.set_config(config)  # type: ignore
                 self.cache = caches.get('default')  # type: ignore
                 if self.cache:
                     await self.cache.clear()  # type: ignore
@@ -50,7 +86,7 @@ class CacheManager:
                 raise Exception("Cache disabled or aiocache not available")
 
         except Exception as e:
-            print(f"Redis cache failed, falling back to memory cache: {e}")
+            print(f"Redis cache skipped/failed, falling back to memory cache: {e}")
             # Fallback to memory cache
             try:
                 if caches:

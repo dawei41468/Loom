@@ -11,10 +11,12 @@ import weakref
 try:
     from app.config import settings
     from app.models import User
+    from app.utils import serialize_for_json
 except ImportError:
     # Fallback for when running as module
     from .config import settings
     from .models import User
+    from .utils import serialize_for_json
 
 logger = logging.getLogger(__name__)
 
@@ -42,20 +44,6 @@ class ConnectionManager:
 
         logger.debug("WebSocket ConnectionManager initialized")
 
-    def _serialize_for_json(self, obj):
-        """Recursively convert datetimes to ISO strings to make payload JSON-serializable."""
-        if isinstance(obj, datetime):
-            # Ensure timezone-aware and serialize
-            if obj.tzinfo is None:
-                obj = obj.replace(tzinfo=timezone.utc)
-            return obj.isoformat().replace('+00:00', 'Z')
-        if isinstance(obj, dict):
-            return {k: self._serialize_for_json(v) for k, v in obj.items()}
-        if isinstance(obj, list):
-            return [self._serialize_for_json(v) for v in obj]
-        if isinstance(obj, tuple):
-            return tuple(self._serialize_for_json(v) for v in obj)
-        return obj
 
     async def connect(self, websocket: WebSocket, event_id: str, user: User) -> bool:
         """Connect a WebSocket to an event room"""
@@ -139,7 +127,7 @@ class ConnectionManager:
                 continue
 
             try:
-                await websocket.send_json(self._serialize_for_json(message))
+                await websocket.send_json(serialize_for_json(message))
                 conn_info['last_activity'] = datetime.now(timezone.utc)
             except Exception as e:
                 logger.error(f"Failed to send message to user {user_id} in event {event_id}: {e}")
@@ -196,12 +184,12 @@ class ConnectionManager:
             del self.partner_connections[user_id]
             logger.debug(f"Partner WebSocket disconnected for user {user_id}")
 
-    async def _send_notification(self, user_id: str, message: dict):
+    async def send_notification(self, user_id: str, message: dict):
         """Send a notification to a specific user, queuing if offline."""
         if user_id in self.partner_connections:
             try:
                 websocket = self.partner_connections[user_id]['websocket']
-                await websocket.send_json(self._serialize_for_json(message))
+                await websocket.send_json(serialize_for_json(message))
                 self.partner_connections[user_id]['last_activity'] = datetime.now(timezone.utc)
                 logger.debug(f"Sent '{message.get('type')}' notification to user {user_id}")
             except Exception as e:
@@ -211,47 +199,6 @@ class ConnectionManager:
         else:
             self.queue_message_for_user(user_id, message)
 
-    async def notify_partner_disconnection(self, partner_user_id: str, disconnected_by_user: str):
-        """Notify partner that they have been disconnected"""
-        message = {
-            "type": "partner_disconnected",
-            "data": {
-                "disconnected_by": disconnected_by_user,
-                "message": "Your partner has disconnected from you"
-            }
-        }
-        await self._send_notification(partner_user_id, message)
-
-    async def notify_partner_connection(self, partner_user_id: str, connected_by_user: str):
-        """Notify partner that a user has connected with them"""
-        message = {
-            "type": "partner_connected",
-            "data": {
-                "connected_by": connected_by_user,
-                "message": "A user has connected with you"
-            }
-        }
-        await self._send_notification(partner_user_id, message)
-
-    async def notify_proposal_created(self, partner_user_id: str, proposal_data: dict):
-        """Notify partner that a new proposal has been created"""
-        message = {"type": "proposal_created", "data": proposal_data}
-        await self._send_notification(partner_user_id, message)
-
-    async def notify_proposal_updated(self, partner_user_id: str, proposal_data: dict):
-        """Notify partner that a proposal has been updated"""
-        message = {"type": "proposal_updated", "data": proposal_data}
-        await self._send_notification(partner_user_id, message)
-
-    async def notify_event_created(self, partner_user_id: str, event_data: dict):
-        """Notify partner that a new event has been created"""
-        message = {"type": "event_created", "data": event_data}
-        await self._send_notification(partner_user_id, message)
-
-    async def notify_event_deleted(self, partner_user_id: str, event_id: str):
-        """Notify partner that an event has been deleted"""
-        message = {"type": "event_deleted", "data": {"event_id": event_id}}
-        await self._send_notification(partner_user_id, message)
 
     async def send_personal_message(self, message: dict, websocket: WebSocket):
         """Send a message to a specific WebSocket connection"""
@@ -276,7 +223,7 @@ class ConnectionManager:
 
             for message in messages_to_send:
                 try:
-                    await websocket.send_json(self._serialize_for_json(message))
+                    await websocket.send_json(serialize_for_json(message))
                     logger.debug(f"Sent queued message to user {user_id}")
                 except Exception as e:
                     logger.error(f"Failed to send queued message to user {user_id}: {e}")
