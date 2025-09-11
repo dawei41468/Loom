@@ -8,6 +8,7 @@ import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '../i18n';
+import TextInput from '../components/forms/TextInput';
 
 const Tasks = () => {
   const tasks = useTasks();
@@ -123,13 +124,14 @@ const Tasks = () => {
       <div className="loom-card">
         <div className="flex items-center space-x-3">
           <Plus className="w-5 h-5 text-[hsl(var(--loom-primary))]" />
-          <input
+          <TextInput
+            variant="bare"
             type="text"
             value={newTaskTitle}
             onChange={(e) => setNewTaskTitle(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleAddTask()}
             placeholder={t('addNewTask')}
-            className="flex-1 bg-transparent border-none outline-none placeholder-[hsl(var(--loom-text-muted))]"
+            className="flex-1 placeholder-[hsl(var(--loom-text-muted))]"
           />
           {newTaskTitle.trim() && (
             <button
