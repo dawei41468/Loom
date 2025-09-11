@@ -241,7 +241,7 @@ const Partner = () => {
           </div>
 
           <div className="flex items-center space-x-2 p-3 rounded-[var(--loom-radius-md)] bg-[hsl(var(--loom-surface))] border mb-4">
-            <code className="flex-1 text-sm font-mono overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-[hsl(var(--loom-border))] scrollbar-track-transparent">
+            <code className="flex-1 text-sm font-mono overflow-x-auto whitespace-nowrap scrollbar-hide">
               {inviteUrl}
             </code>
             <button

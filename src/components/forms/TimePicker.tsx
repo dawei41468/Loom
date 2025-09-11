@@ -1,6 +1,5 @@
 import React, { useRef, useEffect, useState, forwardRef } from "react";
 import { Clock } from 'lucide-react';
-import './timepicker.css';
 
 // Generate arrays for hours, minutes, and periods
 const hours = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
