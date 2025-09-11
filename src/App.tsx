@@ -27,7 +27,7 @@ import ThemeProvider from './components/ThemeProvider';
 // Contexts & API
 import { ToastProvider } from './contexts/ToastContext';
 import { AuthProvider, useAuthState } from './contexts/AuthContext';
-import { EventsProvider } from './contexts/EventsContext';
+import { CalendarUIProvider } from './contexts/CalendarUIContext';
 import { UIProvider } from './contexts/UIContext';
 
 // Hooks
@@ -177,7 +177,7 @@ const App = React.memo(() => {
       <TooltipProvider>
         <ToastProvider>
           <AuthProvider>
-            <EventsProvider>
+            <CalendarUIProvider>
               <UIProvider>
                 <ThemeProvider>
                   <BrowserRouter
@@ -195,7 +195,7 @@ const App = React.memo(() => {
                   </BrowserRouter>
                 </ThemeProvider>
               </UIProvider>
-            </EventsProvider>
+            </CalendarUIProvider>
           </AuthProvider>
         </ToastProvider>
       </TooltipProvider>

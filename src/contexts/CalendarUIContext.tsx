@@ -1,30 +1,28 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
 import { CalendarView, EventFilter } from '../types';
 
- 
-
 // 1. Define State Shape
-interface EventsState {
+interface CalendarUIState {
   isLoading: boolean;
   filter: EventFilter;
   calendarView: CalendarView;
 }
 
 // 2. Define Action Types
-type EventsAction =
+type CalendarUIAction =
   | { type: 'SET_EVENTS_LOADING'; payload: boolean }
   | { type: 'SET_EVENT_FILTER'; payload: EventFilter }
   | { type: 'SET_CALENDAR_VIEW'; payload: CalendarView };
 
 // 3. Initial State
-const initialState: EventsState = {
+const initialState: CalendarUIState = {
   isLoading: false,
   filter: { type: 'all' },
   calendarView: { type: '3day', date: new Date().toISOString().split('T')[0] },
 };
 
 // 4. Reducer Function
-const eventsReducer = (state: EventsState, action: EventsAction): EventsState => {
+const calendarUIReducer = (state: CalendarUIState, action: CalendarUIAction): CalendarUIState => {
   switch (action.type) {
     case 'SET_EVENTS_LOADING':
       return { ...state, isLoading: action.payload };
@@ -38,59 +36,58 @@ const eventsReducer = (state: EventsState, action: EventsAction): EventsState =>
 };
 
 // 5. Create Contexts
-const EventsStateContext = createContext<EventsState | undefined>(undefined);
-const EventsDispatchContext = createContext<React.Dispatch<EventsAction> | undefined>(undefined);
+const CalendarUIStateContext = createContext<CalendarUIState | undefined>(undefined);
+const CalendarUIDispatchContext = createContext<React.Dispatch<CalendarUIAction> | undefined>(undefined);
 
-// 6. Events Provider Component
-export const EventsProvider = ({ children }: { children: React.ReactNode }) => {
-  const [state, dispatch] = useReducer(eventsReducer, initialState);
+// 6. Provider Component
+export const CalendarUIProvider = ({ children }: { children: React.ReactNode }) => {
+  const [state, dispatch] = useReducer(calendarUIReducer, initialState);
 
   return (
-    <EventsStateContext.Provider value={state}>
-      <EventsDispatchContext.Provider value={dispatch}>
+    <CalendarUIStateContext.Provider value={state}>
+      <CalendarUIDispatchContext.Provider value={dispatch}>
         {children}
-      </EventsDispatchContext.Provider>
-    </EventsStateContext.Provider>
+      </CalendarUIDispatchContext.Provider>
+    </CalendarUIStateContext.Provider>
   );
 };
 
-// 7. Custom Hooks
-export const useEventsState = () => {
-  const context = useContext(EventsStateContext);
+// 7. State selectors
+export const useCalendarUIState = () => {
+  const context = useContext(CalendarUIStateContext);
   if (context === undefined) {
-    throw new Error('useEventsState must be used within an EventsProvider');
+    throw new Error('useCalendarUIState must be used within a CalendarUIProvider');
   }
   return context;
 };
 
-export const useEventsDispatch = () => {
-  const context = useContext(EventsDispatchContext);
+export const useCalendarUIDispatch = () => {
+  const context = useContext(CalendarUIDispatchContext);
   if (context === undefined) {
-    throw new Error('useEventsDispatch must be used within an EventsProvider');
+    throw new Error('useCalendarUIDispatch must be used within a CalendarUIProvider');
   }
   return context;
 };
 
-// 8. Convenience hooks that match the original Zustand selectors
 export const useEventsLoading = () => {
-  const state = useEventsState();
+  const state = useCalendarUIState();
   return state.isLoading;
 };
 
 export const useEventFilter = () => {
-  const state = useEventsState();
+  const state = useCalendarUIState();
   return state.filter;
 };
 
 export const useCalendarView = () => {
-  const state = useEventsState();
+  const state = useCalendarUIState();
   return state.calendarView;
 };
 
-// 9. Action creators for convenience
-export const useEventsActions = () => {
-  const dispatch = useEventsDispatch();
-  
+// 8. Actions
+export const useCalendarUIActions = () => {
+  const dispatch = useCalendarUIDispatch();
+
   return {
     setEventsLoading: useCallback((loading: boolean) => dispatch({ type: 'SET_EVENTS_LOADING', payload: loading }), [dispatch]),
     setEventFilter: useCallback((filter: EventFilter) => dispatch({ type: 'SET_EVENT_FILTER', payload: filter }), [dispatch]),

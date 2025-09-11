@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 import { useAuthDispatch, useAuthState } from '../contexts/AuthContext';
-import { useEventsActions } from '../contexts/EventsContext';
 import { Partner, Proposal, Event } from '../types';
 import { useQueryClient } from '@tanstack/react-query';
 import { useWebSocketBase, WebSocketMessage as BaseWebSocketMessage } from './useWebSocketBase';
@@ -15,7 +14,6 @@ export interface PartnerWebSocketMessage {
 export const usePartnerWebSocket = () => {
   const { user } = useAuthState();
   const authDispatch = useAuthDispatch();
-  const { addProposal, updateProposal, addEvent, removeEvent } = useEventsActions();
   const queryClient = useQueryClient();
 
   const getWebSocketUrl = useCallback(() => {
@@ -45,16 +43,23 @@ export const usePartnerWebSocket = () => {
         queryClient.invalidateQueries({ queryKey: queryKeys.partner });
       } else if (partnerMessage.type === 'proposal_created') {
         const proposalData = partnerMessage.data as { proposal: Proposal; message: string };
-        addProposal(proposalData.proposal);
-        // Invalidate proposals query to refresh the proposals list
+        // Add to proposals cache
+        queryClient.setQueryData<any>(queryKeys.proposals, (old: any) => {
+          const list = old?.data ?? old ?? [];
+          const next = [...list, proposalData.proposal];
+          return old?.data ? { ...old, data: next } : next;
+        });
         queryClient.invalidateQueries({ queryKey: queryKeys.proposals });
       } else if (partnerMessage.type === 'proposal_updated') {
         // Backend sends { proposal, message }
         const payload = partnerMessage.data as { proposal: Proposal; message?: string };
         const proposal = (payload && (payload as any).proposal) ? (payload as any).proposal as Proposal : (partnerMessage.data as unknown as Proposal);
         if (proposal && (proposal as any).id) {
-          updateProposal(proposal.id, proposal);
-          // Also invalidate proposals to ensure all consumers are in sync
+          queryClient.setQueryData<any>(queryKeys.proposals, (old: any) => {
+            const list = old?.data ?? old ?? [];
+            const next = list.map((p: Proposal) => (String(p.id) === String(proposal.id) ? proposal : p));
+            return old?.data ? { ...old, data: next } : next;
+          });
           queryClient.invalidateQueries({ queryKey: queryKeys.proposals });
         } else {
           // Fallback log to diagnose unexpected payloads
@@ -62,20 +67,26 @@ export const usePartnerWebSocket = () => {
         }
       } else if (partnerMessage.type === 'event_created') {
         const event = partnerMessage.data as Event;
-        // Add event to local state immediately for instant UI update
-        addEvent(event);
-        // Also invalidate events query for consistency
+        // Add event to events cache
+        queryClient.setQueryData<any>(queryKeys.events, (old: any) => {
+          const list = old?.data ?? old ?? [];
+          const next = [...list, event];
+          return old?.data ? { ...old, data: next } : next;
+        });
         queryClient.invalidateQueries({ queryKey: queryKeys.events });
       } else if (partnerMessage.type === 'event_deleted') {
-        // Remove event from local state immediately for instant UI update
-        removeEvent((partnerMessage.data as { event_id: string }).event_id);
-        // Also invalidate events query for consistency
+        const eventId = (partnerMessage.data as { event_id: string }).event_id;
+        queryClient.setQueryData<any>(queryKeys.events, (old: any) => {
+          const list = old?.data ?? old ?? [];
+          const next = list.filter((e: Event) => String(e.id) !== String(eventId));
+          return old?.data ? { ...old, data: next } : next;
+        });
         queryClient.invalidateQueries({ queryKey: queryKeys.events });
       }
     } catch (error) {
       console.error('Failed to parse partner WebSocket message:', error);
     }
-  }, [authDispatch, queryClient, addProposal, updateProposal, addEvent, removeEvent]);
+  }, [authDispatch, queryClient]);
 
   const baseWebSocket = useWebSocketBase(
     getWebSocketUrl,

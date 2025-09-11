@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Filter } from 'lucide-react';
-import { useEventFilter, useEventsActions } from '../contexts/EventsContext';
+import { useEventFilter, useCalendarUIActions } from '../contexts/CalendarUIContext';
 import { Event } from '../types';
 import { PageHeader } from '../components/ui/page-header';
 import { Section } from '../components/ui/section';
@@ -27,7 +27,7 @@ interface CalendarEventType {
 const CalendarPage = () => {
   const navigate = useNavigate();
   const filter = useEventFilter();
-  const { setEventFilter } = useEventsActions();
+  const { setEventFilter } = useCalendarUIActions();
   const { addToast } = useToastContext();
   const { t } = useTranslation();
   const { user, partner } = useAuthState();

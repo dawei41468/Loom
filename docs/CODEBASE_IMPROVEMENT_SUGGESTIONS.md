@@ -98,6 +98,11 @@ The frontend is modern and well-architected. These suggestions aim to further im
         *   `Add/submitters.ts`: optimistic create patches events/proposals caches using temp IDs with rollback.
         *   `Tasks.tsx`: tasks via `useQuery`; optimistic add/toggle/delete update `queryKeys.tasks` cache with rollback.
     *   All optimistic mutations use `onMutate`/`onError`/`onSettled` and invalidate queries to keep caches synced.
+    
+    -   Context Refactor
+        -   Replaced `EventsContext` with `CalendarUIContext` (UI-only: `filter`, `calendarView`, optional `isLoading`).
+        -   `App.tsx` now wraps the app with `CalendarUIProvider` (no `TasksProvider` / server-list contexts).
+        -   WebSocket updates (`usePartnerWebSocket`) now write directly to React Query caches (events/proposals) and invalidate queries.
 
 *   **Optimistic Updates** ✅ **FULLY IMPLEMENTED**
     *   Implemented across key operations with `onMutate`/`onError`/`onSettled` patterns and cache rollbacks:
