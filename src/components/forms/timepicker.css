@@ -21,7 +21,7 @@
   background: linear-gradient(
     to bottom,
     hsl(var(--loom-surface)) 0%,
-    hsl(var(--loom-surface)) 50%,
+    hsl(var(--loom-surface)) 25%,
     rgba(249, 250, 251, 0.8) 75%,
     transparent 100%
   );
@@ -32,8 +32,8 @@
 .dark .loom-blur-top {
   background: linear-gradient(
     to bottom,
-    hsl(var(--loom-bg)) 0%,
-    hsl(var(--loom-bg)) 50%,
+    hsl(var(--loom-surface)) 0%,
+    hsl(var(--loom-surface)) 25%,
     rgba(17, 24, 39, 0.8) 75%,
     transparent 100%
   );
@@ -45,7 +45,7 @@
   background: linear-gradient(
     to top,
     hsl(var(--loom-surface)) 0%,
-    hsl(var(--loom-surface)) 50%,
+    hsl(var(--loom-surface)) 25%,
     rgba(249, 250, 251, 0.8) 75%,
     transparent 100%
   );
@@ -56,8 +56,8 @@
 .dark .loom-blur-bottom {
   background: linear-gradient(
     to top,
-    hsl(var(--loom-bg)) 0%,
-    hsl(var(--loom-bg)) 50%,
+    hsl(var(--loom-surface)) 0%,
+    hsl(var(--loom-surface)) 25%,
     rgba(17, 24, 39, 0.8) 75%,
     transparent 100%
   );
