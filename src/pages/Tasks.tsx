@@ -42,17 +42,32 @@ const Tasks = () => {
     if (!newTaskTitle.trim()) return;
 
     try {
-      const task = await apiClient.createTask({
+      // Optimistic add
+      const tempId = `temp-${Date.now()}`;
+      addTask({
+        id: tempId,
         title: newTaskTitle,
         created_by: user!.id,
-      });
+        completed: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as any);
 
-      addTask(task.data);
-      setNewTaskTitle('');
-      addToast({
-        type: 'success',
-        title: t('taskAdded'),
-      });
+      try {
+        const task = await apiClient.createTask({
+          title: newTaskTitle,
+          created_by: user!.id,
+        });
+        // Replace optimistic with server result
+        removeTask(tempId);
+        addTask(task.data);
+        setNewTaskTitle('');
+        addToast({ type: 'success', title: t('taskAdded') });
+      } catch (error) {
+        // Rollback optimistic add
+        removeTask(tempId);
+        throw error;
+      }
     } catch (error) {
       addToast({
         type: 'error',
@@ -63,10 +78,17 @@ const Tasks = () => {
   };
 
   const handleToggleTask = async (taskId: string) => {
+    const current = tasks.find((t) => t.id === taskId);
+    if (!current) return;
+    const prev = { ...current };
+    // Optimistically toggle
+    updateTask(taskId, { completed: !current.completed } as any);
     try {
       const task = await apiClient.toggleTask(taskId);
       updateTask(taskId, task.data);
     } catch (error) {
+      // Rollback
+      updateTask(taskId, prev as any);
       addToast({
         type: 'error',
         title: t('failedToUpdateTask'),
@@ -76,14 +98,17 @@ const Tasks = () => {
   };
 
   const handleDeleteTask = async (taskId: string) => {
+    const prev = tasks.find((t) => t.id === taskId);
+    // Optimistically remove
+    removeTask(taskId);
     try {
       await apiClient.deleteTask(taskId);
-      removeTask(taskId);
-      addToast({
-        type: 'success',
-        title: t('taskDeleted'),
-      });
+      addToast({ type: 'success', title: t('taskDeleted') });
     } catch (error) {
+      // Rollback
+      if (prev) {
+        addTask(prev as any);
+      }
       addToast({
         type: 'error',
         title: t('failedToDeleteTask'),

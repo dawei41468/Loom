@@ -81,61 +81,113 @@ const EventChecklist: React.FC<EventChecklistProps> = ({ eventId }) => {
   const createItemMutation = useMutation({
     mutationFn: (item: { title: string; description?: string }) =>
       apiClient.createChecklistItem(eventId, item),
-    onSuccess: () => {
-      setNewItemTitle('');
-      setNewItemDescription('');
-      setShowAddForm(false);
-      queryClient.invalidateQueries({ queryKey: queryKeys.eventChecklist(eventId) });
-      addToast({
-        type: 'success',
-        title: t('itemAdded'),
-        description: t('checklistItemCreated'),
+    onMutate: async (item) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.eventChecklist(eventId) });
+      const previous = queryClient.getQueryData<any>(queryKeys.eventChecklist(eventId));
+      // Optimistically add to checklist
+      queryClient.setQueryData<any>(queryKeys.eventChecklist(eventId), (old: any) => {
+        const list = old?.data ?? old ?? [];
+        const temp = {
+          id: `temp-${Date.now()}`,
+          event_id: eventId,
+          title: item.title,
+          description: item.description,
+          completed: false,
+          created_by: user?.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as any;
+        const next = [...list, temp];
+        return old?.data ? { ...old, data: next } : next;
       });
+      return { previous };
     },
-    onError: (error) => {
+    onError: (error, _vars, context) => {
       console.error('Failed to create checklist item:', error);
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(queryKeys.eventChecklist(eventId), context.previous);
+      }
       addToast({
         type: 'error',
         title: 'Failed to add item',
         description: 'Please try again.',
       });
     },
+    onSuccess: () => {
+      setNewItemTitle('');
+      setNewItemDescription('');
+      setShowAddForm(false);
+      addToast({
+        type: 'success',
+        title: t('itemAdded'),
+        description: t('checklistItemCreated'),
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.eventChecklist(eventId) });
+    }
   });
 
   // Update checklist item mutation
   const updateItemMutation = useMutation({
     mutationFn: ({ itemId, updates }: { itemId: string; updates: { completed: boolean } }) =>
       apiClient.updateChecklistItem(eventId, itemId, updates),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.eventChecklist(eventId) });
+    onMutate: async ({ itemId, updates }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.eventChecklist(eventId) });
+      const previous = queryClient.getQueryData<any>(queryKeys.eventChecklist(eventId));
+      // Optimistically toggle
+      queryClient.setQueryData<any>(queryKeys.eventChecklist(eventId), (old: any) => {
+        const list = old?.data ?? old ?? [];
+        const next = list.map((it: ChecklistItem) => it.id === itemId ? { ...it, ...updates } : it);
+        return old?.data ? { ...old, data: next } : next;
+      });
+      return { previous };
     },
-    onError: (error) => {
+    onError: (error, _vars, context) => {
       console.error('Failed to update checklist item:', error);
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(queryKeys.eventChecklist(eventId), context.previous);
+      }
       addToast({
         type: 'error',
         title: 'Failed to update item',
         description: 'Please try again.',
       });
     },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.eventChecklist(eventId) });
+    },
   });
 
   // Delete checklist item mutation
   const deleteItemMutation = useMutation({
     mutationFn: (itemId: string) => apiClient.deleteChecklistItem(eventId, itemId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.eventChecklist(eventId) });
-      addToast({
-        type: 'success',
-        title: 'Item deleted',
+    onMutate: async (itemId: string) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.eventChecklist(eventId) });
+      const previous = queryClient.getQueryData<any>(queryKeys.eventChecklist(eventId));
+      queryClient.setQueryData<any>(queryKeys.eventChecklist(eventId), (old: any) => {
+        const list = old?.data ?? old ?? [];
+        const next = list.filter((it: ChecklistItem) => String(it.id) !== String(itemId));
+        return old?.data ? { ...old, data: next } : next;
       });
+      return { previous };
     },
-    onError: (error) => {
+    onError: (error, _itemId, context) => {
       console.error('Failed to delete checklist item:', error);
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(queryKeys.eventChecklist(eventId), context.previous);
+      }
       addToast({
         type: 'error',
         title: 'Failed to delete item',
         description: 'Please try again.',
       });
+    },
+    onSuccess: () => {
+      addToast({ type: 'success', title: 'Item deleted' });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.eventChecklist(eventId) });
     },
   });
 

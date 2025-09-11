@@ -88,8 +88,13 @@ The frontend is modern and well-architected. These suggestions aim to further im
 *   **Consolidate State Management**: The current mix of React Context and `@tanstack/react-query` is effective.
     *   **Suggestion**: For server-derived state, rely more heavily on `@tanstack/react-query`'s cache as the single source of truth instead of duplicating it in a React Context. This can simplify state logic and reduce boilerplate.
 
-*   **Optimistic Updates**: The application uses mutations from `react-query`.
-    *   **Suggestion**: Implement optimistic updates for operations like creating or updating events to make the UI feel more responsive.
+*   **Optimistic Updates** ✅ **FULLY IMPLEMENTED**
+    *   Implemented across key operations with `onMutate`/`onError`/`onSettled` patterns and cache rollbacks:
+        *   Events: create (optimistic add with temp id), update (optimistic cache/context patch), delete (optimistic remove with rollback).
+        *   Proposals: accept (optimistic status + selected time; reconcile with created event), decline (optimistic status).
+        *   Tasks: add (optimistic temp), toggle (optimistic completed flag), delete (optimistic remove).
+        *   Event Checklist: create (optimistic append), toggle complete (optimistic), delete (optimistic remove).
+    *   Notes: All optimistic updates invalidate relevant queries on settle to keep caches synced.
 
 ### 3. Performance
 
