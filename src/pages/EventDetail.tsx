@@ -29,7 +29,7 @@ const EventDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const events = useEvents();
-  const { removeEvent } = useEventsActions();
+  const { removeEvent, addEvent } = useEventsActions();
   const { user, partner } = useAuthState();
   const { addToast } = useToastContext();
 
@@ -59,12 +59,59 @@ const EventDetail = () => {
   // Use context event or individually loaded event
   const event = contextEvent || eventData?.data || null;
 
-  // Delete event mutation
+  // Delete event mutation with optimistic update
   const deleteEventMutation = useMutation({
     mutationFn: (eventId: string) => apiClient.deleteEvent(eventId),
+    onMutate: async (eventId: string) => {
+      // Cancel any outgoing refetches to avoid race conditions
+      await queryClient.cancelQueries({ queryKey: queryKeys.events });
+      if (eventId) {
+        await queryClient.cancelQueries({ queryKey: queryKeys.event(eventId) });
+      }
+
+      // Snapshot previous caches
+      const prevEvents = queryClient.getQueryData<any>(queryKeys.events);
+      const prevEvent = eventId ? queryClient.getQueryData<any>(queryKeys.event(eventId)) : undefined;
+
+      // Optimistically remove from events list cache
+      queryClient.setQueryData<any>(queryKeys.events, (old: any) => {
+        const list = old?.data ?? old;
+        if (!Array.isArray(list)) return old;
+        const next = list.filter((e: Event) => String(e.id) !== String(eventId));
+        return old?.data ? { ...old, data: next } : next;
+      });
+
+      // Optimistically clear single event cache
+      if (eventId) {
+        queryClient.setQueryData(queryKeys.event(eventId), undefined);
+      }
+
+      // Update context mirror
+      removeEvent(eventId);
+
+      return { prevEvents, prevEvent };
+    },
+    onError: (error, eventId, context) => {
+      console.error('Failed to delete event:', error);
+      // Roll back caches
+      if (context?.prevEvents !== undefined) {
+        queryClient.setQueryData(queryKeys.events, context.prevEvents);
+      }
+      if (eventId && context?.prevEvent !== undefined) {
+        queryClient.setQueryData(queryKeys.event(eventId), context.prevEvent);
+      }
+      // Restore in context if available
+      const restored = (context?.prevEvent as any)?.data ?? context?.prevEvent;
+      if (restored) {
+        try { addEvent(restored as Event); } catch {}
+      }
+      addToast({
+        type: 'error',
+        title: 'Failed to delete event',
+        description: 'Please try again.',
+      });
+    },
     onSuccess: () => {
-      // Invalidate and refetch events
-      queryClient.invalidateQueries({ queryKey: queryKeys.events });
       addToast({
         type: 'success',
         title: 'Event deleted',
@@ -72,13 +119,11 @@ const EventDetail = () => {
       });
       navigate('/');
     },
-    onError: (error) => {
-      console.error('Failed to delete event:', error);
-      addToast({
-        type: 'error',
-        title: 'Failed to delete event',
-        description: 'Please try again.',
-      });
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.events });
+      if (variables) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.event(variables) });
+      }
     },
   });
 
