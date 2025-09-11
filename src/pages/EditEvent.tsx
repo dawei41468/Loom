@@ -1,10 +1,11 @@
 // Edit Event Page
 import * as React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { format, parseISO, addDays } from 'date-fns';
 import { MapPin, Clock, Users, Bell, X } from 'lucide-react';
 import { useAuthState } from '../contexts/AuthContext';
+import { useEventsActions } from '../contexts/EventsContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
 import { Event } from '../types';
@@ -16,11 +17,13 @@ import { DatePicker } from '../components/forms/DatePicker';
 import { TimePicker } from '../components/forms/TimePicker';
 import SubmitButton from '../components/forms/SubmitButton';
 import { cn } from '@/lib/utils';
+import { convertTimeToISO, computeEndFromStart } from '../utils/datetime';
 
 const EditEvent = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, partner } = useAuthState();
+  const { updateEvent: updateEventInCtx } = useEventsActions();
   const { addToast } = useToastContext();
   const queryClient = useQueryClient();
 
@@ -59,76 +62,6 @@ const EditEvent = () => {
   };
   const toDateOnly = (iso: string) => format(parseISO(iso), 'yyyy-MM-dd');
 
-  // Convert time string + date to ISO with local offset (same as Add.tsx)
-  const convertTimeToISO = (timeString: string, dateString: string) => {
-    const trimmed = (timeString || '').trim();
-    let m = trimmed.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/i);
-    if (m) {
-      let hour = parseInt(m[1], 10);
-      const minute = m[2] ? parseInt(m[2], 10) : 0;
-      const ampm = m[3].toUpperCase();
-      if (ampm === 'PM' && hour !== 12) hour += 12;
-      if (ampm === 'AM' && hour === 12) hour = 0;
-      const time24 = `${hour.toString().padStart(2, '0')}:${minute
-        .toString()
-        .padStart(2, '0')}`;
-      const localDate = new Date(`${dateString}T${time24}:00`);
-      const tzMinutes = localDate.getTimezoneOffset();
-      const sign = tzMinutes > 0 ? '-' : '+';
-      const abs = Math.abs(tzMinutes);
-      const offH = String(Math.floor(abs / 60)).padStart(2, '0');
-      const offM = String(abs % 60).padStart(2, '0');
-      return `${dateString}T${time24}:00${sign}${offH}:${offM}`;
-    }
-    m = trimmed.match(/^(\d{1,2})(?::(\d{2}))?$/);
-    if (m) {
-      const hour = Math.min(23, parseInt(m[1], 10));
-      const minute = m[2] ? Math.min(59, parseInt(m[2], 10)) : 0;
-      const time24 = `${hour.toString().padStart(2, '0')}:${minute
-        .toString()
-        .padStart(2, '0')}`;
-      const localDate = new Date(`${dateString}T${time24}:00`);
-      const tzMinutes = localDate.getTimezoneOffset();
-      const sign = tzMinutes > 0 ? '-' : '+';
-      const abs = Math.abs(tzMinutes);
-      const offH = String(Math.floor(abs / 60)).padStart(2, '0');
-      const offM = String(abs % 60).padStart(2, '0');
-      return `${dateString}T${time24}:00${sign}${offH}:${offM}`;
-    }
-    const localDate = new Date(`${dateString}T12:00:00`);
-    const tzMinutes = localDate.getTimezoneOffset();
-    const sign = tzMinutes > 0 ? '-' : '+';
-    const abs = Math.abs(tzMinutes);
-    const offH = String(Math.floor(abs / 60)).padStart(2, '0');
-    const offM = String(abs % 60).padStart(2, '0');
-    return `${dateString}T12:00:00${sign}${offH}:${offM}`;
-  };
-
-  const computeEndFromStart = (timeString: string): string => {
-    const trimmed = (timeString || '').trim();
-    let m = trimmed.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/i);
-    if (m) {
-      let hour12 = parseInt(m[1], 10);
-      const minute = m[2] ? Math.min(59, parseInt(m[2], 10)) : 0;
-      const ampm = m[3].toUpperCase();
-      let hour24 = hour12 % 12;
-      if (ampm === 'PM') hour24 += 12;
-      hour24 = (hour24 + 1) % 24;
-      const displayHour = hour24 % 12 === 0 ? 12 : hour24 % 12;
-      const displayAmpm = hour24 >= 12 ? 'PM' : 'AM';
-      return `${displayHour}:${minute.toString().padStart(2, '0')} ${displayAmpm}`;
-    }
-    m = trimmed.match(/^(\d{1,2})(?::(\d{2}))?$/);
-    if (m) {
-      let hour24 = Math.min(23, parseInt(m[1], 10));
-      const minute = m[2] ? Math.min(59, parseInt(m[2], 10)) : 0;
-      hour24 = (hour24 + 1) % 24;
-      const displayHour = hour24 % 12 === 0 ? 12 : hour24 % 12;
-      const displayAmpm = hour24 >= 12 ? 'PM' : 'AM';
-      return `${displayHour}:${minute.toString().padStart(2, '0')} ${displayAmpm}`;
-    }
-    return '1:00 PM';
-  };
 
   // Initialize form from event
   useEffect(() => {
@@ -169,15 +102,57 @@ const EditEvent = () => {
 
   const updateMutation = useMutation({
     mutationFn: (payload: Partial<Event>) => apiClient.updateEvent(event!.id, payload),
-    onSuccess: (resp) => {
-      // Refresh caches
-      queryClient.invalidateQueries({ queryKey: queryKeys.events });
-      queryClient.invalidateQueries({ queryKey: queryKeys.event(event!.id) });
-      addToast({ type: 'success', title: 'Event updated' });
-      navigate(`/event/${event!.id}`);
+    onMutate: async (payload: Partial<Event>) => {
+      if (!event) return;
+      // Cancel outgoing queries to avoid race conditions
+      await queryClient.cancelQueries({ queryKey: queryKeys.event(event.id) });
+      await queryClient.cancelQueries({ queryKey: queryKeys.events });
+
+      // Snapshot previous cache
+      const prevEvent = queryClient.getQueryData<any>(queryKeys.event(event.id));
+      const prevEvents = queryClient.getQueryData<any>(queryKeys.events);
+
+      // Optimistically update single event cache
+      queryClient.setQueryData<any>(queryKeys.event(event.id), (old: any) => {
+        const curr = old?.data ?? old;
+        const merged = { ...(curr || {}), ...payload, id: event.id };
+        return old?.data ? { ...old, data: merged } : merged;
+      });
+
+      // Optimistically update events list cache
+      queryClient.setQueryData<any>(queryKeys.events, (old: any) => {
+        const list = old?.data ?? old;
+        if (!Array.isArray(list)) return old;
+        const next = list.map((e: Event) => (String(e.id) === String(event.id) ? { ...e, ...payload } : e));
+        return old?.data ? { ...old, data: next } : next;
+      });
+
+      // Update context mirror
+      updateEventInCtx(event.id, payload);
+
+      return { prevEvent, prevEvents };
     },
-    onError: (err: Error) => {
+    onError: (err: Error, _payload, context) => {
+      // Rollback caches
+      if (event) {
+        if (context?.prevEvent !== undefined) {
+          queryClient.setQueryData(queryKeys.event(event.id), context.prevEvent);
+        }
+        if (context?.prevEvents !== undefined) {
+          queryClient.setQueryData(queryKeys.events, context.prevEvents);
+        }
+      }
       addToast({ type: 'error', title: 'Failed to update', description: err.message });
+    },
+    onSuccess: () => {
+      addToast({ type: 'success', title: 'Event updated' });
+    },
+    onSettled: () => {
+      if (!event) return;
+      // Ensure caches are synced with server
+      queryClient.invalidateQueries({ queryKey: queryKeys.event(event.id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.events });
+      navigate(`/event/${event.id}`);
     }
   });
 

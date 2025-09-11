@@ -30,7 +30,7 @@ type VisibilityType = 'shared' | 'private' | 'title_only';
 const AddPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { addEvent, addProposal } = useEventsActions();
+  const { addEvent, addProposal, removeEvent, removeProposal } = useEventsActions();
   const { user, partner } = useAuthState();
   const authDispatch = useAuthDispatch();
   const { addToast } = useToastContext();
@@ -220,7 +220,7 @@ const AddPage = () => {
           addToast({ type: 'error', title: 'Partner not ready', description: 'Could not determine partner id. Please reload and try again.' });
           return;
         }
-        await submitProposal(proposalPayload, { apiClient, addToast, addProposal, addEvent, t });
+        await submitProposal(proposalPayload, { apiClient, addToast, addProposal, addEvent, removeProposal, removeEvent, t });
       } else {
         await submitEvent({
           title,
@@ -232,7 +232,7 @@ const AddPage = () => {
           attendees: includePartner && partner ? [user!.id, partner.id] : [user!.id],
           created_by: user!.id,
           reminders,
-        }, { apiClient, addToast, addEvent, addProposal, t });
+        }, { apiClient, addToast, addEvent, addProposal, removeEvent, removeProposal, t });
       }
 
       navigate('/');

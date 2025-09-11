@@ -38,12 +38,35 @@ const EventList: React.FC<EventListProps> = ({ events, range, isLoading, onEvent
 
   const deleteMutation = useMutation({
     mutationFn: (eventId: string) => apiClient.deleteEvent(eventId),
+    onMutate: async (eventId: string) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.events });
+
+      // Snapshot previous value
+      const previous = queryClient.getQueryData<any>(queryKeys.events);
+
+      // Optimistically remove from list cache
+      queryClient.setQueryData<any>(queryKeys.events, (old: any) => {
+        const list = old?.data ?? old;
+        if (!Array.isArray(list)) return old;
+        const next = list.filter((e: Event) => String(e.id) !== String(eventId));
+        return old?.data ? { ...old, data: next } : next;
+      });
+
+      return { previous };
+    },
+    onError: (_err, _eventId, context) => {
+      // Rollback
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(queryKeys.events, context.previous);
+      }
+      addToast({ type: 'error', title: t('failedToDeleteEvent'), description: t('pleaseTryAgain') });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.events });
       addToast({ type: 'success', title: t('eventDeleted'), description: t('eventDeletedDesc') });
     },
-    onError: () => {
-      addToast({ type: 'error', title: t('failedToDeleteEvent'), description: t('pleaseTryAgain') });
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.events });
     }
   });
 

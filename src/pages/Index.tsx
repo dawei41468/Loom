@@ -33,14 +33,34 @@ const Index = () => {
       proposalId: string;
       selectedTimeSlot: { start_time: string; end_time: string }
     }) => apiClient.acceptProposal(proposalId, selectedTimeSlot),
+    onMutate: async ({ proposalId, selectedTimeSlot }) => {
+      const prev = proposals.find((p) => p.id === proposalId);
+      // Optimistically mark as accepted and set the chosen time slot
+      if (prev) {
+        updateProposal(proposalId, {
+          status: 'accepted',
+          accepted_time_slot: selectedTimeSlot,
+        } as any);
+      }
+      return { prev };
+    },
+    onError: (error: Error, variables, context) => {
+      // Rollback
+      if (context?.prev) {
+        updateProposal(context.prev.id, context.prev);
+      }
+      addToast({
+        type: 'error',
+        title: t('failedToAcceptProposal'),
+        description: error.message,
+      });
+    },
     onSuccess: (resp) => {
-      // Update local state immediately
+      // Reconcile with server response
       const accepted = resp.data?.proposal;
       const createdEvent = resp.data?.event;
       if (accepted?.id) {
         updateProposal(accepted.id, accepted);
-        // Optionally remove from list if you don't want accepted proposals to show
-        // removeProposal(accepted.id);
       }
       if (createdEvent) {
         addEvent(createdEvent);
@@ -51,17 +71,27 @@ const Index = () => {
         description: t('newEventCreated'),
       });
     },
-    onError: (error: Error) => {
-      addToast({
-        type: 'error',
-        title: t('failedToAcceptProposal'),
-        description: error.message,
-      });
-    },
   });
 
   const declineProposalMutation = useMutation({
     mutationFn: (proposalId: string) => apiClient.declineProposal(proposalId),
+    onMutate: async (proposalId: string) => {
+      const prev = proposals.find((p) => p.id === proposalId);
+      if (prev) {
+        updateProposal(proposalId, { status: 'declined' } as any);
+      }
+      return { prev };
+    },
+    onError: (error: Error, proposalId, context) => {
+      if (context?.prev) {
+        updateProposal(context.prev.id, context.prev);
+      }
+      addToast({
+        type: 'error',
+        title: t('failedToDeclineProposal'),
+        description: error.message,
+      });
+    },
     onSuccess: (resp) => {
       const declined = resp.data;
       if (declined?.id) {
@@ -71,13 +101,6 @@ const Index = () => {
         type: 'info',
         title: t('proposalDeclined'),
         description: t('proposalHasBeenDeclined'),
-      });
-    },
-    onError: (error: Error) => {
-      addToast({
-        type: 'error',
-        title: t('failedToDeclineProposal'),
-        description: error.message,
       });
     },
   });
