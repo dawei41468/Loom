@@ -141,8 +141,8 @@ const AddPage = () => {
     if (isProposal && !partner) {
       addToast({
         type: 'error',
-        title: 'Unable to propose',
-        description: 'Please connect a partner before sending a proposal.',
+        title: t('unableToPropose'),
+        description: t('pleaseConnectPartner'),
       });
       return;
     }
@@ -181,7 +181,7 @@ const AddPage = () => {
         });
 
         if (!times.length) {
-          addToast({ type: 'error', title: 'Missing time', description: 'Please add at least one time slot.' });
+          addToast({ type: 'error', title: t('missingTime'), description: t('pleaseAddAtLeastOneSlot') });
           return;
         }
         const bad = times.find((s) => {
@@ -190,7 +190,7 @@ const AddPage = () => {
           return !isNaN(s1) && !isNaN(s2) && s2 <= s1;
         });
         if (bad) {
-          addToast({ type: 'error', title: 'Invalid time slot', description: `End time must be after start time (${bad.start_time} – ${bad.end_time}).` });
+          addToast({ type: 'error', title: t('invalidTimeSlot'), description: `${t('endTimeMustBeAfterStartTime')} (${bad.start_time} – ${bad.end_time}).` });
           return;
         }
         if (!/^[a-fA-F0-9]{24}$/.test(partner.id)) {
@@ -199,11 +199,11 @@ const AddPage = () => {
             if (resp?.data && /^[a-fA-F0-9]{24}$/.test(resp.data.id)) {
               authDispatch({ type: 'SET_PARTNER', payload: resp.data });
             } else {
-              addToast({ type: 'error', title: 'Partner not ready', description: 'Please reconnect your partner and try again.' });
+              addToast({ type: 'error', title: t('partnerNotReady'), description: t('reconnectPartnerTryAgain') });
               return;
             }
           } catch {
-            addToast({ type: 'error', title: 'Partner not ready', description: 'Please reconnect your partner and try again.' });
+            addToast({ type: 'error', title: t('partnerNotReady'), description: t('reconnectPartnerTryAgain') });
             return;
           }
         }
@@ -218,7 +218,7 @@ const AddPage = () => {
         };
         if (!proposalPayload.proposed_to) {
           console.error('Missing proposed_to. Partner state:', partner);
-          addToast({ type: 'error', title: 'Partner not ready', description: 'Could not determine partner id. Please reload and try again.' });
+          addToast({ type: 'error', title: t('partnerNotReady'), description: t('couldNotDeterminePartnerIdReload') });
           return;
         }
         await submitProposal(proposalPayload, { apiClient, addToast, queryClient, t });
@@ -241,7 +241,7 @@ const AddPage = () => {
       const message = error instanceof Error ? error.message : t('pleaseTryAgain');
       addToast({
         type: 'error',
-        title: isProposal ? 'Failed to create proposal' : t('failedToCreateEvent'),
+        title: isProposal ? t('failedToCreateProposal') : t('failedToCreateEvent'),
         description: message,
       });
     } finally {
@@ -357,21 +357,8 @@ const AddPage = () => {
           />
         </div>
 
-        {/* Proposal message (only for proposals) */}
-        {isProposal && (
-          <div className="loom-card">
-            <label className="block text-sm font-medium mb-2">Message to partner (optional)</label>
-            <TextArea
-              value={proposalMessage}
-              onChange={(e) => setProposalMessage(e.target.value)}
-              placeholder="Share context or a note with your proposal"
-              rows={2}
-            />
-          </div>
-        )}
-
-        {/* Event-only sections (visibility, attendees, reminders) now rendered inside EventForm */}
-      </div>
+      {/* Event-only sections (visibility, attendees, reminders) now rendered inside EventForm */}
+    </div>
     </div>
   );
 };

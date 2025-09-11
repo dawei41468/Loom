@@ -52,6 +52,17 @@ const EventDetail = () => {
 
   const event = eventData?.data || null;
 
+  // Compute chat availability early so that the following effect is always declared
+  // even when event is loading or missing, preserving hook order across renders.
+  const chatDisabled = !partnerForDisplay || !event || (Array.isArray(event?.attendees) ? event!.attendees.length < 2 : true);
+
+  // Auto-redirect away from Chat tab when disabled (must be declared before early returns)
+  useEffect(() => {
+    if (chatDisabled && activeTab === 'chat') {
+      setActiveTab('details');
+    }
+  }, [chatDisabled, activeTab]);
+
   // Delete event mutation with optimistic update
   const deleteEventMutation = useMutation({
     mutationFn: (eventId: string) => apiClient.deleteEvent(eventId),
@@ -173,16 +184,6 @@ const EventDetail = () => {
   };
 
   const { date, time, duration } = formatEventDateTime(event);
-
-  // Disable chat when no partner or when event is solo (no second attendee)
-  const chatDisabled = !partnerForDisplay || (Array.isArray(event.attendees) ? event.attendees.length < 2 : true);
-
-  // Auto-redirect away from Chat tab when disabled
-  useEffect(() => {
-    if (chatDisabled && activeTab === 'chat') {
-      setActiveTab('details');
-    }
-  }, [chatDisabled, activeTab]);
 
   const handleDelete = () => {
     if (!event) return;
@@ -324,8 +325,6 @@ const EventDetail = () => {
               </div>
             </div>
           )}
-
-          
 
           {event.reminders.length > 0 && (
             <div className="loom-card">

@@ -50,8 +50,8 @@ const Login = () => {
           });
           addToast({
             type: 'success',
-            title: 'Welcome back!',
-            description: 'You have successfully logged in.',
+            title: t('welcomeBack'),
+            description: t('loggedInSuccess'),
           });
           
           // If user arrived via invite link, auto-connect to inviter as partner
@@ -64,8 +64,8 @@ const Login = () => {
                 dispatch({ type: 'SET_PARTNER', payload: connectResp.data });
                 addToast({
                   type: 'success',
-                  title: 'Partner connected!',
-                  description: `You are now connected with ${connectResp.data.display_name}.`,
+                  title: t('partnerConnected'),
+                  description: t('connectedWithPartner'),
                 });
               }
             }
@@ -96,8 +96,8 @@ const Login = () => {
       console.error('Login failed:', error);
       addToast({
         type: 'error',
-        title: 'Login failed',
-        description: error instanceof Error ? error.message : 'Invalid email or password',
+        title: t('loginFailed'),
+        description: error instanceof Error ? error.message : t('invalidEmailOrPassword'),
       });
     } finally {
       setIsLoading(false);
@@ -123,7 +123,7 @@ const Login = () => {
             {t('welcomeToLoom')}
           </h1>
           <p className="text-lg text-[hsl(var(--loom-text-muted))] leading-relaxed md:text-xl">
-            <em>weave your days together</em>
+            <em>{t('tagline')}</em>
           </p>
         </div>
 
@@ -132,21 +132,21 @@ const Login = () => {
           <div className="max-w-md mx-auto md:max-w-lg">
             <div className="loom-card">
             <Form onSubmit={handleSubmit}>
-              <FormField label="Email Address" htmlFor="email" required>
+              <FormField label={t('emailAddress')} htmlFor="email" required>
                 <TextInput
                   id="email"
                   name="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
+                  placeholder={t('enterYourEmail')}
                   required
                   autoComplete="email"
                   disabled={isLoading}
                 />
               </FormField>
 
-              <FormField label="Password" htmlFor="password" required>
+              <FormField label={t('passwordLabel')} htmlFor="password" required>
                 <div className="relative">
                   <TextInput
                     id="password"
@@ -154,7 +154,7 @@ const Login = () => {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
+                    placeholder={t('enterYourPassword')}
                     required
                     autoComplete="current-password"
                     disabled={isLoading}
@@ -166,7 +166,7 @@ const Login = () => {
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[hsl(var(--loom-text-muted))] hover:text-[hsl(var(--loom-text))]"
                     disabled={isLoading}
                     tabIndex={-1}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showPassword ? t('hidePassword') : t('showPassword')}
                   >
                     {showPassword ? (
                       <EyeOff className="w-5 h-5" />
@@ -194,7 +194,7 @@ const Login = () => {
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-2 bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text-muted))]">
-                New to Loom?
+                {t('newToLoom')}
               </span>
             </div>
           </div>

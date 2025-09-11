@@ -47,15 +47,15 @@ const Settings = () => {
       queryClient.invalidateQueries({ queryKey: ['partner'] });
       addToast({
         type: 'success',
-        title: 'Partner disconnected',
-        description: 'You have been disconnected from your partner.',
+        title: t('partnerDisconnected'),
+        description: t('disconnectedFromPartner'),
       });
     },
     onError: (error) => {
       addToast({
         type: 'error',
-        title: 'Disconnect failed',
-        description: error?.message || 'Failed to disconnect from partner. Please try again.',
+        title: t('disconnectFailed'),
+        description: error?.message || t('failedToDisconnect'),
       });
     },
   });
@@ -68,14 +68,14 @@ const Settings = () => {
           await updateProfile({ display_name: displayNameInput });
           addToast({
             type: 'success',
-            title: 'Profile updated',
-            description: 'Display name has been saved.',
+            title: t('profileUpdated'),
+            description: t('displayNameSaved'),
           });
         } catch (error) {
           addToast({
             type: 'error',
-            title: 'Update failed',
-            description: 'Failed to update display name. Please try again.',
+            title: t('error'),
+            description: t('failedToUpdateDisplayName'),
           });
         }
       }
@@ -95,13 +95,13 @@ const Settings = () => {
     authDispatch({ type: 'LOGOUT' });
     addToast({
       type: 'info',
-      title: 'Logged out',
-      description: 'You have been successfully logged out.',
+      title: t('loggedOut'),
+      description: t('loggedOutDesc'),
     });
   };
 
   const handleDisconnectPartner = () => {
-    if (window.confirm('Are you sure you want to disconnect from your partner?')) {
+    if (window.confirm(t('confirmDisconnectPartner'))) {
       disconnectMutation.mutate();
     }
   };
@@ -112,14 +112,14 @@ const Settings = () => {
         await updateProfile({ [field]: value });
         addToast({
           type: 'success',
-          title: 'Profile updated',
-          description: `${field === 'color_preference' ? 'Color preference' : 'Profile'} has been saved.`,
+          title: t('profileUpdated'),
+          description: field === 'color_preference' ? t('colorPreferenceSaved') : t('profileSaved'),
         });
       } catch (error) {
         addToast({
           type: 'error',
-          title: 'Update failed',
-          description: 'Failed to update profile. Please try again.',
+          title: t('error'),
+          description: t('failedToUpdateProfile'),
         });
       }
     }
@@ -131,8 +131,8 @@ const Settings = () => {
   ];
 
   const languageOptions = [
-    { value: 'en', label: 'English', flag: '🇺🇸' },
-    { value: 'zh', label: '中文', flag: '🇨🇳' },
+    { value: 'en', label: t('english'), flag: '🇺🇸' },
+    { value: 'zh', label: t('chinese'), flag: '🇨🇳' },
   ];
 
   return (
@@ -212,7 +212,7 @@ const Settings = () => {
         {isLoadingPartner ? (
           <div className="text-center py-4">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[hsl(var(--loom-primary))] mx-auto"></div>
-            <p className="text-sm text-[hsl(var(--loom-text-muted))] mt-2">Loading partner info...</p>
+            <p className="text-sm text-[hsl(var(--loom-text-muted))] mt-2">{t('loadingPartnerInfo')}</p>
           </div>
         ) : partnerData?.data ? (
           <div className="space-y-4">
@@ -226,7 +226,7 @@ const Settings = () => {
               <div className="flex-1">
                 <h3 className="font-medium">{partnerData.data.display_name}</h3>
                 <p className="text-sm text-[hsl(var(--loom-text-muted))]">
-                  Connected {partnerData.data.connected_at ? new Date(partnerData.data.connected_at).toLocaleDateString() : 'recently'}
+                  {t('connectedStatus')} {partnerData.data.connected_at ? new Date(partnerData.data.connected_at).toLocaleDateString() : t('recently')}
                 </p>
               </div>
             </div>
@@ -236,15 +236,15 @@ const Settings = () => {
               className="w-full loom-btn-danger flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <UserX className="w-4 h-4" />
-              <span>{disconnectMutation.isPending ? 'Disconnecting...' : 'Disconnect Partner'}</span>
+              <span>{disconnectMutation.isPending ? t('disconnecting') : t('disconnectPartner')}</span>
             </button>
           </div>
         ) : (
           <div className="text-center py-6">
             <Users className="w-12 h-12 text-[hsl(var(--loom-text-muted))] mx-auto mb-3" />
-            <p className="text-[hsl(var(--loom-text-muted))]">No partners connected</p>
+            <p className="text-[hsl(var(--loom-text-muted))]">{t('noPartnersConnected')}</p>
             <p className="text-sm text-[hsl(var(--loom-text-muted))] mt-1">
-              Connect with someone to start sharing your schedule
+              {t('connectWithSomeoneToShareSchedule')}
            </p>
          </div>
        )}

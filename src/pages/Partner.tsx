@@ -39,16 +39,16 @@ const Partner = () => {
       authDispatch({ type: 'SET_PARTNER', payload: data.data as PartnerType });
       addToast({
         type: 'success',
-        title: 'Partner connected!',
-        description: 'You are now connected with your partner.',
+        title: t('partnerConnected'),
+        description: t('connectedWithPartner'),
       });
       setShowQRScanner(false);
     },
     onError: (error) => {
       addToast({
         type: 'error',
-        title: 'Connection failed',
-        description: error?.message || 'Failed to connect with partner. Please try again.',
+        title: t('connectionFailed'),
+        description: error?.message || t('failedToConnectPartner'),
       });
     },
   });
@@ -82,16 +82,16 @@ const Partner = () => {
       setCopiedInvite(true);
       addToast({
         type: 'success',
-        title: 'Invite link copied!',
-        description: 'Share this with your partner to connect.',
+        title: t('inviteLinkCopied'),
+        description: t('shareWithPartnerToConnect'),
       });
 
       setTimeout(() => setCopiedInvite(false), 2000);
     } catch (error) {
       addToast({
         type: 'error',
-        title: 'Failed to copy',
-        description: 'Please copy the link manually.',
+        title: t('failedToCopy'),
+        description: t('pleaseCopyLinkManually'),
       });
     }
   };
@@ -125,37 +125,37 @@ const Partner = () => {
             } else {
               addToast({
                 type: 'error',
-                title: 'Invalid invite',
-                description: 'This invitation link is invalid or expired.',
+                title: t('invalidInvite'),
+                description: t('invalidInviteDesc'),
               });
             }
           } catch (error) {
             console.error('Auto-connect failed:', error);
             addToast({
               type: 'error',
-              title: 'Connection failed',
-              description: 'Unable to connect. Please try again.',
+              title: t('connectionFailed'),
+              description: t('unableToConnect'),
             });
           }
         } else {
           addToast({
             type: 'error',
-            title: 'Authentication required',
-            description: 'Please log in to connect with partners.',
+            title: t('authenticationRequired'),
+            description: t('pleaseLoginToConnect'),
           });
         }
       } else {
         addToast({
           type: 'error',
-          title: 'Invalid QR code',
-          description: 'The scanned QR code is not a valid Loom invitation.',
+          title: t('invalidQrCode'),
+          description: t('invalidQrCodeDesc'),
         });
       }
     } else {
       addToast({
         type: 'info',
-        title: 'QR code scanned',
-        description: `Scanned: ${scannedData.substring(0, 50)}${scannedData.length > 50 ? '...' : ''}`,
+        title: t('qrCodeScanned'),
+        description: `${t('scannedPrefix')} ${scannedData.substring(0, 50)}${scannedData.length > 50 ? '...' : ''}`,
       });
     }
   };
@@ -165,7 +165,7 @@ const Partner = () => {
       <div className="container py-4 sm:py-8 space-y-6 sm:space-y-8">
         <PageHeader
           title={t('yourPartner')}
-          subtitle="Loading..."
+          subtitle={t('loading')}
         />
         <Section variant="elevated" className="loom-gradient-subtle">
           <div className="flex items-center space-x-4 mb-6">
@@ -236,7 +236,7 @@ const Partner = () => {
           <div className="text-center mb-4">
             <h3 className="font-semibold text-lg mb-2">{t('shareInviteLink')}</h3>
             <p className="text-sm text-[hsl(var(--loom-text-muted))] max-w-md mx-auto mb-4">
-              Share this link with your partner to connect instantly
+              {t('shareInviteLinkDesc')}
             </p>
           </div>
 

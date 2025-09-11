@@ -102,7 +102,7 @@ const EventForm: React.FC<Props> = ({
                 : 'bg-[hsl(var(--loom-border))] text-[hsl(var(--loom-text-muted))]',
               !partnerExists && 'opacity-60 cursor-not-allowed'
             )}
-            title={!partnerExists ? 'Connect a partner to share events' : undefined}
+            title={!partnerExists ? t('connectPartnerToShare') : undefined}
           >
             {t('sharedVisibility')}
           </button>
@@ -137,7 +137,7 @@ const EventForm: React.FC<Props> = ({
               className="w-5 h-5 rounded border-2 border-[hsl(var(--loom-border))] text-[hsl(var(--loom-primary))] focus:ring-[hsl(var(--loom-primary))]"
             />
             <span>
-              {t('includePartnerLabel').replace('{partnerName}', partnerDisplayName || 'Partner')} (attending)
+              {t('includePartnerLabel').replace('{partnerName}', partnerDisplayName || t('partner'))} ({t('attending')})
             </span>
           </label>
         </div>

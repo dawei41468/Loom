@@ -34,7 +34,7 @@ const ProposalForm: React.FC<Props> = ({
                   onClick={() => onRemove(idx)}
                   className="text-xs text-[hsl(var(--loom-text-muted))] hover:text-[hsl(var(--loom-text))]"
                 >
-                  Remove
+                  {t('remove')}
                 </button>
               )}
             </div>
@@ -57,7 +57,7 @@ const ProposalForm: React.FC<Props> = ({
         ))}
         <div>
           <button type="button" onClick={onAdd} className="loom-chip border border-[hsl(var(--loom-border))]">
-            + Add another time
+            {t('addAnotherTime')}
           </button>
         </div>
       </div>

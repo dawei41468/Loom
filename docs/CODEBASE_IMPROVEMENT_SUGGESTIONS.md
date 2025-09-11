@@ -114,11 +114,27 @@ The frontend is modern and well-architected. These suggestions aim to further im
 
 ### 3. Performance
 
-*   **Code Splitting**: `React.lazy` is already used for code-splitting page components.
-    *   **Suggestion**: Extend this by code-splitting larger, non-critical components that are not immediately visible to the user.
+*   **Code Splitting** ✅ **IMPLEMENTED (targeted)**
+    *   `src/pages/EventDetail.tsx`: lazy-loads `EventChat` and `EventChecklist` with `React.lazy` + `Suspense`.
+    *   Pages are already split via `React.lazy` in `src/App.tsx`.
 
-*   **Memoization**: `React.memo` is used in some places.
-    *   **Suggestion**: Use React's developer tools to profile the application, identify unnecessary re-renders, and apply `React.memo`, `useMemo`, or `useCallback` where needed.
+*   **Memoization** ✅ **IMPLEMENTED (key paths)**
+    *   `src/pages/Index.tsx`: memoized `todayEvents`, `nextEvent`, `pendingProposals`; `getEventType` and `formatEventTime` via `useCallback`.
+    *   `src/pages/Calendar.tsx`: `filteredEvents` and `calendarEvents` with `useMemo`.
+    *   `src/components/EventList.tsx`: wrapped export in `React.memo`.
+
+*   **React Query tuning** ✅ **IMPLEMENTED**
+    *   Added `select: (resp) => resp.data ?? []` and `staleTime: 30s` for:
+        *   `Index.tsx`: `events`, `proposals`.
+        *   `Calendar.tsx`: `events`.
+        *   `Tasks.tsx`: `tasks`.
+
+*   **Vendor Bundle Splitting** ✅ **ALREADY CONFIGURED**
+    *   `vite.config.ts`: `rollupOptions.output.manualChunks` for `react-vendor`, `router-vendor`, `ui-vendor`, `query-vendor`, `utils-vendor`.
+
+*   **Next (as needed)**
+    *   Consider list virtualization if events/proposals lists grow very large.
+    *   Optional: add a bundle analyzer to inspect chunk sizes for further tuning.
 
 ---
 
