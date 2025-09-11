@@ -295,24 +295,21 @@ const Index = () => {
               return (
                 <div
                   key={event.id}
-                  className="mobile-event-item flex items-start space-x-3 sm:space-x-4 cursor-pointer hover:bg-[hsl(var(--loom-border)/0.3)] rounded-[var(--loom-radius-lg)] p-3 -m-3 transition-all duration-200 hover-scale"
+                  className="mobile-event-item cursor-pointer hover:bg-[hsl(var(--loom-border)/0.3)] rounded-[var(--loom-radius-lg)] p-3 -m-3 transition-all duration-200 hover-scale"
                   onClick={() => navigate(`/event/${event.id}`)}
                 >
-                  <div className="timeline-hour font-medium flex-shrink-0">
-                    {format(parseISO(event.start_time), 'h:mm a')}
-                  </div>
-                  <div className={`event-block-${eventType} flex-1 min-w-0`}>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-sm sm:text-base line-clamp-1">{event.title}</h3>
-                        <p className="text-xs sm:text-sm opacity-90 mt-1 line-clamp-1">
-                          {formatEventTime(event)}
-                          {event.location && ` • ${event.location}`}
-                        </p>
-                      </div>
-                      {event.attendees.length > 1 && (
-                        <Users className="w-4 h-4 sm:w-5 sm:h-5 opacity-70 flex-shrink-0 ml-2" />
-                      )}
+                  <div className={`event-block-${eventType} flex items-start justify-between`}>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-sm sm:text-base line-clamp-1">{event.title}</h3>
+                      <p className="text-xs sm:text-sm opacity-90 mt-1 line-clamp-1">
+                        {formatEventTime(event)}
+                        {event.location && ` • ${event.location}`}
+                      </p>
+                    </div>
+                    <div className="ml-2 mr-2 flex items-center justify-end">
+                      {event.attendees.length > 1 ? (
+                        <Users className="w-4 h-4 sm:w-5 sm:h-5 opacity-70" />
+                      ) : null}
                     </div>
                   </div>
                 </div>
