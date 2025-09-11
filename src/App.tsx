@@ -9,7 +9,7 @@ const Login = React.lazy(() => import('./pages/Login'));
 const Register = React.lazy(() => import('./pages/Register'));
 const Index = React.lazy(() => import('./pages/Index'));
 const Calendar = React.lazy(() => import('./pages/Calendar'));
-const Add = React.lazy(() => import('./pages/Add'));
+const Add = React.lazy(() => import('./pages/Add/AddPage'));
 const Tasks = React.lazy(() => import('./pages/Tasks'));
 const Settings = React.lazy(() => import('./pages/Settings'));
 const Partner = React.lazy(() => import('./pages/Partner'));
