@@ -11,6 +11,9 @@ import { useWebSocket, WebSocketMessage } from '../hooks/useWebSocket';
 import { useOfflineQueue } from '../hooks/useOfflineQueue';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/i18n';
+import TextInput from '@/components/forms/TextInput';
+import TextArea from '@/components/forms/TextArea';
+import SubmitButton from '@/components/forms/SubmitButton';
 
 interface EventChecklistProps {
   eventId: string;
@@ -293,20 +296,18 @@ const EventChecklist: React.FC<EventChecklistProps> = ({ eventId }) => {
       {/* Add new item form */}
       {showAddForm && (
         <form onSubmit={handleCreateItem} className="space-y-3 p-4 border border-[hsl(var(--loom-border))] rounded-lg">
-          <input
+          <TextInput
             type="text"
             value={newItemTitle}
             onChange={(e) => setNewItemTitle(e.target.value)}
             placeholder="Item title..."
-            className="w-full px-3 py-2 border border-[hsl(var(--loom-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:border-transparent"
             required
           />
-          <textarea
+          <TextArea
             value={newItemDescription}
             onChange={(e) => setNewItemDescription(e.target.value)}
             placeholder="Description (optional)..."
             rows={2}
-            className="w-full px-3 py-2 border border-[hsl(var(--loom-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:border-transparent resize-none"
           />
           <div className="flex justify-end space-x-2">
             <button
@@ -320,18 +321,13 @@ const EventChecklist: React.FC<EventChecklistProps> = ({ eventId }) => {
             >
               Cancel
             </button>
-            <button
-              type="submit"
+            <SubmitButton
+              isLoading={createItemMutation.isPending}
               disabled={!newItemTitle.trim() || createItemMutation.isPending}
-              className={cn(
-                'px-4 py-2 text-sm rounded-lg transition-colors',
-                newItemTitle.trim() && !createItemMutation.isPending
-                  ? 'bg-[hsl(var(--loom-primary))] text-white hover:bg-[hsl(var(--loom-primary))]/90'
-                  : 'bg-[hsl(var(--loom-border))] text-[hsl(var(--loom-text-muted))] cursor-not-allowed'
-              )}
+              className="px-4 py-2 text-sm rounded-lg"
             >
               {createItemMutation.isPending ? 'Adding...' : 'Add Item'}
-            </button>
+            </SubmitButton>
           </div>
         </form>
       )}

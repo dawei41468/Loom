@@ -3,6 +3,7 @@ import React from 'react';
 type SubmitButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   isLoading?: boolean;
   loadingText?: string;
+  fullWidth?: boolean;
 };
 
 const SubmitButton: React.FC<SubmitButtonProps> = ({
@@ -11,6 +12,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({
   className = '',
   children,
   disabled,
+  fullWidth = true,
   ...props
 }) => {
   return (
@@ -18,7 +20,8 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({
       type="submit"
       disabled={isLoading || disabled}
       className={[
-        'loom-btn-primary w-full flex items-center justify-center space-x-2 disabled:opacity-50',
+        'loom-btn-primary flex items-center justify-center space-x-2 disabled:opacity-50',
+        fullWidth ? 'w-full' : '',
         className,
       ].join(' ')}
       {...props}

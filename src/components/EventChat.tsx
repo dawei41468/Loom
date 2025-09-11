@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { format } from 'date-fns';
 import { Send, Trash2, User, Wifi, WifiOff } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -11,6 +11,8 @@ import { useWebSocket, WebSocketMessage } from '../hooks/useWebSocket';
 import { useOfflineQueue } from '../hooks/useOfflineQueue';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/i18n';
+import TextInput from '@/components/forms/TextInput';
+import SubmitButton from '@/components/forms/SubmitButton';
 
 interface EventChatProps {
   eventId: string;
@@ -36,6 +38,18 @@ const EventChat: React.FC<EventChatProps> = ({ eventId, hasAccess = true }) => {
   });
 
   const messages = messagesData?.data || [];
+  // Deduplicate by ID at render time to avoid duplicate React keys if upstream delivered duplicates
+  const uniqueMessages = useMemo(() => {
+    const seen = new Set<string>();
+    const out: EventMessage[] = [];
+    for (const m of messages) {
+      if (m && typeof m.id === 'string' && !seen.has(m.id)) {
+        seen.add(m.id);
+        out.push(m);
+      }
+    }
+    return out;
+  }, [messages]);
 
   console.log('EventChat: Setting up WebSocket for eventId:', eventId);
 
@@ -45,9 +59,14 @@ const EventChat: React.FC<EventChatProps> = ({ eventId, hasAccess = true }) => {
       // Add new message to the list
       queryClient.setQueryData(queryKeys.eventMessages(eventId), (oldData: { data: EventMessage[] } | undefined) => {
         if (!oldData) return oldData;
+        const incoming = message.data as EventMessage;
+        // Guard against duplicates by ID
+        if (oldData.data.some((m) => m.id === incoming.id)) {
+          return oldData;
+        }
         return {
           ...oldData,
-          data: [...oldData.data, message.data as EventMessage]
+          data: [...oldData.data, incoming],
         };
       });
     } else if (message.type === 'delete_message') {
@@ -193,7 +212,7 @@ const EventChat: React.FC<EventChatProps> = ({ eventId, hasAccess = true }) => {
   return (
     <div className="flex flex-col h-96">
       {/* Connection Status */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[hsl(var(--loom-border))]">
+      <div className="flex items-center justify-between px-4 py-2">
         <div className="flex items-center space-x-2">
           {isConnected ? (
             <Wifi className="w-4 h-4 text-green-500" />
@@ -207,8 +226,13 @@ const EventChat: React.FC<EventChatProps> = ({ eventId, hasAccess = true }) => {
       </div>
 
       {/* Messages List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 ? (
+      <div
+        className="flex-1 overflow-y-auto p-4 space-y-3"
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+      >
+        {uniqueMessages.length === 0 ? (
           <div className="text-center py-8">
             <User className="w-12 h-12 mx-auto mb-4 text-[hsl(var(--loom-text-muted))] opacity-50" />
             <h3 className="font-medium mb-2">{t('noMessagesYet')}</h3>
@@ -217,19 +241,25 @@ const EventChat: React.FC<EventChatProps> = ({ eventId, hasAccess = true }) => {
             </p>
           </div>
         ) : (
-          messages.map((message) => {
+          uniqueMessages.map((message, idx) => {
             const senderInfo = getSenderInfo(message);
+            const prev = idx > 0 ? uniqueMessages[idx - 1] : undefined;
+            const isGrouped = prev ? prev.sender_id === message.sender_id : false;
+            const next = idx < uniqueMessages.length - 1 ? uniqueMessages[idx + 1] : undefined;
+            const isLastInRun = next ? next.sender_id !== message.sender_id : true;
             return (
               <div
                 key={message.id}
                 className={cn(
                   'flex items-start space-x-3 group',
+                  isGrouped ? 'mt-1' : 'mt-2',
                   senderInfo.isCurrentUser ? 'justify-end' : 'justify-start'
                 )}
               >
-                {!senderInfo.isCurrentUser && (
+                {/* Left avatar only on first message of a run */}
+                {!senderInfo.isCurrentUser && !isGrouped && (
                   <div className={cn(
-                    'w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0',
+                    'w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 shadow-sm',
                     senderInfo.color
                   )}>
                     {senderInfo.name.charAt(0).toUpperCase()}
@@ -237,38 +267,37 @@ const EventChat: React.FC<EventChatProps> = ({ eventId, hasAccess = true }) => {
                 )}
 
                 <div className={cn(
-                  'max-w-xs lg:max-w-md px-4 py-2 rounded-lg',
+                  'relative max-w-[72ch] px-3 py-2 rounded-2xl shadow-sm group',
                   senderInfo.isCurrentUser
                     ? 'bg-[hsl(var(--loom-primary))] text-white'
-                    : 'bg-[hsl(var(--loom-border))] text-[hsl(var(--loom-text))]'
+                    : 'bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] border border-[hsl(var(--loom-border))]'
                 )}>
-                  {!senderInfo.isCurrentUser && (
-                    <div className="text-xs font-medium mb-1 opacity-75">
-                      {senderInfo.name}
+                  {senderInfo.isCurrentUser && (
+                    <button
+                      onClick={() => handleDeleteMessage(message.id)}
+                      className="absolute -top-2 -right-2 p-1 rounded-full bg-[hsl(var(--loom-surface))] border border-[hsl(var(--loom-border))] shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Delete message"
+                      aria-label="Delete message"
+                      type="button"
+                    >
+                      <Trash2 className="w-3 h-3 text-[hsl(var(--loom-danger))]" />
+                    </button>
+                  )}
+                  {/* Partner label removed per design */}
+                  <div className="text-sm leading-relaxed">{message.message}</div>
+                  {isLastInRun && (
+                    <div className={cn(
+                      'text-[10px] mt-1 opacity-75',
+                      senderInfo.isCurrentUser ? 'text-right' : 'text-left'
+                    )}>
+                      {format(new Date(message.created_at), 'MMM d, h:mm a')}
                     </div>
                   )}
-                  <div className="text-sm">{message.message}</div>
-                  <div className={cn(
-                    'text-xs mt-1 opacity-75',
-                    senderInfo.isCurrentUser ? 'text-right' : 'text-left'
-                  )}>
-                    {format(new Date(message.created_at), 'MMM d, h:mm a')}
-                  </div>
                 </div>
 
-                {senderInfo.isCurrentUser && (
-                  <button
-                    onClick={() => handleDeleteMessage(message.id)}
-                    className="p-1 hover:bg-[hsl(var(--loom-border))] rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="Delete message"
-                  >
-                    <Trash2 className="w-4 h-4 text-[hsl(var(--loom-danger))]" />
-                  </button>
-                )}
-
-                {senderInfo.isCurrentUser && (
+                {senderInfo.isCurrentUser && !isGrouped && (
                   <div className={cn(
-                    'w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0',
+                    'w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 shadow-sm',
                     senderInfo.color
                   )}>
                     {senderInfo.name.charAt(0).toUpperCase()}
@@ -282,33 +311,25 @@ const EventChat: React.FC<EventChatProps> = ({ eventId, hasAccess = true }) => {
       </div>
 
       {/* Message Input */}
-      <div className="border-t border-[hsl(var(--loom-border))] p-4">
-        <form onSubmit={handleSendMessage} className="flex space-x-2">
-          <input
+      <div className="p-3">
+        <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+          <TextInput
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder={`${t('message')} ${partner?.display_name || t('partner')}...`}
-            className="flex-1 px-3 py-2 border border-[hsl(var(--loom-border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] focus:border-transparent"
+            className="flex-1 rounded-full"
             disabled={sendMessageMutation.isPending}
           />
-          <button
-            type="submit"
+          <SubmitButton
+            isLoading={sendMessageMutation.isPending}
             disabled={!newMessage.trim() || sendMessageMutation.isPending}
-            className={cn(
-              'px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors',
-              newMessage.trim() && !sendMessageMutation.isPending
-                ? 'bg-[hsl(var(--loom-primary))] text-white hover:bg-[hsl(var(--loom-primary))]/90'
-                : 'bg-[hsl(var(--loom-border))] text-[hsl(var(--loom-text-muted))] cursor-not-allowed'
-            )}
+            fullWidth={false}
+            className={cn('h-10 px-4 rounded-full flex items-center space-x-2')}
           >
-            {sendMessageMutation.isPending ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
+            {!sendMessageMutation.isPending && <Send className="w-4 h-4" />}
             <span className="hidden sm:inline">{t('send')}</span>
-          </button>
+          </SubmitButton>
         </form>
       </div>
     </div>

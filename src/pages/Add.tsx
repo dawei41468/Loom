@@ -3,14 +3,18 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format, addDays, addHours } from 'date-fns';
-import { X, MapPin, Clock, Users, Bell, Calendar } from 'lucide-react';
+import { X, MapPin, Clock, Users, Bell } from 'lucide-react';
 import { useEventsActions } from '../contexts/EventsContext';
 import { useAuthState, useAuthDispatch } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
-import { TimePicker } from '../components/ui/TimePicker';
+import { TimePicker } from '../components/forms/TimePicker';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '../i18n';
+import { DatePicker } from '../components/forms/DatePicker';
+import TextInput from '../components/forms/TextInput';
+import TextArea from '../components/forms/TextArea';
+import SubmitButton from '../components/forms/SubmitButton';
 
 type VisibilityType = 'shared' | 'private' | 'title_only';
 
@@ -417,23 +421,25 @@ const Add = () => {
   return (
     <div className="min-h-screen bg-[hsl(var(--loom-bg))] safe-area-top">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-[hsl(var(--loom-border))]">
+      <div className="sticky top-0 z-40 bg-[hsl(var(--loom-bg))] flex items-center justify-between px-3 py-2 border-b border-[hsl(var(--loom-border))]">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 hover:bg-[hsl(var(--loom-border))] rounded-full"
+          className="p-1.5 hover:bg-[hsl(var(--loom-border))] rounded-full"
         >
-          <X className="w-6 h-6" />
+          <X className="w-5 h-5" />
         </button>
-        <h1 className="text-lg font-semibold">
+        <h1 className="text-base font-semibold">
           {isProposal ? t('proposeTime') : t('addEvent')}
         </h1>
-        <button
+        <SubmitButton
           onClick={handleSubmit}
+          isLoading={isSubmitting}
           disabled={isSubmitting || !title.trim() || (isProposal && !partner)}
-          className="loom-btn-primary px-6 disabled:opacity-50"
+          fullWidth={false}
+          className="px-4 py-1.5"
         >
-          {isSubmitting ? t('saving') : isProposal ? t('propose') : t('save')}
-        </button>
+          {isProposal ? t('propose') : t('save')}
+        </SubmitButton>
       </div>
 
       <div className="container py-6 space-y-6">
@@ -455,12 +461,11 @@ const Add = () => {
         {/* Title */}
         <div className="loom-card">
           <label className="block text-sm font-medium mb-2">{t('titleLabel')}</label>
-          <input
+          <TextInput
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={t('eventTitlePlaceholder')}
-            className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))]"
           />
         </div>
 
@@ -475,18 +480,7 @@ const Add = () => {
             <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium mb-2">{t('dateLabel')}</label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] opacity-0 absolute inset-0 z-10 cursor-pointer"
-                  />
-                  <div className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] flex items-center justify-between">
-                    <span>{format(new Date(date), 'MM/dd/yyyy')}</span>
-                    <Calendar className="w-4 h-4 text-[hsl(var(--loom-text-muted))]" />
-                  </div>
-                </div>
+                <DatePicker value={date} onChange={setDate} />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -525,18 +519,10 @@ const Add = () => {
                       </button>
                     )}
                   </div>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      value={slot.date}
-                      onChange={(e) => updateProposalSlot(idx, { date: e.target.value })}
-                      className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] opacity-0 absolute inset-0 z-10 cursor-pointer"
-                    />
-                    <div className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] text-[hsl(var(--loom-text))] flex items-center justify-between">
-                      <span>{format(new Date(slot.date), 'MM/dd/yyyy')}</span>
-                      <Calendar className="w-4 h-4 text-[hsl(var(--loom-text-muted))]" />
-                    </div>
-                  </div>
+                  <DatePicker
+                    value={slot.date}
+                    onChange={(val) => updateProposalSlot(idx, { date: val })}
+                  />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <TimePicker
@@ -579,24 +565,22 @@ const Add = () => {
             <MapPin className="w-5 h-5 text-[hsl(var(--loom-primary))]" />
             <span className="font-medium">{t('whereSection')}</span>
           </div>
-          <input
+          <TextInput
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder={t('addLocationPlaceholder')}
-            className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))]"
           />
         </div>
 
         {/* Description */}
         <div className="loom-card">
           <label className="block text-sm font-medium mb-2">{t('notesLabel')}</label>
-          <textarea
+          <TextArea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder={t('addNotesOrDetailsPlaceholder')}
             rows={3}
-            className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] resize-none"
           />
         </div>
 
@@ -604,12 +588,11 @@ const Add = () => {
         {isProposal && (
           <div className="loom-card">
             <label className="block text-sm font-medium mb-2">Message to partner (optional)</label>
-            <textarea
+            <TextArea
               value={proposalMessage}
               onChange={(e) => setProposalMessage(e.target.value)}
               placeholder="Share context or a note with your proposal"
               rows={2}
-              className="w-full px-4 py-3 rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--loom-primary))] resize-none"
             />
           </div>
         )}

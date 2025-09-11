@@ -51,6 +51,46 @@ src/
 └── types/              # TypeScript type definitions
 ```
 
+#### Shared Forms Library
+
+The app uses a small set of standardized, reusable form components under `src/components/forms/` to ensure consistent styling and behavior across pages.
+
+- `TextInput`: Standard input with Loom styles. Supports `variant="bare"` for borderless inline inputs.
+- `TextArea`: Multiline text input matching input styling.
+- `SubmitButton`: Primary submit button with loading state. Prop `fullWidth` (default true) controls width.
+- `DatePicker`: Popover calendar (wraps `components/ui/calendar`) that always displays dates as `MM/DD/YYYY` and emits values as `yyyy-MM-dd`.
+- `TimePicker`: Custom time selector (moved into `forms/`).
+- `Select`: Thin wrapper over `components/ui/select` with a simple `options` API.
+
+Example usage:
+
+```tsx
+import TextInput from '@/components/forms/TextInput';
+import TextArea from '@/components/forms/TextArea';
+import { DatePicker } from '@/components/forms/DatePicker';
+import { TimePicker } from '@/components/forms/TimePicker';
+import { Select } from '@/components/forms/Select';
+import SubmitButton from '@/components/forms/SubmitButton';
+
+function ExampleForm() {
+  const [title, setTitle] = useState('');
+  const [date, setDate] = useState('2025-09-11'); // yyyy-MM-dd
+
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); /* submit */ }}>
+      <TextInput value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" />
+      <DatePicker value={date} onChange={setDate} />
+      <SubmitButton isLoading={false}>Save</SubmitButton>
+    </form>
+  );
+}
+```
+
+Notes:
+
+- The `DatePicker` intentionally uses `MM/DD/YYYY` for display but maintains `yyyy-MM-dd` values for compatibility with the backend helpers (e.g., `convertTimeToISO`).
+- Prefer the `forms` components over ad‑hoc HTML inputs for consistency, unless a field needs special styling (e.g., the natural‑language quick add input on the Add page).
+
 ### Backend (`/backend`)
 ```
 backend/

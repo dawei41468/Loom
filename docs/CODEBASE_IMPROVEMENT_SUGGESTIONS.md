@@ -66,8 +66,16 @@ The frontend is modern and well-architected. These suggestions aim to further im
 *   **Break Down Large Components**: Page components like `Add.tsx` are large and handle significant state and logic.
     *   **Suggestion**: Decompose `Add.tsx` into smaller, manageable components. For instance, the natural language input, date/time pickers, and proposal slots could each be extracted into their own components.
 
-*   **Create a Shared `forms` Directory**: The application has several forms.
-    *   **Suggestion**: Create a `src/components/forms` directory to house reusable form components, such as a generic `TextInput` or `DateTimePicker`.
+*   **Create a Shared `forms` Directory** ✅ **FULLY IMPLEMENTED**
+    *   Implemented `src/components/forms/` with shared components:
+        *   `TextInput` (with `variant="bare"`), `TextArea`, `SubmitButton` (with `fullWidth`), `DatePicker` (wrapper over `ui/calendar`, MM/DD/YYYY display, emits `yyyy-MM-dd`), `Select` (wrapper over `ui/select`), and moved `TimePicker` into `forms/`.
+    *   Migrations completed:
+        *   `src/pages/Add.tsx`: now uses `TextInput`, `TextArea`, `DatePicker`, and `TimePicker` across event and proposal flows.
+        *   `src/components/EventChat.tsx`: composer migrated to `TextInput` + `SubmitButton`; UI polished and grouped messages.
+        *   `src/components/EventChecklist.tsx`: add-item form migrated to `TextInput`, `TextArea`, `SubmitButton`.
+    *   Notes:
+        *   `DatePicker` is custom (popover, no native overlay) to ensure MM/DD/YYYY display consistently; retains `yyyy-MM-dd` state for backend helpers.
+        *   `Select` is a thin wrapper over `components/ui/select` for a consistent forms API.
 
 ### 2. State Management
 
