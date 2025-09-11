@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, CheckSquare, Users, Heart, ArrowRight } from 'lucide-react';
 import { useTranslation } from '../i18n';
+import LoomLogo from './LoomLogo';
 
 interface AppIntroductionProps {
   onContinue: () => void;
@@ -14,33 +15,25 @@ const AppIntroduction: React.FC<AppIntroductionProps> = ({ onContinue }) => {
       icon: Calendar,
       title: 'Smart Calendar',
       description: 'Coordinate schedules with your partner. See overlapping free time and plan events together.',
-      cardBg: 'bg-blue-50 dark:bg-blue-950/40',
-      iconBg: 'bg-blue-50 dark:bg-blue-950/40',
-      iconColor: 'text-blue-600 dark:text-blue-300',
+      variant: 'blue',
     },
     {
       icon: CheckSquare,
       title: 'Shared Tasks',
       description: 'Create and manage tasks together. Keep track of household responsibilities and goals.',
-      cardBg: 'bg-green-50 dark:bg-green-950/40',
-      iconBg: 'bg-green-50 dark:bg-green-950/40',
-      iconColor: 'text-green-600 dark:text-green-300',
+      variant: 'green',
     },
     {
       icon: Users,
       title: 'Partner Connection',
       description: 'Connect with your partner to share calendars, tasks, and stay coordinated.',
-      cardBg: 'bg-purple-50 dark:bg-purple-950/40',
-      iconBg: 'bg-purple-50 dark:bg-purple-950/40',
-      iconColor: 'text-purple-600 dark:text-purple-300',
+      variant: 'purple',
     },
     {
       icon: Heart,
       title: 'Quality Time',
       description: 'Find the perfect moments to spend together and never miss special occasions.',
-      cardBg: 'bg-pink-50 dark:bg-pink-950/40',
-      iconBg: 'bg-pink-50 dark:bg-pink-950/40',
-      iconColor: 'text-pink-600 dark:text-pink-300',
+      variant: 'pink',
     }
   ];
 
@@ -49,13 +42,11 @@ const AppIntroduction: React.FC<AppIntroductionProps> = ({ onContinue }) => {
       <div className="loom-card max-w-2xl w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 mx-auto rounded-full loom-gradient-hero flex items-center justify-center mb-6">
-            <Heart className="w-10 h-10 text-white" />
-          </div>
-          <h1 className="text-3xl font-semibold text-[hsl(var(--loom-text))] mb-2">
+          <LoomLogo size="lg" className="mx-auto mb-6 w-20 h-20" />
+          <h1 className="loom-heading-2 mb-2 text-3xl">
             Welcome to Loom
           </h1>
-          <p className="text-lg text-[hsl(var(--loom-text-muted))] leading-relaxed">
+          <p className="loom-text-muted text-lg leading-relaxed">
             {t('tagline')}
           </p>
         </div>
@@ -67,15 +58,15 @@ const AppIntroduction: React.FC<AppIntroductionProps> = ({ onContinue }) => {
             return (
               <div
                 key={index}
-                className={`p-6 rounded-xl ${feature.cardBg} border border-[hsl(var(--loom-border))] dark:border-[hsl(var(--loom-border-strong))] transition-transform hover:scale-105`}
+                className={`onboarding-feature-card onboarding-feature--${(feature as any).variant}`}
               >
-                <div className={`w-12 h-12 rounded-lg ${feature.iconBg} flex items-center justify-center mb-4`}>
-                  <IconComponent className={`w-6 h-6 ${feature.iconColor}`} />
+                <div className={`onboarding-icon-wrap--${(feature as any).variant}`}>
+                  <IconComponent className={`w-6 h-6 onboarding-icon--${(feature as any).variant}`} />
                 </div>
-                <h3 className="font-semibold text-lg mb-2 text-[hsl(var(--loom-text))] dark:text-white">
+                <h3 className="loom-heading-3 mb-2">
                   {feature.title}
                 </h3>
-                <p className="text-sm text-[hsl(var(--loom-text-muted))] dark:text-[hsl(var(--loom-text))/0.85]">
+                <p className="loom-text-muted text-sm">
                   {feature.description}
                 </p>
               </div>
@@ -85,7 +76,7 @@ const AppIntroduction: React.FC<AppIntroductionProps> = ({ onContinue }) => {
 
         {/* Call to Action */}
         <div className="text-center">
-          <p className="text-sm text-[hsl(var(--loom-text-muted))] mb-6">
+          <p className="loom-text-muted text-sm mb-6">
             Let's get you set up to start coordinating with your partner!
           </p>
           <button
