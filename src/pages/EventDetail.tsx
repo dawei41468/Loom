@@ -8,13 +8,11 @@ import {
   Clock, 
   Users, 
   Edit3, 
-  Copy, 
   Trash2,
   MessageCircle,
   CheckSquare,
   Eye,
   EyeOff,
-  Share
 } from 'lucide-react';
 import { useEvents, useEventsActions } from '../contexts/EventsContext';
 import { useAuthState } from '../contexts/AuthContext';
@@ -145,6 +143,16 @@ const EventDetail = () => {
   };
 
   const { date, time, duration } = formatEventDateTime(event);
+
+  // Disable chat when no partner or when event is solo (no second attendee)
+  const chatDisabled = !partnerForDisplay || (Array.isArray(event.attendees) ? event.attendees.length < 2 : true);
+
+  // Auto-redirect away from Chat tab when disabled
+  useEffect(() => {
+    if (chatDisabled && activeTab === 'chat') {
+      setActiveTab('details');
+    }
+  }, [chatDisabled, activeTab]);
 
   const handleDelete = () => {
     if (!event) return;
@@ -287,19 +295,7 @@ const EventDetail = () => {
             </div>
           )}
 
-          {isDev && (
-            <div className="loom-card">
-              <h3 className="font-medium mb-3">Debug</h3>
-              <div className="text-xs font-mono space-y-1 text-[hsl(var(--loom-text))]">
-                <div>event.id: {event.id}</div>
-                <div>event.created_by: {String(event.created_by)}</div>
-                <div>event.attendees: {JSON.stringify(event.attendees)}</div>
-                <div>derived.attendeesToDisplay: {JSON.stringify(attendeesToDisplay)}</div>
-                <div>user.id: {user?.id || 'null'}</div>
-                <div>partnerForDisplay.id: {partnerForDisplay?.id || 'null'}</div>
-              </div>
-            </div>
-          )}
+          
 
           {event.reminders.length > 0 && (
             <div className="loom-card">
@@ -370,78 +366,78 @@ const EventDetail = () => {
 
   return (
     <div className="min-h-screen bg-[hsl(var(--loom-bg))] safe-area-top">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-[hsl(var(--loom-border))]">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 hover:bg-[hsl(var(--loom-border))] rounded-full"
-        >
-          <X className="w-6 h-6" />
-        </button>
-        <div className="flex items-center space-x-2">
+      {/* Sticky Top (Header + Tabs) */}
+      <div className="sticky top-0 z-40 bg-[hsl(var(--loom-bg))] border-b border-[hsl(var(--loom-border))]">
+        {/* Header Row */}
+        <div className="flex items-center justify-between px-3 py-2">
           <button
-            onClick={handleShare}
-            className="p-2 hover:bg-[hsl(var(--loom-border))] rounded-full"
+            onClick={() => navigate(-1)}
+            className="p-1.5 hover:bg-[hsl(var(--loom-border))] rounded-full"
           >
-            <Share className="w-5 h-5" />
+            <X className="w-5 h-5" />
           </button>
-          {isOwner && (
-            <button
-              onClick={handleDelete}
-              className="p-2 hover:bg-[hsl(var(--loom-border))] rounded-full"
-            >
-              <Trash2 className="w-5 h-5 text-[hsl(var(--loom-danger))]" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex border-b border-[hsl(var(--loom-border))]">
-        {[
-          { id: 'details', label: 'Details', icon: Clock },
-          { id: 'chat', label: 'Chat', icon: MessageCircle },
-          { id: 'checklist', label: 'Checklist', icon: CheckSquare },
-        ].map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setActiveTab(id as 'details' | 'chat' | 'checklist')}
-            className={cn(
-              'flex-1 flex items-center justify-center space-x-2 py-4 transition-colors',
-              activeTab === id
-                ? 'text-[hsl(var(--loom-primary))] border-b-2 border-[hsl(var(--loom-primary))]'
-                : 'text-[hsl(var(--loom-text-muted))] hover:text-[hsl(var(--loom-text))]'
+          <div className="flex items-center space-x-1.5">
+            {isOwner && (
+              <>
+                <button
+                  onClick={() => navigate(`/event/${event.id}/edit`)}
+                  className="p-1.5 hover:bg-[hsl(var(--loom-border))] rounded-full"
+                  title="Edit"
+                >
+                  <Edit3 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="p-1.5 hover:bg-[hsl(var(--loom-border))] rounded-full"
+                  title="Delete"
+                >
+                  <Trash2 className="w-5 h-5 text-[hsl(var(--loom-danger))]" />
+                </button>
+              </>
             )}
-          >
-            <Icon className="w-4 h-4" />
-            <span className="text-sm font-medium">{label}</span>
-          </button>
-        ))}
+          </div>
+        </div>
+
+        {/* Tabs Row */}
+        <div className="flex">
+          {[
+            { id: 'details', label: 'Details', icon: Clock },
+            { id: 'chat', label: 'Chat', icon: MessageCircle },
+            { id: 'checklist', label: 'Checklist', icon: CheckSquare },
+          ].map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => {
+                if (id === 'chat' && chatDisabled) return; // mute chat when disabled
+                setActiveTab(id as 'details' | 'chat' | 'checklist');
+              }}
+              className={cn(
+                'flex-1 flex items-center justify-center space-x-2 py-2 transition-colors',
+                activeTab === id
+                  ? 'text-[hsl(var(--loom-primary))] border-b-2 border-[hsl(var(--loom-primary))]'
+                  : 'text-[hsl(var(--loom-text-muted))] hover:text-[hsl(var(--loom-text))]',
+                id === 'chat' && chatDisabled && 'opacity-50 cursor-not-allowed'
+              )}
+              aria-disabled={id === 'chat' && chatDisabled}
+            >
+              <Icon className="w-4 h-4" />
+              <span className="text-sm font-medium">{label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Content */}
       <div className={cn(
-        "container py-6",
-        isOwner ? "pb-24" : "pb-6"
+        'container py-6',
+        isOwner ? 'pb-24' : 'pb-6'
       )}>
         {activeTab === 'details' && renderDetailsTab()}
         {activeTab === 'chat' && renderChatTab()}
         {activeTab === 'checklist' && renderChecklistTab()}
       </div>
 
-      {/* Actions */}
-      {isOwner && (
-        <div className="fixed bottom-6 left-4 right-4 flex space-x-3">
-          <button className="loom-btn-ghost flex-1 flex items-center justify-center space-x-2">
-            <Copy className="w-4 h-4" />
-            <span>Duplicate</span>
-          </button>
-          <button className="loom-btn-primary flex-1 flex items-center justify-center space-x-2">
-            <Edit3 className="w-4 h-4" />
-            <span>Edit</span>
-          </button>
-        </div>
-      )}
+      {/* Actions (removed duplicate/edit bottom bar) */}
     </div>
   );
 };

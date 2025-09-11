@@ -14,6 +14,7 @@ const Tasks = React.lazy(() => import('./pages/Tasks'));
 const Settings = React.lazy(() => import('./pages/Settings'));
 const Partner = React.lazy(() => import('./pages/Partner'));
 const EventDetail = React.lazy(() => import('./pages/EventDetail'));
+const EditEvent = React.lazy(() => import('./pages/EditEvent'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
 const Invite = React.lazy(() => import('./pages/Invite'));
 
@@ -150,6 +151,14 @@ const AppRoutes = React.memo(() => {
           element={
             <ProtectedRoute>
               <EventDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/event/:id/edit"
+          element={
+            <ProtectedRoute>
+              <EditEvent />
             </ProtectedRoute>
           }
         />

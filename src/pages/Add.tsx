@@ -37,7 +37,7 @@ const Add = () => {
   const [endTime, setEndTime] = useState(format(addHours(new Date(), 2), 'h:mm a'));
   const [location, setLocation] = useState('');
   const [visibility, setVisibility] = useState<VisibilityType>('shared');
-  const [includePartner, setIncludePartner] = useState(true);
+  const [includePartner, setIncludePartner] = useState(false);
   const [reminders, setReminders] = useState([10]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -79,6 +79,14 @@ const Add = () => {
     loadPartnerIfNeeded();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isProposal]);
+
+  // If no partner is connected, ensure visibility is Private (since Shared is not possible)
+  useEffect(() => {
+    if (!partner && visibility === 'shared') {
+      setVisibility('private');
+      setIncludePartner(false);
+    }
+  }, [partner, visibility]);
 
   const parseNaturalLanguage = (input: string) => {
     // Simple NL parsing - in real app, would use more sophisticated parsing
@@ -602,30 +610,43 @@ const Add = () => {
             {/* Visibility */}
             <div className="loom-card">
               <label className="block text-sm font-medium mb-3">{t('visibilitySection')}</label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { value: 'shared', label: t('sharedVisibility') },
-                  { value: 'private', label: t('privateVisibility') },
-                  { value: 'title_only', label: t('titleOnlyVisibility') },
-                ].map(({ value, label }) => (
-                  <button
-                    key={value}
-                    onClick={() => setVisibility(value as VisibilityType)}
-                    className={cn(
-                      'loom-chip text-center',
-                      visibility === value
-                        ? 'loom-chip-shared'
-                        : 'bg-[hsl(var(--loom-border))] text-[hsl(var(--loom-text-muted))]'
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
+              <div className="grid grid-cols-2 gap-2">
+                {/* Shared */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!partner) return; // cannot select Shared without a partner
+                    setVisibility('shared');
+                  }}
+                  disabled={!partner}
+                  className={cn(
+                    'loom-chip text-center',
+                    visibility === 'shared' ? 'loom-chip-shared' : 'bg-[hsl(var(--loom-border))] text-[hsl(var(--loom-text-muted))]',
+                    !partner && 'opacity-60 cursor-not-allowed'
+                  )}
+                  title={!partner ? 'Connect a partner to share events' : undefined}
+                >
+                  {t('sharedVisibility')}
+                </button>
+                {/* Private */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVisibility('private');
+                    setIncludePartner(false); // private implies solo attendance
+                  }}
+                  className={cn(
+                    'loom-chip text-center',
+                    visibility === 'private' ? 'loom-chip-shared' : 'bg-[hsl(var(--loom-border))] text-[hsl(var(--loom-text-muted))]'
+                  )}
+                >
+                  {t('privateVisibility')}
+                </button>
               </div>
             </div>
 
-            {/* Attendees */}
-            {partner && (
+            {/* Attendees (controls attendance only when Shared) */}
+            {partner && visibility === 'shared' && (
               <div className="loom-card">
                 <div className="flex items-center space-x-2 mb-3">
                   <Users className="w-5 h-5 text-[hsl(var(--loom-primary))]" />
@@ -638,7 +659,7 @@ const Add = () => {
                     onChange={(e) => setIncludePartner(e.target.checked)}
                     className="w-5 h-5 rounded border-2 border-[hsl(var(--loom-border))] text-[hsl(var(--loom-primary))] focus:ring-[hsl(var(--loom-primary))]"
                   />
-                  <span>{t('includePartnerLabel').replace('{partnerName}', partner.display_name)}</span>
+                  <span>{t('includePartnerLabel').replace('{partnerName}', partner.display_name)} (attending)</span>
                 </label>
               </div>
             )}
