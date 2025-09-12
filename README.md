@@ -153,33 +153,51 @@ cd backend
 # Install Python dependencies
 pip install -r requirements.txt
 
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your MongoDB connection string
+# Set up environment variables (development)
+cp .env.example .env.development
+# Edit .env.development with your MongoDB connection and settings
 
-# Start FastAPI server
+# Start FastAPI server (serves on http://localhost:7500)
 uvicorn app.main:app --reload --port 7500
 ```
 
 ### Environment Variables
 
-Create `.env` in the backend directory:
+Backend `.env` (see `backend/.env.example`; development typically uses `.env.development`):
 ```env
-# Database
-MONGODB_URL=mongodb://localhost:27017/loom
-DATABASE_NAME=loom
+# Environment
+ENV=dev
+PROJECT_NAME=Loom
+API_V1_STR=/api
 
 # Security
-SECRET_KEY=your-secret-key-here
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-REFRESH_TOKEN_EXPIRE_DAYS=7
+SECRET_KEY=CHANGE_ME_LONG_RANDOM
+ACCESS_TOKEN_EXPIRE_MINUTES=15
+REFRESH_TOKEN_EXPIRE_MINUTES=10080
 
-# CORS
-CORS_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
+# Database
+MONGO_URI=mongodb://127.0.0.1:27017
+MONGO_DB=loom
 
-# API
-API_V1_STR=/api/v1
-PROJECT_NAME=Loom API
+# CORS (match frontend dev origin)
+CORS_ORIGINS=["http://localhost:7100","http://localhost:7500"]
+
+# Optional Email
+SMTP_HOST=...
+SMTP_PORT=587
+SMTP_USERNAME=...
+SMTP_PASSWORD=...
+SMTP_USE_TLS=true
+EMAIL_FROM=...
+```
+
+Frontend `.env` (see `.env.example`):
+```env
+VITE_API_BASE_URL=http://localhost:7500/api
+VITE_USE_REAL_API=false
+# Optional
+# VITE_APP_NAME=Loom
+# VITE_APP_VERSION=1.0.0
 ```
 
 ## 📊 Current Status
@@ -223,20 +241,29 @@ The API is fully documented with OpenAPI/Swagger. When running the backend serve
 - **ReDoc**: `http://localhost:7500/redoc`
 - **OpenAPI JSON**: `http://localhost:7500/openapi.json`
 
-### Key Endpoints
-- `POST /api/v1/auth/login` - User authentication
-- `GET /api/v1/events` - List user events
-- `POST /api/v1/events` - Create new event
-- `POST /api/v1/partner/invite` - Invite partner
-- `POST /api/v1/proposals` - Create time proposal
-- `GET /api/v1/availability/find-overlap` - Find free time slots
+### Key Endpoints (base path: `/api`)
+- `POST /api/auth/login` - User authentication
+- `POST /api/auth/register` - Register account
+- `POST /api/auth/refresh` - Refresh access token
+- `GET /api/auth/me` - Get current user
+- `PUT /api/auth/me` - Update current user
+- `POST /api/auth/change-password` - Change password
+- `DELETE /api/auth/me` - Delete account
+- `GET /api/events` - List user events
+- `POST /api/events` - Create new event
+- `GET /api/proposals` - List proposals
+- `POST /api/proposals` - Create time proposal
+- `POST /api/proposals/{id}/accept` - Accept a proposal
+- `POST /api/proposals/{id}/decline` - Decline a proposal
+- `POST /api/availability/find-overlap` - Find free time slots
+- `GET /api/partner` - Get partner connection info
 
 ## 🧪 Development
 
 ### Available Scripts
 ```bash
 # Frontend
-npm run dev  # Runs on port 7100 dev server
+npm run dev         # Runs on port 7100 (Vite)
 npm run build        # Build for production
 npm run preview      # Preview production build
 npm run lint         # Run ESLint
@@ -261,7 +288,7 @@ cd backend
 python3.11 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# Use the dev env file expected by app.config (APP_ENV=development by default)
+# Use the dev env file expected by app.config
 cp .env.example .env.development
 
 # Start FastAPI on port 7500
@@ -287,11 +314,11 @@ npm run dev  # serves on http://localhost:7100
 
 ### 3) WebSocket URL
 
-The frontend `src/hooks/useWebSocket.ts` derives the WS endpoint from `VITE_API_URL` or `VITE_API_BASE_URL`. With the above env, it will connect to:
+The frontend `src/hooks/useWebSocket.ts` derives the WS endpoint from `VITE_API_BASE_URL`. With the above env, it will connect to:
 
 - `ws://localhost:7500/api/partner/ws?token=...`
 
-which matches the backend route defined in `backend/app/main.py` (`/partner/ws`) under the API prefix `/api`.
+which matches the backend route defined in `backend/app/routers/websockets.py` (exposed under the API prefix `/api`).
 
 ### Code Quality
 - **ESLint**: Configured for React/TypeScript best practices

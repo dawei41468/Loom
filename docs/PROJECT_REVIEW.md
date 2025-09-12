@@ -76,46 +76,60 @@
 ## File Structure
 
 ```
-/weave-your-days/
+/Loom/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py              # FastAPI app entry point
 │   │   ├── config.py            # Configuration settings
 │   │   ├── database.py          # MongoDB connection
-│   │   ├── auth.py              # Authentication utilities
 │   │   ├── models.py            # Pydantic models
+│   │   ├── websocket.py         # WebSocket utilities
+│   │   ├── email.py             # Email utilities (invite email)
+│   │   ├── services.py          # Service helpers
+│   │   ├── cache.py             # In-memory cache (dev) / pluggable
 │   │   └── routers/
-│   │       ├── auth.py          # Authentication endpoints
-│   │       ├── events.py        # Event CRUD
+│   │       ├── auth.py          # Authentication & profile
+│   │       ├── events.py        # Event CRUD + chat/checklist routes
 │   │       ├── tasks.py         # Task CRUD
 │   │       ├── proposals.py     # Proposal system
-│   │       ├── partner.py       # Partner relationships
-│   │       └── availability.py  # Availability finding
+│   │       ├── partner.py       # Partner connect/disconnect, invites
+│   │       ├── availability.py  # Availability finding
+│   │       └── websockets.py    # WebSocket endpoints
 │   └── requirements.txt         # Python dependencies
 ├── src/
 │   ├── components/
 │   │   ├── ui/                  # shadcn/ui components
+│   │   ├── forms/               # Reusable form primitives
+│   │   ├── CustomCalendar.tsx   # Calendar UI
+│   │   ├── EventChat.tsx        # Event chat UI
+│   │   ├── EventChecklist.tsx   # Event checklist UI
 │   │   ├── Layout.tsx           # Main layout
-│   │   ├── BottomNavigation.tsx # Mobile navigation
 │   │   └── ...
-│   ├── contexts/                # React Context providers
-│   │   ├── AuthContext.tsx      # Authentication state
-│   │   ├── EventsContext.tsx    # Events and proposals state
-│   │   ├── TasksContext.tsx     # Tasks state
-│   │   ├── ToastContext.tsx     # Toast notifications
-│   │   └── UIContext.tsx        # UI preferences
-│   ├── pages/                   # Route components
-│   │   ├── Index.tsx            # Dashboard with proposal actions
-│   │   ├── Login.tsx            # Authentication
-│   │   ├── Calendar.tsx         # Full calendar view
-│   │   ├── Tasks.tsx            # Task management
-│   │   ├── Partner.tsx          # Partner invitation system
-│   │   └── ...
+│   ├── contexts/
+│   │   ├── AuthContext.tsx
+│   │   ├── CalendarUIContext.tsx
+│   │   ├── ToastContext.tsx
+│   │   └── UIContext.tsx
+│   ├── pages/
+│   │   ├── Index.tsx
+│   │   ├── Login.tsx
+│   │   ├── Register.tsx
+│   │   ├── Calendar.tsx
+│   │   ├── Add/
+│   │   ├── Partner.tsx
+│   │   ├── Invite.tsx
+│   │   ├── Settings.tsx
+│   │   └── Tasks.tsx
 │   ├── api/
-│   │   └── client.ts            # API client with token management
-│   ├── hooks/                   # Custom hooks
-│   │   └── usePolling.ts        # Real-time polling hook
-│   └── types.ts                 # TypeScript definitions
+│   │   ├── client.ts            # API client with token refresh
+│   │   └── queries.ts           # React Query keys and wrappers
+│   ├── hooks/
+│   │   ├── useWebSocket.ts      # WebSocket setup
+│   │   ├── usePartnerWebSocket.ts
+│   │   ├── useOfflineQueue.ts   # Offline queueing for chat/checklist
+│   │   └── ...
+│   ├── types.ts                 # TypeScript definitions
+│   └── index.css                # Tailwind CSS v4
 ├── public/                      # Static assets
 └── package.json                 # Frontend dependencies
 ```
@@ -123,45 +137,52 @@
 ## API Endpoints
 
 ### Authentication
-- `POST /api/v1/auth/register` - Register new user
-- `POST /api/v1/auth/login` - Login user
-- `POST /api/v1/auth/refresh` - Refresh access token
-- `GET /api/v1/auth/me` - Get current user
-- `PUT /api/v1/auth/me` - Update user profile
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login user
+- `POST /api/auth/refresh` - Refresh access token
+- `GET /api/auth/me` - Get current user
+- `PUT /api/auth/me` - Update user profile
+- `POST /api/auth/change-password` - Change password
+- `DELETE /api/auth/me` - Delete account
 
 ### Events
-- `GET /api/v1/events` - Get user's events
-- `POST /api/v1/events` - Create event
-- `GET /api/v1/events/{id}` - Get specific event
-- `PUT /api/v1/events/{id}` - Update event
-- `DELETE /api/v1/events/{id}` - Delete event
+- `GET /api/events` - Get user's events
+- `POST /api/events` - Create event
+- `GET /api/events/{id}` - Get specific event
+- `PUT /api/events/{id}` - Update event
+- `DELETE /api/events/{id}` - Delete event
+- `GET /api/events/{id}/messages` - List event chat messages
+- `POST /api/events/{id}/messages` - Send message
+- `DELETE /api/events/{id}/messages/{messageId}` - Delete message
+- `GET /api/events/{id}/checklist` - List checklist items
+- `POST /api/events/{id}/checklist` - Create checklist item
+- `PUT /api/events/{id}/checklist/{itemId}` - Update checklist item
+- `DELETE /api/events/{id}/checklist/{itemId}` - Delete checklist item
 
 ### Tasks
-- `GET /api/v1/tasks` - Get user's tasks
-- `POST /api/v1/tasks` - Create task
-- `GET /api/v1/tasks/{id}` - Get specific task
-- `PATCH /api/v1/tasks/{id}/toggle` - Toggle completion
-- `PUT /api/v1/tasks/{id}` - Update task
-- `DELETE /api/v1/tasks/{id}` - Delete task
+- `GET /api/tasks` - Get user's tasks
+- `POST /api/tasks` - Create task
+- `GET /api/tasks/{id}` - Get specific task
+- `PATCH /api/tasks/{id}/toggle` - Toggle completion
+- `PUT /api/tasks/{id}` - Update task
+- `DELETE /api/tasks/{id}` - Delete task
 
 ### Proposals
-- `GET /api/v1/proposals` - Get user's proposals
-- `POST /api/v1/proposals` - Create proposal
-- `POST /api/v1/proposals/{id}/accept` - Accept proposal
-- `POST /api/v1/proposals/{id}/decline` - Decline proposal
-- `GET /api/v1/proposals/{id}` - Get specific proposal
+- `GET /api/proposals` - Get user's proposals
+- `POST /api/proposals` - Create proposal
+- `POST /api/proposals/{id}/accept` - Accept proposal
+- `POST /api/proposals/{id}/decline` - Decline proposal
+- `GET /api/proposals/{id}` - Get specific proposal
 
 ### Availability
-- `POST /api/v1/availability/find-overlap` - Find available slots
-- `GET /api/v1/availability/user-busy` - Get busy times
+- `POST /api/availability/find-overlap` - Find available slots
+- `GET /api/availability/user-busy` - Get busy times
 
 ### Partner
-- `GET /api/v1/partner` - Get partner info
-- `POST /api/v1/partner/invite` - Invite partner
-- `POST /api/v1/partner/accept/{id}` - Accept partnership
-- `POST /api/v1/partner/decline/{id}` - Decline partnership
-
-## Critical Gaps to Address
+- `GET /api/partner` - Get partner info
+- `POST /api/partner/invite` - Invite partner
+- `POST /api/partner/accept/{id}` - Accept partnership
+- `POST /api/partner/decline/{id}` - Decline partnership
 
 ## Critical Gaps to Address
 
@@ -184,33 +205,32 @@ With the core feature set being robust and stable, the main gaps are now in test
 ```bash
 cd backend
 pip install -r requirements.txt
-# Set up MongoDB connection in .env
+# Use .env.development (see backend/.env.example)
 uvicorn app.main:app --reload --port 7500
 ```
 
 ### Frontend
 ```bash
 npm install
-npm run dev  # Runs on port 5173 (Vite default)
+npm run dev  # Runs on port 7100 (see vite.config.ts)
 ```
 
 ### Environment Variables
 ```env
-# Database
-MONGODB_URL=mongodb://localhost:27017/loom
-DATABASE_NAME=loom
+# Backend (.env.example)
+ENV=dev
+PROJECT_NAME=Loom
+API_V1_STR=/api
+SECRET_KEY=CHANGE_ME_LONG_RANDOM
+ACCESS_TOKEN_EXPIRE_MINUTES=15
+REFRESH_TOKEN_EXPIRE_MINUTES=10080
+MONGO_URI=mongodb://127.0.0.1:27017
+MONGO_DB=loom
+CORS_ORIGINS=["http://localhost:7100","http://localhost:7500"]
 
-# Security
-SECRET_KEY=your-secret-key-here
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-REFRESH_TOKEN_EXPIRE_DAYS=7
-
-# CORS
-CORS_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
-
-# API
-API_V1_STR=/api/v1
-PROJECT_NAME=Loom API
+# Frontend (.env.example)
+VITE_API_BASE_URL=http://localhost:7500/api
+VITE_USE_REAL_API=false
 ```
 
 ## Key Improvements Made
@@ -225,9 +245,9 @@ PROJECT_NAME=Loom API
 ## Recommendations
 
 1. **Complete the critical data loading fixes** - Calendar, Settings, EventDetail
-2. **Standardize on React Query** - Convert remaining direct API calls for consistency
+2. **Standardize on React Query** - Convert any remaining direct API calls for consistency
 3. **Add comprehensive testing** - Unit tests for both frontend and backend
-4. **Consider WebSocket upgrade** - For better real-time performance
+4. **Harden WebSocket resilience** - Additional reconnect/backoff strategies and server heartbeats
 5. **Implement push notifications** - For better user engagement
 6. **Add advanced features gradually** - Recurring events, calendar integrations
 
