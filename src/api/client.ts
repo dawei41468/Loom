@@ -234,6 +234,13 @@ class ApiClient {
     });
   }
 
+  async changePassword(payload: { current_password: string; new_password: string }): Promise<ApiResponse<void>> {
+    return this.request<ApiResponse<void>>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
   // Partner
   async getPartner(): Promise<ApiResponse<Partner | null>> {
     return this.request<ApiResponse<Partner | null>>('/partner');

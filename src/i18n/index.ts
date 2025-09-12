@@ -203,6 +203,7 @@ export const translations = {
     confirm: 'Confirm',
     back: 'Back',
     logout: 'Logout',
+    updating: 'Updating...',
 
     // Chat
     failedToSendMessage: 'Failed to send message',
@@ -385,6 +386,19 @@ export const translations = {
     month: 'Month',
     week: 'Week',
     day: 'Day',
+    // Change Password
+    changePassword: 'Change Password',
+    currentPassword: 'Current Password',
+    newPassword: 'New Password',
+    confirmNewPassword: 'Confirm New Password',
+    updatePassword: 'Update Password',
+    passwordUpdated: 'Password updated',
+    passwordUpdatedDesc: 'Your password has been changed successfully.',
+    failedToUpdatePassword: 'Failed to update password. Please try again.',
+    pleaseSignInAgainWithNewPassword: 'Please sign in again with your new password.',
+    missingFields: 'Missing fields',
+    enterCurrentAndNewPassword: 'Enter your current and new password.',
+    pleaseEnsurePasswordsMatch: 'Please ensure the new password and confirmation match.',
   },
   
   zh: {
@@ -588,6 +602,7 @@ export const translations = {
     confirm: '确认',
     back: '返回',
     logout: '登出',
+    updating: '更新中...',
     
     // Chat
     failedToSendMessage: '发送消息失败',
@@ -784,6 +799,19 @@ export const translations = {
     month: '月',
     week: '周',
     day: '日',
+    // Change Password
+    changePassword: '更改密码',
+    currentPassword: '当前密码',
+    newPassword: '新密码',
+    confirmNewPassword: '确认新密码',
+    updatePassword: '更新密码',
+    passwordUpdated: '密码已更新',
+    passwordUpdatedDesc: '您的密码已成功更改。',
+    failedToUpdatePassword: '更新密码失败。请重试。',
+    pleaseSignInAgainWithNewPassword: '请使用新密码重新登录。',
+    missingFields: '缺少字段',
+    enterCurrentAndNewPassword: '请输入当前密码和新密码。',
+    pleaseEnsurePasswordsMatch: '请确保新密码和确认密码一致。',
   }
 } as const;
 

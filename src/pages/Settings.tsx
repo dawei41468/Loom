@@ -8,7 +8,8 @@ import {
   Info,
   LogOut,
   Users,
-  UserX
+  UserX,
+  Lock
 } from 'lucide-react';
 import { useAuthState, useAuthDispatch, useUpdateProfile } from '../contexts/AuthContext';
 import { useTheme, useLanguage, useUIActions } from '../contexts/UIContext';
@@ -19,6 +20,7 @@ import FormField from '../components/forms/FormField';
 import TextInput from '../components/forms/TextInput';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { partnerQueries } from '../api/queries';
+import { apiClient } from '../api/client';
 import { Partner } from '../types';
 const Settings = () => {
   const { user } = useAuthState();
@@ -30,12 +32,41 @@ const Settings = () => {
   const { addToast } = useToastContext();
   const { t } = useTranslation();
   const [displayNameInput, setDisplayNameInput] = useState(user?.display_name || '');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   // Partner queries
   const { data: partnerData, isLoading: isLoadingPartner } = useQuery({
     queryKey: ['partner'],
     queryFn: partnerQueries.getPartner,
     refetchOnWindowFocus: false,
+  });
+
+  // Change password mutation
+  const changePasswordMutation = useMutation({
+    mutationFn: async (payload: { current_password: string; new_password: string }) => {
+      return apiClient.changePassword(payload);
+    },
+    onSuccess: () => {
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      // Force logout so user must sign in again with new password
+      authDispatch({ type: 'LOGOUT' });
+      addToast({
+        type: 'success',
+        title: t('passwordUpdated'),
+        description: t('pleaseSignInAgainWithNewPassword'),
+      });
+    },
+    onError: (error: any) => {
+      addToast({
+        type: 'error',
+        title: t('error'),
+        description: error?.message || t('failedToUpdatePassword'),
+      });
+    },
   });
 
   const queryClient = useQueryClient();
@@ -300,6 +331,76 @@ const Settings = () => {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Change Password */}
+      <div className="loom-card">
+        <div className="flex items-center space-x-3 mb-4">
+          <Lock className="w-5 h-5 text-[hsl(var(--loom-primary))]" />
+          <h2 className="font-medium">{t('changePassword')}</h2>
+        </div>
+
+        <form
+          className="space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (newPassword !== confirmPassword) {
+              addToast({
+                type: 'error',
+                title: t('passwordsDoNotMatch'),
+                description: t('pleaseEnsurePasswordsMatch'),
+              });
+              return;
+            }
+            if (!currentPassword || !newPassword) {
+              addToast({
+                type: 'error',
+                title: t('missingFields'),
+                description: t('enterCurrentAndNewPassword'),
+              });
+              return;
+            }
+            changePasswordMutation.mutate({ current_password: currentPassword, new_password: newPassword });
+          }}
+        >
+          <FormField label={t('currentPassword')} htmlFor="current_password">
+            <TextInput
+              id="current_password"
+              name="current_password"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              disabled={changePasswordMutation.isPending}
+            />
+          </FormField>
+          <FormField label={t('newPassword')} htmlFor="new_password">
+            <TextInput
+              id="new_password"
+              name="new_password"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              disabled={changePasswordMutation.isPending}
+            />
+          </FormField>
+          <FormField label={t('confirmNewPassword')} htmlFor="confirm_password">
+            <TextInput
+              id="confirm_password"
+              name="confirm_password"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              disabled={changePasswordMutation.isPending}
+            />
+          </FormField>
+          <button
+            type="submit"
+            disabled={changePasswordMutation.isPending}
+            className="w-full loom-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {changePasswordMutation.isPending ? t('updating') : t('updatePassword')}
+          </button>
+        </form>
       </div>
 
       {/* Logout Button */}

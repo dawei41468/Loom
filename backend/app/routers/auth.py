@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from ..models import User, UserCreate, UserLogin, Token, ApiResponse
-from ..auth import authenticate_user, create_access_token, create_refresh_token, verify_refresh_token, get_password_hash, get_current_user
+from ..models import User, UserCreate, UserLogin, Token, ApiResponse, ChangePasswordRequest
+from ..auth import authenticate_user, create_access_token, create_refresh_token, verify_refresh_token, get_password_hash, get_current_user, verify_password
 from ..database import get_database
 from ..config import settings
 from ..security import validate_password_strength, validate_email_format
@@ -176,3 +176,45 @@ async def update_current_user(
     user = User(**updated_user)
 
     return ApiResponse(data=user.model_dump(), message="User updated successfully")
+
+
+@router.post("/change-password", response_model=ApiResponse)
+async def change_password(
+    payload: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Change the current user's password.
+    Validates current password, checks new password strength, updates password hash.
+    """
+    db = get_database()
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database connection not available"
+        )
+
+    # Load full user document including password_hash
+    user_doc = await db.users.find_one({"_id": current_user.id})
+    if not user_doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    # Verify current password
+    if not verify_password(payload.current_password, user_doc.get("password_hash", "")):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
+
+    # Validate new password strength
+    is_valid, err = validate_password_strength(payload.new_password)
+    if not is_valid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err or "Weak password")
+
+    # Update password hash and updated_at
+    new_hash = get_password_hash(payload.new_password)
+    updated = await db.users.find_one_and_update(
+        {"_id": current_user.id},
+        {"$set": {"password_hash": new_hash, "updated_at": datetime.now(timezone.utc)}},
+        return_document=ReturnDocument.AFTER
+    )
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update password")
+
+    return ApiResponse(message="Password updated successfully")
