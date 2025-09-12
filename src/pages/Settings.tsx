@@ -1,5 +1,6 @@
 // Settings Page
 import React, { useState, useEffect, useRef } from 'react';
+import { NavLink } from 'react-router-dom';
 import {
   Globe,
   Moon,
@@ -527,7 +528,13 @@ const Settings = () => {
             <p className="text-[hsl(var(--loom-text-muted))]">{t('noPartnersConnected')}</p>
             <p className="text-sm text-[hsl(var(--loom-text-muted))] mt-1">
               {t('connectWithSomeoneToShareSchedule')}
-           </p>
+            </p>
+            <NavLink
+              to="/partner"
+              className="mt-3 inline-block text-[hsl(var(--loom-primary))] hover:underline"
+            >
+              Connect Now
+            </NavLink>
          </div>
        )}
      </div>

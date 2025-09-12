@@ -38,9 +38,19 @@ const DropdownMenuSubTrigger = React.forwardRef<
 DropdownMenuSubTrigger.displayName =
   DropdownMenuPrimitive.SubTrigger.displayName
 
+type Side = "top" | "right" | "bottom" | "left"
+type Align = "start" | "center" | "end"
+
 const DropdownMenuSubContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.SubContent>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent> & {
+    side?: Side
+    align?: Align
+    sideOffset?: number
+    alignOffset?: number
+    avoidCollisions?: boolean
+    collisionPadding?: number | Partial<Record<Side, number>>
+  }
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.SubContent
     ref={ref}

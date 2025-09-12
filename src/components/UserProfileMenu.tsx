@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Settings, User, LogOut, Globe, Sun, Moon } from 'lucide-react';
+import { Settings, User, LogOut, Globe, Sun, Moon, ChevronDown } from 'lucide-react';
 import { useAuthState, useAuthDispatch } from '@/contexts/AuthContext';
 import { useUIState, useUIActions } from '@/contexts/UIContext';
 import { useTranslation } from '@/i18n';
@@ -10,9 +10,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
@@ -22,6 +19,8 @@ const UserProfileMenu = React.memo(() => {
   const { theme, language } = useUIState();
   const { setTheme, setLanguage } = useUIActions();
   const { t } = useTranslation();
+  const [isThemeOpen, setIsThemeOpen] = React.useState(false);
+  const [isLanguageOpen, setIsLanguageOpen] = React.useState(false);
 
   if (!user) return null;
 
@@ -44,67 +43,98 @@ const UserProfileMenu = React.memo(() => {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          className="relative inline-flex h-8 w-8 min-h-8 min-w-8 rounded-full items-center justify-center shrink-0 overflow-hidden focus:outline-none focus:ring-0 border"
+          className="relative inline-flex h-10 w-10 min-h-10 min-w-10 rounded-full items-center justify-center shrink-0 overflow-hidden focus:outline-none focus:ring-0 border"
           style={{ borderColor: selfColor }}
         >
-          <User className="h-5 w-5" strokeWidth={2.5} style={{ color: selfColor }} />
+          <User className="h-6 w-6" strokeWidth={2.5} style={{ color: selfColor }} />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56 bg-[hsl(var(--loom-surface))] border-[hsl(var(--loom-border))]" align="end" forceMount>
+      <DropdownMenuContent className="w-64 p-1.5 text-[0.95rem] bg-[hsl(var(--loom-surface))] border-[hsl(var(--loom-border))]" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selfColor }}></div>
+            <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: selfColor }}></div>
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none text-[hsl(var(--loom-text))]">
+              <p className="text-base font-medium leading-none text-[hsl(var(--loom-text))]">
                 {user.display_name}
               </p>
-              <p className="text-xs leading-none text-[hsl(var(--loom-text-muted))]">
+              <p className="text-sm leading-none text-[hsl(var(--loom-text-muted))]">
                 {user.email}
               </p>
             </div>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-[hsl(var(--loom-border))]" />
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            {theme === 'light' ? <Sun className="mr-2 h-4 w-4 text-[hsl(var(--loom-text))]" /> : <Moon className="mr-2 h-4 w-4 text-[hsl(var(--loom-text))]" />}
+        {/* Theme collapsible */}
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+            setIsThemeOpen((v) => !v);
+          }}
+          aria-expanded={isThemeOpen}
+          className="text-base flex items-center justify-between"
+        >
+          <span className="flex items-center">
+            {theme === 'light' ? (
+              <Sun className="mr-2 h-5 w-5 text-[hsl(var(--loom-text))]" />
+            ) : (
+              <Moon className="mr-2 h-5 w-5 text-[hsl(var(--loom-text))]" />
+            )}
             <span className="text-[hsl(var(--loom-text))]">{t('theme')}</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="bg-[hsl(var(--loom-surface))] border-[hsl(var(--loom-border))]">
-            <DropdownMenuItem onClick={() => setTheme('light')} className={theme === 'light' ? 'bg-[hsl(var(--loom-accent))]' : ''}>
+          </span>
+          <ChevronDown
+            className={`ml-2 h-4 w-4 text-[hsl(var(--loom-text-muted))] transition-transform ${isThemeOpen ? 'rotate-180' : ''}`}
+          />
+        </DropdownMenuItem>
+        {isThemeOpen && (
+          <div className="pl-8 py-1">
+            <DropdownMenuItem onClick={() => setTheme('light')} className={`${theme === 'light' ? 'bg-[hsl(var(--loom-accent))]' : ''} text-base`}>
               <span className="text-[hsl(var(--loom-text))]">{t('light')}</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme('dark')} className={theme === 'dark' ? 'bg-[hsl(var(--loom-accent))]' : ''}>
+            <DropdownMenuItem onClick={() => setTheme('dark')} className={`${theme === 'dark' ? 'bg-[hsl(var(--loom-accent))]' : ''} text-base`}>
               <span className="text-[hsl(var(--loom-text))]">{t('dark')}</span>
             </DropdownMenuItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Globe className="mr-2 h-4 w-4 text-[hsl(var(--loom-text))]" />
+          </div>
+        )}
+
+        {/* Language collapsible */}
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+            setIsLanguageOpen((v) => !v);
+          }}
+          aria-expanded={isLanguageOpen}
+          className="text-base flex items-center justify-between"
+        >
+          <span className="flex items-center">
+            <Globe className="mr-2 h-5 w-5 text-[hsl(var(--loom-text))]" />
             <span className="text-[hsl(var(--loom-text))]">{t('language')}</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="bg-[hsl(var(--loom-surface))] border-[hsl(var(--loom-border))]">
-            <DropdownMenuItem onClick={() => setLanguage('en')} className={language === 'en' ? 'bg-[hsl(var(--loom-accent))]' : ''}>
+          </span>
+          <ChevronDown
+            className={`ml-2 h-4 w-4 text-[hsl(var(--loom-text-muted))] transition-transform ${isLanguageOpen ? 'rotate-180' : ''}`}
+          />
+        </DropdownMenuItem>
+        {isLanguageOpen && (
+          <div className="pl-8 py-1">
+            <DropdownMenuItem onClick={() => setLanguage('en')} className={`${language === 'en' ? 'bg-[hsl(var(--loom-accent))]' : ''} text-base`}>
               <span className="text-[hsl(var(--loom-text))]">{t('english')}</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setLanguage('zh')} className={language === 'zh' ? 'bg-[hsl(var(--loom-accent))]' : ''}>
+            <DropdownMenuItem onClick={() => setLanguage('zh')} className={`${language === 'zh' ? 'bg-[hsl(var(--loom-accent))]' : ''} text-base`}>
               <span className="text-[hsl(var(--loom-text))]">{t('chinese')}</span>
             </DropdownMenuItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+          </div>
+        )}
         <DropdownMenuItem asChild>
           <NavLink
             to="/settings"
-            className="flex items-center cursor-pointer"
+            className="flex items-center cursor-pointer text-base"
           >
-            <Settings className="mr-2 h-4 w-4 text-[hsl(var(--loom-text))]" />
+            <Settings className="mr-2 h-5 w-5 text-[hsl(var(--loom-text))]" />
             <span className="text-[hsl(var(--loom-text))]">{t('settings')}</span>
           </NavLink>
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-[hsl(var(--loom-border))]" />
-        <DropdownMenuItem onClick={() => dispatch({ type: 'LOGOUT' })}>
-          <LogOut className="mr-2 h-4 w-4 text-[hsl(var(--loom-danger))]" />
+        <DropdownMenuItem onClick={() => dispatch({ type: 'LOGOUT' })} className="px-3 py-2 text-base">
+          <LogOut className="mr-2 h-5 w-5 text-[hsl(var(--loom-danger))]" />
           <span className="text-[hsl(var(--loom-danger))]">{t('logout')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
