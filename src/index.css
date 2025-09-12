@@ -504,8 +504,8 @@
     .loom-button { font-size: 14px; padding: 10px 14px; min-height: 40px; }
   }
 
-  /* Extra small mobile (361px and below) */
-  @media (max-width: 361px) {
+  /* Extra small mobile (420px and below) */
+  @media (max-width: 420px) {
     .loom-timepicker { border-radius: 0 0 var(--loom-radius-lg) var(--loom-radius-lg); }
     .loom-button { font-size: 13px; padding: 8px 12px; min-height: 36px; }
   }
@@ -534,8 +534,8 @@
     @apply text-sm font-medium text-[hsl(var(--loom-text-muted))] min-w-[60px];
   }
 
-  /* Mobile Optimizations for 361px width */
-  @media (max-width: 361px) {
+  /* Mobile Optimizations for 420px width */
+  @media (max-width: 420px) {
     /* Container adjustments */
     .container {
       @apply px-4;
@@ -835,8 +835,8 @@
   }
 }
 
-/* Extra small mobile (361px and below) */
-@media (max-width: 361px) {
+/* Extra small mobile (420px and below) */
+@media (max-width: 420px) {
   .loom-calendar .rbc-month-row {
     min-height: 70px;
   }
