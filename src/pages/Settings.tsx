@@ -91,36 +91,14 @@ const Settings = () => {
     },
   });
 
-  // Debounced display name update
-  useEffect(() => {
-    const timeoutId = setTimeout(async () => {
-      if (displayNameInput !== user?.display_name && displayNameInput.trim() !== '' && !isUpdating) {
-        try {
-          await updateProfile({ display_name: displayNameInput });
-          addToast({
-            type: 'success',
-            title: t('profileUpdated'),
-            description: t('displayNameSaved'),
-          });
-        } catch (error) {
-          addToast({
-            type: 'error',
-            title: t('error'),
-            description: t('failedToUpdateDisplayName'),
-          });
-        }
-      }
-    }, 1000); // 1 second delay
+  // Manual update: we keep input in sync with user changes, but update only on button click
 
-    return () => clearTimeout(timeoutId);
-  }, [displayNameInput, user?.display_name, updateProfile, isUpdating, addToast]);
-
-  // Update local state when user data changes
+  // Update local state only when user.display_name changes
   useEffect(() => {
-    if (user?.display_name && user.display_name !== displayNameInput) {
+    if (typeof user?.display_name === 'string') {
       setDisplayNameInput(user.display_name);
     }
-  }, [user?.display_name, displayNameInput]);
+  }, [user?.display_name]);
 
   const handleLogout = () => {
     authDispatch({ type: 'LOGOUT' });
@@ -144,7 +122,7 @@ const Settings = () => {
         addToast({
           type: 'success',
           title: t('profileUpdated'),
-          description: field === 'color_preference' ? t('colorPreferenceSaved') : t('profileSaved'),
+          description: field === 'color_preference' ? t('colorPreferenceSaved') : (field === 'display_name' ? t('displayNameSaved') : t('profileSaved')),
         });
       } catch (error) {
         addToast({
@@ -195,9 +173,21 @@ const Settings = () => {
               type="text"
               value={displayNameInput}
               onChange={(e) => setDisplayNameInput(e.target.value)}
-              disabled={isUpdating}
             />
           </FormField>
+          <div>
+            <button
+              onClick={() => handleUpdateProfile('display_name', displayNameInput.trim())}
+              disabled={
+                isUpdating ||
+                displayNameInput.trim() === '' ||
+                displayNameInput.trim() === (user?.display_name || '').trim()
+              }
+              className="w-full sm:w-auto loom-btn-primary disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+            >
+              {t('updateName')}
+            </button>
+          </div>
 
           <div>
             <label className="block text-sm font-medium mb-2">{t('colorPreferenceLabel')}</label>
