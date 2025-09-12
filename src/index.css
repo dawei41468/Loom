@@ -208,6 +208,11 @@
     @apply text-[hsl(var(--loom-text-muted))];
   }
 
+  /* Standard container centering and padding across all breakpoints */
+  .container {
+    @apply mx-auto px-4;
+  }
+
   /* Onboarding Feature Cards (semantic classes for light/dark) */
   .onboarding-feature-card {
     @apply p-6 rounded-xl border transition-transform hover:scale-105;
