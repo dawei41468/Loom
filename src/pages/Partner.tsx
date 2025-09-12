@@ -1,24 +1,26 @@
 // Partner Management Page
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Heart, QrCode, Camera, Copy, Check } from 'lucide-react';
 import { useAuthState, useAuthDispatch } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
-import { partnerQueries } from '@/api/queries';
+import { partnerQueries, eventQueries } from '@/api/queries';
 import { Partner as PartnerType } from '../types';
 import { PageHeader } from '../components/ui/page-header';
 import { Section } from '../components/ui/section';
-import { EmptyState } from '../components/ui/empty-state';
 import { useTranslation } from '../i18n';
 import QRCodeModal from '../components/QRCodeModal';
 import QRScannerModal from '../components/QRScannerModal';
+import { apiClient } from '@/api/client';
+import { useNavigate } from 'react-router-dom';
 
 const Partner = () => {
-  const { user, partner } = useAuthState();
+  const { user } = useAuthState();
   const authDispatch = useAuthDispatch();
   const { addToast } = useToastContext();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   // QR Code functionality state
   const [inviteUrl, setInviteUrl] = useState<string>('');
@@ -31,6 +33,44 @@ const Partner = () => {
     queryFn: partnerQueries.getPartner,
     enabled: !!user,
   });
+
+  // Fetch events and overlap unconditionally (guarded via enabled) to keep hook order stable
+  const { data: eventsResp } = useQuery({
+    queryKey: ['events'],
+    queryFn: eventQueries.getEvents,
+    enabled: !!user,
+    staleTime: 60_000,
+  });
+
+  // Minimal overlap preview for next 7 days, 60-min duration
+  // NOTE: Disabled in dev to avoid noisy CORS errors when frontend (7100) and backend (7500) differ
+  // In production, it will be enabled as usual
+  const { data: overlapResp } = useQuery({
+    queryKey: ['partner', 'overlap', 60, 7],
+    queryFn: () => apiClient.findOverlap({ duration_minutes: 60, date_range_days: 7 }),
+    enabled: import.meta.env.DEV ? false : (!!user && !!partnerData?.data),
+    staleTime: 60_000,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const nextSharedEvents = useMemo(() => {
+    const list = eventsResp?.data || [];
+    if (!list?.length || !partnerData?.data) return [] as { id: string; title: string; start_time: string; created_by: string; visibility: string }[];
+    const partnerId = partnerData.data.id;
+    const now = Date.now();
+    return list
+      .filter((e) => {
+        const starts = Date.parse(e.start_time);
+        if (isNaN(starts) || starts < now) return false;
+        // consider shared visibility or attendance with partner
+        const isShared = e.visibility === 'shared';
+        const includesPartner = Array.isArray(e.attendees) && e.attendees.includes(partnerId);
+        return isShared || includesPartner;
+      })
+      .sort((a, b) => Date.parse(a.start_time) - Date.parse(b.start_time))
+      .slice(0, 3);
+  }, [eventsResp?.data, partnerData?.data]);
 
   const connectPartnerMutation = useMutation({
     mutationFn: (token: { invite_token: string }) => partnerQueries.connectPartner(token),
@@ -213,11 +253,63 @@ const Partner = () => {
         </Section>
 
         <Section title={t('sharedActivities')}>
-          <EmptyState
-            icon={Heart}
-            title={t('comingSoon')}
-            description={t('sharedActivitiesDescription')}
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Next together */}
+            <div className="loom-card-compact">
+              <h4 className="font-medium mb-2">{t('nextUp')}</h4>
+              {nextSharedEvents.length === 0 ? (
+                <p className="text-sm text-[hsl(var(--loom-text-muted))]">{t('noEventsInRange')}</p>
+              ) : (
+                <ul className="space-y-2">
+                  {nextSharedEvents.map((e) => (
+                    <li key={e.id} className="flex items-start justify-between">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-[hsl(var(--loom-text))] truncate">{e.title}</p>
+                        <p className="text-xs text-[hsl(var(--loom-text-muted))]">
+                          {new Date(e.start_time).toLocaleString()}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => navigate(`/event/${e.id}`)}
+                        className="ml-3 text-xs loom-btn-ghost px-2 py-1"
+                      >
+                        {t('viewDetails')}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Find a time together */}
+            <div className="loom-card-compact">
+              <h4 className="font-medium mb-2">{t('findOverlap')}</h4>
+              {/* Compact overlap strip (optional) */}
+              {Array.isArray(overlapResp?.data) && overlapResp!.data.length > 0 ? (
+                <div className="flex items-center gap-1 mb-3">
+                  {overlapResp!.data.slice(0, 7).map((slot, idx) => (
+                    <div
+                      key={idx}
+                      title={`${new Date(slot.start_time).toLocaleDateString()} ${new Date(slot.start_time).toLocaleTimeString()}`}
+                      className="h-3 flex-1 rounded-sm"
+                      style={{
+                        backgroundColor: 'hsl(var(--loom-success))',
+                        opacity: 0.6,
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-[hsl(var(--loom-text-muted))] mb-3">{t('timeToGather')}</p>
+              )}
+              <button
+                onClick={() => navigate('/add?type=proposal')}
+                className="loom-btn-primary w-full"
+              >
+                {t('proposeTime')}
+              </button>
+            </div>
+          </div>
         </Section>
       </div>
     );
