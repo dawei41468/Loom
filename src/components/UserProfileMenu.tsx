@@ -32,17 +32,28 @@ const UserProfileMenu = React.memo(() => {
     .toUpperCase()
     .slice(0, 2);
 
+  // Resolve 'user' | 'partner' | '#RRGGBB' to a CSS color
+  const resolveColor = (token?: string): string => {
+    if (!token || token === 'user') return 'hsl(var(--loom-user))';
+    if (token === 'partner') return 'hsl(var(--loom-partner))';
+    return token; // assume hex
+  };
+  const selfColor = resolveColor(user.ui_self_color);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="relative h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 aspect-square focus:outline-none focus:ring-0">
-          <User className="h-5 w-5 text-[hsl(var(--loom-primary))]" strokeWidth={2.5} />
+        <button
+          className="relative inline-flex h-8 w-8 min-h-8 min-w-8 rounded-full items-center justify-center shrink-0 overflow-hidden focus:outline-none focus:ring-0 border"
+          style={{ borderColor: selfColor }}
+        >
+          <User className="h-5 w-5" strokeWidth={2.5} style={{ color: selfColor }} />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56 bg-[hsl(var(--loom-surface))] border-[hsl(var(--loom-border))]" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-[hsl(var(--loom-primary))]"></div>
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selfColor }}></div>
             <div className="flex flex-col space-y-1">
               <p className="text-sm font-medium leading-none text-[hsl(var(--loom-text))]">
                 {user.display_name}

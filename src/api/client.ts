@@ -241,6 +241,13 @@ class ApiClient {
     });
   }
 
+  async deleteAccount(payload: { current_password: string }): Promise<ApiResponse<void>> {
+    return this.request<ApiResponse<void>>('/auth/me', {
+      method: 'DELETE',
+      body: JSON.stringify(payload),
+    });
+  }
+
   // Partner
   async getPartner(): Promise<ApiResponse<Partner | null>> {
     return this.request<ApiResponse<Partner | null>>('/partner');

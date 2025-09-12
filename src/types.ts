@@ -5,6 +5,9 @@ export interface User {
   email: string;
   display_name: string;
   color_preference: 'user' | 'partner';
+  // Viewer-centric colors: 'user' | 'partner' | '#RRGGBB'
+  ui_self_color?: string;
+  ui_partner_color?: string;
   timezone: string;
   language: 'en' | 'zh';
   is_onboarded: boolean;
@@ -127,6 +130,8 @@ export interface UserCreate {
 export interface UserUpdate {
   display_name?: string;
   color_preference?: 'user' | 'partner';
+  ui_self_color?: string;
+  ui_partner_color?: string;
   timezone?: string;
   language?: 'en' | 'zh';
 }

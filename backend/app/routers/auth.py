@@ -3,12 +3,13 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from ..models import User, UserCreate, UserLogin, Token, ApiResponse, ChangePasswordRequest
+from ..models import User, UserCreate, UserLogin, Token, ApiResponse, ChangePasswordRequest, DeleteAccountRequest
 from ..auth import authenticate_user, create_access_token, create_refresh_token, verify_refresh_token, get_password_hash, get_current_user, verify_password
 from ..database import get_database
 from ..config import settings
 from ..security import validate_password_strength, validate_email_format
 from pymongo import ReturnDocument
+import re
 
 # Rate limiter for auth endpoints
 limiter = Limiter(key_func=get_remote_address)
@@ -149,6 +150,18 @@ async def update_current_user(
         update_data["display_name"] = user_update["display_name"]
     if "color_preference" in user_update:
         update_data["color_preference"] = user_update["color_preference"]
+    # Viewer-centric colors: 'user' | 'partner' or hex color like '#14b8a6'
+    hex_re = re.compile(r"^#([0-9a-fA-F]{6})$")
+    if "ui_self_color" in user_update:
+        v = str(user_update["ui_self_color"]).strip()
+        if v not in ("user", "partner") and not hex_re.match(v):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ui_self_color")
+        update_data["ui_self_color"] = v
+    if "ui_partner_color" in user_update:
+        v = str(user_update["ui_partner_color"]).strip()
+        if v not in ("user", "partner") and not hex_re.match(v):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ui_partner_color")
+        update_data["ui_partner_color"] = v
     if "timezone" in user_update:
         update_data["timezone"] = user_update["timezone"]
     if "language" in user_update:
@@ -218,3 +231,85 @@ async def change_password(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update password")
 
     return ApiResponse(message="Password updated successfully")
+
+
+@router.delete("/me", response_model=ApiResponse)
+async def delete_account(
+    payload: DeleteAccountRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete current user's account and cascade delete associated data.
+    Requires current password confirmation.
+    """
+    db = get_database()
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database connection not available"
+        )
+
+    # Verify password
+    user_doc = await db.users.find_one({"_id": current_user.id})
+    if not user_doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if not verify_password(payload.current_password, user_doc.get("password_hash", "")):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
+
+    user_id_str = str(current_user.id)
+
+    # Collect events created by user to clean related data
+    deleted_event_ids: list[str] = []
+    async for ev in db.events.find({"created_by": user_id_str}, {"_id": 1}):
+        deleted_event_ids.append(str(ev["_id"]))
+
+    # Partnerships involving user
+    await db.partnerships.delete_many({
+        "$or": [
+            {"user1_id": user_id_str},
+            {"user2_id": user_id_str},
+            {"invited_by": user_id_str},
+        ]
+    })
+
+    # Proposals by/to user
+    await db.proposals.delete_many({
+        "$or": [
+            {"proposed_by": user_id_str},
+            {"proposed_to": user_id_str},
+        ]
+    })
+
+    # Tasks created by user
+    await db.tasks.delete_many({"created_by": user_id_str})
+
+    # Invite tokens created by or used by user
+    await db.invite_tokens.delete_many({
+        "$or": [
+            {"created_by": user_id_str},
+            {"used_by": user_id_str},
+        ]
+    })
+
+    # Event messages sent by user
+    await db.event_messages.delete_many({"sender_id": user_id_str})
+    # Event messages belonging to deleted events
+    if deleted_event_ids:
+        await db.event_messages.delete_many({"event_id": {"$in": deleted_event_ids}})
+
+    # Checklist items created by user
+    await db.event_checklist_items.delete_many({"created_by": user_id_str})
+    # Checklist items belonging to deleted events
+    if deleted_event_ids:
+        await db.event_checklist_items.delete_many({"event_id": {"$in": deleted_event_ids}})
+    # Unset completed_by where it's the user
+    await db.event_checklist_items.update_many({"completed_by": user_id_str}, {"$unset": {"completed_by": "", "completed_at": ""}})
+
+    # Events created by user
+    await db.events.delete_many({"created_by": user_id_str})
+    # Remove user from attendees of remaining events
+    await db.events.update_many({"attendees": {"$in": [user_id_str]}}, {"$pull": {"attendees": user_id_str}})
+
+    # Finally, delete the user
+    await db.users.delete_one({"_id": current_user.id})
+
+    return ApiResponse(message="Account deleted successfully")

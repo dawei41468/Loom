@@ -1,5 +1,5 @@
 // Settings Page
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Globe,
   Moon,
@@ -9,7 +9,7 @@ import {
   LogOut,
   Users,
   UserX,
-  Lock
+  ChevronDown
 } from 'lucide-react';
 import { useAuthState, useAuthDispatch, useUpdateProfile } from '../contexts/AuthContext';
 import { useTheme, useLanguage, useUIActions } from '../contexts/UIContext';
@@ -35,12 +35,38 @@ const Settings = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isPasswordOpen, setIsPasswordOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const selfColorPickerRef = useRef<HTMLInputElement>(null);
+  const partnerColorPickerRef = useRef<HTMLInputElement>(null);
 
   // Partner queries
   const { data: partnerData, isLoading: isLoadingPartner } = useQuery({
     queryKey: ['partner'],
     queryFn: partnerQueries.getPartner,
     refetchOnWindowFocus: false,
+  });
+
+  // Delete account mutation
+  const deleteAccountMutation = useMutation({
+    mutationFn: async (payload: { current_password: string }) => apiClient.deleteAccount(payload),
+    onSuccess: () => {
+      setDeletePassword('');
+      authDispatch({ type: 'LOGOUT' });
+      addToast({
+        type: 'success',
+        title: t('accountDeleted'),
+        description: t('accountDeletedDesc'),
+      });
+    },
+    onError: (error: any) => {
+      addToast({
+        type: 'error',
+        title: t('error'),
+        description: error?.message || t('deletionFailed'),
+      });
+    },
   });
 
   // Change password mutation
@@ -144,18 +170,26 @@ const Settings = () => {
     { value: 'zh', label: t('chinese'), flag: '🇨🇳' },
   ];
 
+  // Resolve a color token ('user' | 'partner' | '#RRGGBB') to CSS color string
+  const resolveColor = (token?: string): string => {
+    if (!token) return 'hsl(var(--loom-user))';
+    if (token === 'user') return 'hsl(var(--loom-user))';
+    if (token === 'partner') return 'hsl(var(--loom-partner))';
+    return token; // assume valid hex
+  };
+
   return (
-    <div className="container py-6 space-y-6">
+    <div className="container py-6 space-y-3">
       {/* Header */}
       <h1 className="text-2xl font-semibold">{t('settingsPage')}</h1>
 
       {/* Profile Card */}
       <div className="loom-card">
         <div className="flex items-center space-x-4 mb-4">
-          <div className={cn(
-            'w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold',
-            user?.color_preference === 'user' ? 'bg-[hsl(var(--loom-user))]' : 'bg-[hsl(var(--loom-partner))]'
-          )}>
+          <div
+            className={cn('w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold')}
+            style={{ backgroundColor: resolveColor(user?.ui_self_color || 'user') }}
+          >
             {(displayNameInput || user?.display_name || '').charAt(0).toUpperCase()}
           </div>
           <div className="flex-1">
@@ -173,6 +207,7 @@ const Settings = () => {
               type="text"
               value={displayNameInput}
               onChange={(e) => setDisplayNameInput(e.target.value)}
+              autoComplete="name"
             />
           </FormField>
           <div>
@@ -190,35 +225,261 @@ const Settings = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">{t('colorPreferenceLabel')}</label>
-            <div className="grid grid-cols-2 gap-2">
+            <label className="block text-sm font-medium mb-2">{t('myColor')}</label>
+            <div className="grid grid-cols-3 gap-2">
               <button
-                onClick={() => handleUpdateProfile('color_preference', 'user')}
+                onClick={() => handleUpdateProfile('ui_self_color', 'user')}
                 disabled={isUpdating}
                 className={cn(
                   'p-3 rounded-[var(--loom-radius-md)] border transition-all flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed',
-                  user?.color_preference === 'user'
+                  (user?.ui_self_color || 'user') === 'user'
                     ? 'border-[hsl(var(--loom-user))] bg-[hsl(var(--loom-user)/0.1)]'
                     : 'border-[hsl(var(--loom-border))]'
                 )}
               >
-                <div className="w-4 h-4 rounded-full bg-[hsl(var(--loom-user))]" />
-                <span className="text-sm">{t('tealColor')}</span>
+                <div className="w-3 h-3 rounded-full bg-[hsl(var(--loom-user))]" />
+                <span className="text-xs">{t('tealColor')}</span>
               </button>
               <button
-                onClick={() => handleUpdateProfile('color_preference', 'partner')}
+                onClick={() => handleUpdateProfile('ui_self_color', 'partner')}
                 disabled={isUpdating}
                 className={cn(
                   'p-3 rounded-[var(--loom-radius-md)] border transition-all flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed',
-                  user?.color_preference === 'partner'
+                  (user?.ui_self_color || 'user') === 'partner'
                     ? 'border-[hsl(var(--loom-partner))] bg-[hsl(var(--loom-partner)/0.1)]'
                     : 'border-[hsl(var(--loom-border))]'
                 )}
               >
-                <div className="w-4 h-4 rounded-full bg-[hsl(var(--loom-partner))]" />
-                <span className="text-sm">{t('orangeColor')}</span>
+                <div className="w-3 h-3 rounded-full bg-[hsl(var(--loom-partner))]" />
+                <span className="text-xs">{t('orangeColor')}</span>
               </button>
+              <div className="relative">
+                <button
+                  onClick={() => selfColorPickerRef.current?.click()}
+                  disabled={isUpdating}
+                  className={cn(
+                    'w-full p-3 rounded-[var(--loom-radius-md)] border transition-all flex items-center space-x-2 justify-start disabled:opacity-50 disabled:cursor-not-allowed',
+                    (user?.ui_self_color || '')?.startsWith('#') ? 'border-[hsl(var(--loom-primary))] bg-[hsl(var(--loom-primary)/0.06)]' : 'border-[hsl(var(--loom-border))]'
+                  )}
+                >
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: resolveColor(user?.ui_self_color || '#14b8a6') }} />
+                  <span className="text-xs">{t('customColor')}</span>
+                </button>
+                <input
+                  ref={selfColorPickerRef}
+                  type="color"
+                  className="absolute opacity-0 pointer-events-none"
+                  value={(user?.ui_self_color || '').startsWith('#') ? user!.ui_self_color! : '#14b8a6'}
+                  onChange={(e) => handleUpdateProfile('ui_self_color', e.target.value)}
+                />
+              </div>
             </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-sm font-medium mb-1">{t('partnerColor')}</label>
+            {!partnerData?.data && (
+              <p className="text-xs text-[hsl(var(--loom-text-muted))] mb-2">{t('partnerColorHintNoPartner')}</p>
+            )}
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => handleUpdateProfile('ui_partner_color', 'user')}
+                disabled={isUpdating}
+                className={cn(
+                  'p-3 rounded-[var(--loom-radius-md)] border transition-all flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed',
+                  (user?.ui_partner_color || 'partner') === 'user'
+                    ? 'border-[hsl(var(--loom-user))] bg-[hsl(var(--loom-user)/0.1)]'
+                    : 'border-[hsl(var(--loom-border))]'
+                )}
+              >
+                <div className="w-3 h-3 rounded-full bg-[hsl(var(--loom-user))]" />
+                <span className="text-xs">{t('tealColor')}</span>
+              </button>
+              <button
+                onClick={() => handleUpdateProfile('ui_partner_color', 'partner')}
+                disabled={isUpdating}
+                className={cn(
+                  'p-3 rounded-[var(--loom-radius-md)] border transition-all flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed',
+                  (user?.ui_partner_color || 'partner') === 'partner'
+                    ? 'border-[hsl(var(--loom-partner))] bg-[hsl(var(--loom-partner)/0.1)]'
+                    : 'border-[hsl(var(--loom-border))]'
+                )}
+              >
+                <div className="w-3 h-3 rounded-full bg-[hsl(var(--loom-partner))]" />
+                <span className="text-xs">{t('orangeColor')}</span>
+              </button>
+              <div className="relative">
+                <button
+                  onClick={() => partnerColorPickerRef.current?.click()}
+                  disabled={isUpdating}
+                  className={cn(
+                    'w-full p-3 rounded-[var(--loom-radius-md)] border transition-all flex items-center space-x-2 justify-start disabled:opacity-50 disabled:cursor-not-allowed',
+                    (user?.ui_partner_color || '')?.startsWith('#') ? 'border-[hsl(var(--loom-primary))] bg-[hsl(var(--loom-primary)/0.06)]' : 'border-[hsl(var(--loom-border))]'
+                  )}
+                >
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: resolveColor(user?.ui_partner_color || '#f97316') }} />
+                  <span className="text-xs">{t('customColor')}</span>
+                </button>
+                <input
+                  ref={partnerColorPickerRef}
+                  type="color"
+                  className="absolute opacity-0 pointer-events-none"
+                  value={(user?.ui_partner_color || '').startsWith('#') ? user!.ui_partner_color! : '#f97316'}
+                  onChange={(e) => handleUpdateProfile('ui_partner_color', e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-[hsl(var(--loom-border))] pt-4">
+            <button
+              type="button"
+              onClick={() => setIsPasswordOpen((v) => !v)}
+              aria-expanded={isPasswordOpen}
+              aria-controls="profile-change-password"
+              className="w-full flex items-center justify-between"
+            >
+              <h3 className="text-sm font-medium">{t('changePassword')}</h3>
+              <ChevronDown className={cn('w-4 h-4 transition-transform', isPasswordOpen ? 'rotate-180' : '')} />
+            </button>
+            {isPasswordOpen && (
+              <form
+                id="profile-change-password"
+                className="space-y-3 mt-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (newPassword !== confirmPassword) {
+                    addToast({
+                      type: 'error',
+                      title: t('passwordsDoNotMatch'),
+                      description: t('pleaseEnsurePasswordsMatch'),
+                    });
+                    return;
+                  }
+                  if (!currentPassword || !newPassword) {
+                    addToast({
+                      type: 'error',
+                      title: t('missingFields'),
+                      description: t('enterCurrentAndNewPassword'),
+                    });
+                    return;
+                  }
+                  changePasswordMutation.mutate({ current_password: currentPassword, new_password: newPassword });
+                }}
+              >
+                {/* Hidden username field for accessibility and browser password managers */}
+                <input
+                  type="text"
+                  name="username"
+                  autoComplete="username"
+                  value={user?.email || ''}
+                  readOnly
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  className="sr-only"
+                />
+                <FormField label={t('currentPassword')} htmlFor="current_password">
+                  <TextInput
+                    id="current_password"
+                    name="current_password"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    autoComplete="current-password"
+                    disabled={changePasswordMutation.isPending}
+                  />
+                </FormField>
+                <FormField label={t('newPassword')} htmlFor="new_password">
+                  <TextInput
+                    id="new_password"
+                    name="new_password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    autoComplete="new-password"
+                    disabled={changePasswordMutation.isPending}
+                  />
+                </FormField>
+                <FormField label={t('confirmNewPassword')} htmlFor="confirm_password">
+                  <TextInput
+                    id="confirm_password"
+                    name="confirm_password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
+                    disabled={changePasswordMutation.isPending}
+                  />
+                </FormField>
+                <button
+                  type="submit"
+                  disabled={changePasswordMutation.isPending}
+                  className="w-full loom-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {changePasswordMutation.isPending ? t('updating') : t('updatePassword')}
+                </button>
+              </form>
+            )}
+          </div>
+
+          <div className="border-t border-[hsl(var(--loom-border))] pt-4">
+            <button
+              type="button"
+              onClick={() => setIsDeleteOpen((v) => !v)}
+              aria-expanded={isDeleteOpen}
+              aria-controls="profile-delete-account"
+              className="w-full flex items-center justify-between"
+            >
+              <h3 className="text-sm font-medium">{t('deleteAccount')}</h3>
+              <ChevronDown className={cn('w-4 h-4 transition-transform', isDeleteOpen ? 'rotate-180' : '')} />
+            </button>
+            {isDeleteOpen && (
+              <form
+                id="profile-delete-account"
+                className="space-y-3 mt-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!deletePassword) {
+                    addToast({ type: 'error', title: t('error'), description: t('enterPasswordToConfirm') });
+                    return;
+                  }
+                  if (window.confirm(t('confirmDeleteAccount'))) {
+                    deleteAccountMutation.mutate({ current_password: deletePassword });
+                  }
+                }}
+              >
+                <p className="text-sm text-[hsl(var(--loom-text-muted))]">{t('deleteAccountDesc')}</p>
+                {/* Hidden username for password manager context */}
+                <input
+                  type="text"
+                  name="username"
+                  autoComplete="username"
+                  value={user?.email || ''}
+                  readOnly
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  className="sr-only"
+                />
+                <FormField label={t('enterPasswordToConfirm')} htmlFor="delete_password">
+                  <TextInput
+                    id="delete_password"
+                    name="delete_password"
+                    type="password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    autoComplete="current-password"
+                    disabled={deleteAccountMutation.isPending}
+                  />
+                </FormField>
+                <button
+                  type="submit"
+                  disabled={deleteAccountMutation.isPending}
+                  className="w-full loom-btn-danger disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {deleteAccountMutation.isPending ? t('deleting') : t('deleteAccount')}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       </div>
@@ -238,10 +499,10 @@ const Settings = () => {
         ) : partnerData?.data ? (
           <div className="space-y-4">
             <div className="flex items-center space-x-4 p-3 bg-[hsl(var(--loom-surface))] rounded-[var(--loom-radius-md)]">
-              <div className={cn(
-                'w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold',
-                partnerData.data.color_preference === 'user' ? 'bg-[hsl(var(--loom-user))]' : 'bg-[hsl(var(--loom-partner))]'
-              )}>
+              <div
+                className={cn('w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold')}
+                style={{ backgroundColor: resolveColor(user?.ui_partner_color || 'partner') }}
+              >
                 {partnerData.data.display_name.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1">
@@ -271,32 +532,6 @@ const Settings = () => {
        )}
      </div>
 
-      {/* Language */}
-      <div className="loom-card">
-        <div className="flex items-center space-x-3 mb-4">
-          <Globe className="w-5 h-5 text-[hsl(var(--loom-primary))]" />
-          <h2 className="font-medium">{t('languageSection')}</h2>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          {languageOptions.map(({ value, label, flag }) => (
-            <button
-              key={value}
-              onClick={() => setLanguage(value as 'en' | 'zh')}
-              className={cn(
-                'p-3 rounded-[var(--loom-radius-md)] border transition-all flex items-center space-x-2',
-                language === value
-                  ? 'border-[hsl(var(--loom-primary))] bg-[hsl(var(--loom-primary)/0.1)]'
-                  : 'border-[hsl(var(--loom-border))]'
-              )}
-            >
-              <span className="text-lg">{flag}</span>
-              <span className="text-sm">{label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Theme */}
       <div className="loom-card">
         <div className="flex items-center space-x-3 mb-4">
@@ -310,91 +545,48 @@ const Settings = () => {
               key={value}
               onClick={() => setTheme(value as 'light' | 'dark')}
               className={cn(
-                'p-3 rounded-[var(--loom-radius-md)] border transition-all flex flex-col items-center space-y-1',
+                'p-3 rounded-[var(--loom-radius-md)] border transition-all flex items-center space-x-2',
                 theme === value
                   ? 'border-[hsl(var(--loom-primary))] bg-[hsl(var(--loom-primary)/0.1)]'
                   : 'border-[hsl(var(--loom-border))]'
               )}
             >
               <Icon className="w-5 h-5" />
-              <span className="text-xs">{label}</span>
+              <span className="text-sm">{label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Change Password */}
+      {/* Language */}
       <div className="loom-card">
         <div className="flex items-center space-x-3 mb-4">
-          <Lock className="w-5 h-5 text-[hsl(var(--loom-primary))]" />
-          <h2 className="font-medium">{t('changePassword')}</h2>
+          <Globe className="w-5 h-5 text-[hsl(var(--loom-primary))]" />
+          <h2 className="font-medium">{t('languageSection')}</h2>
         </div>
 
-        <form
-          className="space-y-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (newPassword !== confirmPassword) {
-              addToast({
-                type: 'error',
-                title: t('passwordsDoNotMatch'),
-                description: t('pleaseEnsurePasswordsMatch'),
-              });
-              return;
-            }
-            if (!currentPassword || !newPassword) {
-              addToast({
-                type: 'error',
-                title: t('missingFields'),
-                description: t('enterCurrentAndNewPassword'),
-              });
-              return;
-            }
-            changePasswordMutation.mutate({ current_password: currentPassword, new_password: newPassword });
-          }}
-        >
-          <FormField label={t('currentPassword')} htmlFor="current_password">
-            <TextInput
-              id="current_password"
-              name="current_password"
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              disabled={changePasswordMutation.isPending}
-            />
-          </FormField>
-          <FormField label={t('newPassword')} htmlFor="new_password">
-            <TextInput
-              id="new_password"
-              name="new_password"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              disabled={changePasswordMutation.isPending}
-            />
-          </FormField>
-          <FormField label={t('confirmNewPassword')} htmlFor="confirm_password">
-            <TextInput
-              id="confirm_password"
-              name="confirm_password"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              disabled={changePasswordMutation.isPending}
-            />
-          </FormField>
-          <button
-            type="submit"
-            disabled={changePasswordMutation.isPending}
-            className="w-full loom-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {changePasswordMutation.isPending ? t('updating') : t('updatePassword')}
-          </button>
-        </form>
+        <div className="grid grid-cols-2 gap-2">
+          {languageOptions.map(({ value, label, flag }) => (
+            <button
+              key={value}
+              onClick={() => setLanguage(value as 'en' | 'zh')}
+              className={cn(
+                'p-3 h-12 rounded-[var(--loom-radius-md)] border transition-all flex items-center space-x-2',
+                language === value
+                  ? 'border-[hsl(var(--loom-primary))] bg-[hsl(var(--loom-primary)/0.1)]'
+                  : 'border-[hsl(var(--loom-border))]'
+              )}
+            >
+              <span className="text-lg">{flag}</span>
+              <span className="text-sm">{label}</span>
+            </button>
+          ))}
+        </div>
       </div>
+      
 
       {/* Logout Button */}
-      <div className="pt-4">
+      <div className="pt-8">
         <button
           onClick={handleLogout}
           className="w-full loom-btn-danger flex items-center justify-center space-x-2"

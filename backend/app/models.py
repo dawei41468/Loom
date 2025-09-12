@@ -45,6 +45,9 @@ class UserBase(BaseModel):
     email: str
     display_name: str
     color_preference: Literal["user", "partner"] = "user"
+    # Viewer-centric color preferences: can be 'user', 'partner', or a hex color like '#14b8a6'
+    ui_self_color: str = "user"
+    ui_partner_color: str = "partner"
     timezone: str = "UTC"
     language: Literal["en", "zh"] = "en"
     is_onboarded: bool = False
@@ -55,6 +58,8 @@ class UserCreate(BaseModel):
     display_name: str
     password: str
     color_preference: Literal["user", "partner"] = "user"
+    ui_self_color: str = "user"
+    ui_partner_color: str = "partner"
     timezone: str = "UTC"
     language: Literal["en", "zh"] = "en"
 
@@ -62,6 +67,8 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     display_name: Optional[str] = None
     color_preference: Optional[Literal["user", "partner"]] = None
+    ui_self_color: Optional[str] = None
+    ui_partner_color: Optional[str] = None
     timezone: Optional[str] = None
     language: Optional[Literal["en", "zh"]] = None
 
@@ -358,3 +365,7 @@ class UserLogin(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
+
+
+class DeleteAccountRequest(BaseModel):
+    current_password: str
