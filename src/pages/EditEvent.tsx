@@ -52,6 +52,9 @@ const EditEvent = () => {
   const [includePartner, setIncludePartner] = useState(false); // attendance only when shared
   const [reminders, setReminders] = useState<number[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // UX flags to avoid overriding user's explicit choices
+  const [userTouchedVisibility, setUserTouchedVisibility] = useState(false);
+  const [autoForcedToPrivate, setAutoForcedToPrivate] = useState(false);
 
   // Helpers
   const toDisplayTime = (iso: string) => {
@@ -85,8 +88,25 @@ const EditEvent = () => {
     if (!partnerForDisplay && visibility === 'shared') {
       setVisibility('private');
       setIncludePartner(false);
+      setAutoForcedToPrivate(true);
     }
   }, [partnerForDisplay, visibility]);
+
+  // If partner loads later and we had auto-forced to private, restore to shared unless user changed it
+  useEffect(() => {
+    if (partnerForDisplay && visibility === 'private' && autoForcedToPrivate && !userTouchedVisibility) {
+      setVisibility('shared');
+      setAutoForcedToPrivate(false);
+    }
+  }, [partnerForDisplay, visibility, autoForcedToPrivate, userTouchedVisibility]);
+
+  const handleSetVisibility = (v: 'shared' | 'private') => {
+    setUserTouchedVisibility(true);
+    if (v === 'private') {
+      setIncludePartner(false);
+    }
+    setVisibility(v);
+  };
 
   const toggleReminder = (minutes: number) => {
     setReminders((prev) =>
@@ -277,7 +297,7 @@ const EditEvent = () => {
               type="button"
               onClick={() => {
                 if (!partnerForDisplay) return;
-                setVisibility('shared');
+                handleSetVisibility('shared');
               }}
               disabled={!partnerForDisplay}
               className={cn(
@@ -292,8 +312,7 @@ const EditEvent = () => {
             <button
               type="button"
               onClick={() => {
-                setVisibility('private');
-                setIncludePartner(false);
+                handleSetVisibility('private');
               }}
               className={cn(
                 'loom-chip text-center',

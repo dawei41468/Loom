@@ -2,6 +2,8 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { Settings, User, LogOut, Globe, Sun, Moon, ChevronDown } from 'lucide-react';
 import { useAuthState, useAuthDispatch } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys, userQueries } from '@/api/queries';
 import { useUIState, useUIActions } from '@/contexts/UIContext';
 import { useTranslation } from '@/i18n';
 import {
@@ -15,6 +17,8 @@ import {
 
 const UserProfileMenu = React.memo(() => {
   const { user } = useAuthState();
+  const { data: meData } = useQuery({ queryKey: queryKeys.user, queryFn: userQueries.getMe, staleTime: 30000 });
+  const meUser = meData?.data || user;
   const dispatch = useAuthDispatch();
   const { theme, language } = useUIState();
   const { setTheme, setLanguage } = useUIActions();
@@ -22,9 +26,9 @@ const UserProfileMenu = React.memo(() => {
   const [isThemeOpen, setIsThemeOpen] = React.useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = React.useState(false);
 
-  if (!user) return null;
+  if (!meUser) return null;
 
-  const initials = user.display_name
+  const initials = meUser.display_name
     .split(' ')
     .map(name => name[0])
     .join('')
@@ -37,7 +41,7 @@ const UserProfileMenu = React.memo(() => {
     if (token === 'partner') return 'hsl(var(--loom-partner))';
     return token; // assume hex
   };
-  const selfColor = resolveColor(user.ui_self_color);
+  const selfColor = resolveColor(meUser.ui_self_color);
 
   return (
     <DropdownMenu>
@@ -55,10 +59,10 @@ const UserProfileMenu = React.memo(() => {
             <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: selfColor }}></div>
             <div className="flex flex-col space-y-1">
               <p className="text-base font-medium leading-none text-[hsl(var(--loom-text))]">
-                {user.display_name}
+                {meUser.display_name}
               </p>
               <p className="text-sm leading-none text-[hsl(var(--loom-text-muted))]">
-                {user.email}
+                {meUser.email}
               </p>
             </div>
           </div>

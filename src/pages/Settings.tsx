@@ -12,7 +12,7 @@ import {
   UserX,
   ChevronDown
 } from 'lucide-react';
-import { useAuthState, useAuthDispatch, useUpdateProfile } from '../contexts/AuthContext';
+import { useAuthState, useAuthDispatch } from '../contexts/AuthContext';
 import { useTheme, useLanguage, useUIActions } from '../contexts/UIContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { cn } from '@/lib/utils';
@@ -20,19 +20,26 @@ import { useTranslation } from '../i18n';
 import FormField from '../components/forms/FormField';
 import TextInput from '../components/forms/TextInput';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { partnerQueries } from '../api/queries';
+import { partnerQueries, userQueries, queryKeys } from '../api/queries';
 import { apiClient } from '../api/client';
 import { Partner } from '../types';
 const Settings = () => {
   const { user } = useAuthState();
   const authDispatch = useAuthDispatch();
-  const { updateProfile, isUpdating } = useUpdateProfile();
   const theme = useTheme();
   const language = useLanguage();
   const { setTheme, setLanguage } = useUIActions();
   const { addToast } = useToastContext();
   const { t } = useTranslation();
-  const [displayNameInput, setDisplayNameInput] = useState(user?.display_name || '');
+  // Load current user profile via React Query
+  const { data: meData } = useQuery({
+    queryKey: queryKeys.user,
+    queryFn: userQueries.getMe,
+    refetchOnWindowFocus: false,
+  });
+  const meUser = meData?.data || user;
+
+  const [displayNameInput, setDisplayNameInput] = useState(meUser?.display_name || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -118,14 +125,17 @@ const Settings = () => {
     },
   });
 
-  // Manual update: we keep input in sync with user changes, but update only on button click
-
-  // Update local state only when user.display_name changes
+  // Sync local input when meUser changes
   useEffect(() => {
-    if (typeof user?.display_name === 'string') {
-      setDisplayNameInput(user.display_name);
+    if (typeof meUser?.display_name === 'string') {
+      setDisplayNameInput(meUser.display_name);
     }
-  }, [user?.display_name]);
+  }, [meUser?.display_name]);
+
+  // Update profile via React Query mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: (updates: Partial<Partner>) => apiClient.updateMe(updates),
+  });
 
   const handleLogout = () => {
     authDispatch({ type: 'LOGOUT' });
@@ -143,21 +153,26 @@ const Settings = () => {
   };
 
   const handleUpdateProfile = async (field: string, value: string) => {
-    if (user && !isUpdating) {
-      try {
-        await updateProfile({ [field]: value });
-        addToast({
-          type: 'success',
-          title: t('profileUpdated'),
-          description: field === 'color_preference' ? t('colorPreferenceSaved') : (field === 'display_name' ? t('displayNameSaved') : t('profileSaved')),
-        });
-      } catch (error) {
-        addToast({
-          type: 'error',
-          title: t('error'),
-          description: t('failedToUpdateProfile'),
-        });
-      }
+    try {
+      await updateProfileMutation.mutateAsync({ [field]: value } as any);
+      // Invalidate and refetch user profile
+      await queryClient.invalidateQueries({ queryKey: queryKeys.user });
+      addToast({
+        type: 'success',
+        title: t('profileUpdated'),
+        description:
+          field === 'color_preference'
+            ? t('colorPreferenceSaved')
+            : field === 'display_name'
+            ? t('displayNameSaved')
+            : t('profileSaved'),
+      });
+    } catch (error) {
+      addToast({
+        type: 'error',
+        title: t('error'),
+        description: t('failedToUpdateProfile'),
+      });
     }
   };
 
@@ -189,13 +204,13 @@ const Settings = () => {
         <div className="flex items-center space-x-4 mb-4">
           <div
             className={cn('w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold')}
-            style={{ backgroundColor: resolveColor(user?.ui_self_color || 'user') }}
+            style={{ backgroundColor: resolveColor(meUser?.ui_self_color || 'user') }}
           >
-            {(displayNameInput || user?.display_name || '').charAt(0).toUpperCase()}
+            {(displayNameInput || meUser?.display_name || '').charAt(0).toUpperCase()}
           </div>
           <div className="flex-1">
-            <h2 className="font-semibold">{displayNameInput || user?.display_name}</h2>
-            <p className="text-sm text-[hsl(var(--loom-text-muted))]">{user?.email}</p>
+            <h2 className="font-semibold">{displayNameInput || meUser?.display_name}</h2>
+            <p className="text-sm text-[hsl(var(--loom-text-muted))]">{meUser?.email}</p>
           </div>
           <Info className="w-5 h-5 text-[hsl(var(--loom-text))]" />
         </div>
@@ -214,10 +229,9 @@ const Settings = () => {
           <div>
             <button
               onClick={() => handleUpdateProfile('display_name', displayNameInput.trim())}
-              disabled={
-                isUpdating ||
+              disabled={updateProfileMutation.isPending ||
                 displayNameInput.trim() === '' ||
-                displayNameInput.trim() === (user?.display_name || '').trim()
+                displayNameInput.trim() === (meUser?.display_name || '').trim()
               }
               className="w-full sm:w-auto loom-btn-primary disabled:opacity-50 disabled:cursor-not-allowed mt-2"
             >
@@ -230,10 +244,10 @@ const Settings = () => {
             <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => handleUpdateProfile('ui_self_color', 'user')}
-                disabled={isUpdating}
+                disabled={updateProfileMutation.isPending}
                 className={cn(
                   'p-3 rounded-[var(--loom-radius-md)] border transition-all flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed',
-                  (user?.ui_self_color || 'user') === 'user'
+                  (meUser?.ui_self_color || 'user') === 'user'
                     ? 'border-[hsl(var(--loom-user))] bg-[hsl(var(--loom-user)/0.1)]'
                     : 'border-[hsl(var(--loom-border))]'
                 )}
@@ -243,10 +257,10 @@ const Settings = () => {
               </button>
               <button
                 onClick={() => handleUpdateProfile('ui_self_color', 'partner')}
-                disabled={isUpdating}
+                disabled={updateProfileMutation.isPending}
                 className={cn(
                   'p-3 rounded-[var(--loom-radius-md)] border transition-all flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed',
-                  (user?.ui_self_color || 'user') === 'partner'
+                  (meUser?.ui_self_color || 'user') === 'partner'
                     ? 'border-[hsl(var(--loom-partner))] bg-[hsl(var(--loom-partner)/0.1)]'
                     : 'border-[hsl(var(--loom-border))]'
                 )}
@@ -257,20 +271,20 @@ const Settings = () => {
               <div className="relative">
                 <button
                   onClick={() => selfColorPickerRef.current?.click()}
-                  disabled={isUpdating}
+                  disabled={updateProfileMutation.isPending}
                   className={cn(
                     'w-full p-3 rounded-[var(--loom-radius-md)] border transition-all flex items-center space-x-2 justify-start disabled:opacity-50 disabled:cursor-not-allowed',
-                    (user?.ui_self_color || '')?.startsWith('#') ? 'border-[hsl(var(--loom-primary))] bg-[hsl(var(--loom-primary)/0.06)]' : 'border-[hsl(var(--loom-border))]'
+                    (meUser?.ui_self_color || '')?.startsWith('#') ? 'border-[hsl(var(--loom-primary))] bg-[hsl(var(--loom-primary)/0.06)]' : 'border-[hsl(var(--loom-border))]'
                   )}
                 >
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: resolveColor(user?.ui_self_color || '#14b8a6') }} />
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: resolveColor(meUser?.ui_self_color || '#14b8a6') }} />
                   <span className="text-xs">{t('customColor')}</span>
                 </button>
                 <input
                   ref={selfColorPickerRef}
                   type="color"
                   className="absolute opacity-0 pointer-events-none"
-                  value={(user?.ui_self_color || '').startsWith('#') ? user!.ui_self_color! : '#14b8a6'}
+                  value={(meUser?.ui_self_color || '').startsWith('#') ? meUser!.ui_self_color! : '#14b8a6'}
                   onChange={(e) => handleUpdateProfile('ui_self_color', e.target.value)}
                 />
               </div>
@@ -285,10 +299,10 @@ const Settings = () => {
             <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => handleUpdateProfile('ui_partner_color', 'user')}
-                disabled={isUpdating}
+                disabled={updateProfileMutation.isPending}
                 className={cn(
                   'p-3 rounded-[var(--loom-radius-md)] border transition-all flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed',
-                  (user?.ui_partner_color || 'partner') === 'user'
+                  (meUser?.ui_partner_color || 'partner') === 'user'
                     ? 'border-[hsl(var(--loom-user))] bg-[hsl(var(--loom-user)/0.1)]'
                     : 'border-[hsl(var(--loom-border))]'
                 )}
@@ -298,10 +312,10 @@ const Settings = () => {
               </button>
               <button
                 onClick={() => handleUpdateProfile('ui_partner_color', 'partner')}
-                disabled={isUpdating}
+                disabled={updateProfileMutation.isPending}
                 className={cn(
                   'p-3 rounded-[var(--loom-radius-md)] border transition-all flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed',
-                  (user?.ui_partner_color || 'partner') === 'partner'
+                  (meUser?.ui_partner_color || 'partner') === 'partner'
                     ? 'border-[hsl(var(--loom-partner))] bg-[hsl(var(--loom-partner)/0.1)]'
                     : 'border-[hsl(var(--loom-border))]'
                 )}
@@ -312,20 +326,20 @@ const Settings = () => {
               <div className="relative">
                 <button
                   onClick={() => partnerColorPickerRef.current?.click()}
-                  disabled={isUpdating}
+                  disabled={updateProfileMutation.isPending}
                   className={cn(
                     'w-full p-3 rounded-[var(--loom-radius-md)] border transition-all flex items-center space-x-2 justify-start disabled:opacity-50 disabled:cursor-not-allowed',
-                    (user?.ui_partner_color || '')?.startsWith('#') ? 'border-[hsl(var(--loom-primary))] bg-[hsl(var(--loom-primary)/0.06)]' : 'border-[hsl(var(--loom-border))]'
+                    (meUser?.ui_partner_color || '')?.startsWith('#') ? 'border-[hsl(var(--loom-primary))] bg-[hsl(var(--loom-primary)/0.06)]' : 'border-[hsl(var(--loom-border))]'
                   )}
                 >
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: resolveColor(user?.ui_partner_color || '#f97316') }} />
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: resolveColor(meUser?.ui_partner_color || '#f97316') }} />
                   <span className="text-xs">{t('customColor')}</span>
                 </button>
                 <input
                   ref={partnerColorPickerRef}
                   type="color"
                   className="absolute opacity-0 pointer-events-none"
-                  value={(user?.ui_partner_color || '').startsWith('#') ? user!.ui_partner_color! : '#f97316'}
+                  value={(meUser?.ui_partner_color || '').startsWith('#') ? meUser!.ui_partner_color! : '#f97316'}
                   onChange={(e) => handleUpdateProfile('ui_partner_color', e.target.value)}
                 />
               </div>

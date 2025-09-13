@@ -19,7 +19,7 @@ import { useToastContext } from '../contexts/ToastContext';
 import { Event } from '../types';
 import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { queryKeys, eventQueries, partnerQueries } from '../api/queries';
+import { queryKeys, eventQueries, partnerQueries, userQueries } from '../api/queries';
 import { apiClient } from '../api/client';
 const EventChat = React.lazy(() => import('../components/EventChat'));
 const EventChecklist = React.lazy(() => import('../components/EventChecklist'));
@@ -42,6 +42,14 @@ const EventDetail = () => {
     enabled: !!user,
   });
   const partnerForDisplay = partnerResponse?.data || partner;
+
+  // Ensure fresh user profile for comparisons/labels
+  const { data: meResponse } = useQuery({
+    queryKey: queryKeys.user,
+    queryFn: userQueries.getMe,
+    enabled: true,
+  });
+  const meUser = meResponse?.data || user;
 
   // Load event exclusively via React Query
   const { data: eventData, isLoading: isLoadingEvent, error: eventError } = useQuery({
@@ -164,13 +172,13 @@ const EventDetail = () => {
 
   const getEventType = (event: Event): 'user' | 'partner' | 'shared' => {
     if (event.attendees.length > 1) return 'shared';
-    if (event.created_by === user?.id) return 'user';
+    if (event.created_by === meUser?.id) return 'user';
     return 'partner';
   };
 
   const eventType = getEventType(event);
   const isShared = event.attendees.length > 1;
-  const isOwner = event.created_by === user?.id;
+  const isOwner = event.created_by === meUser?.id;
 
   const formatEventDateTime = (event: Event) => {
     const start = parseISO(event.start_time);
@@ -219,16 +227,9 @@ const EventDetail = () => {
   };
 
   const renderDetailsTab = () => {
-    // Derive attendees for display: always include the current user; include partner if associated
-    const attendeesSet = new Set<string>(event.attendees || []);
-    if (user?.id) attendeesSet.add(user.id);
-    if (
-      partnerForDisplay?.id &&
-      (attendeesSet.has(partnerForDisplay.id) || event.created_by === partnerForDisplay.id || event.visibility === 'shared')
-    ) {
-      attendeesSet.add(partnerForDisplay.id);
-    }
-    const attendeesToDisplay = Array.from(attendeesSet);
+    // Derive attendees strictly from the event data
+    // Do not add partner or current user implicitly based on visibility or creator
+    const attendeesToDisplay = Array.from(new Set<string>((event.attendees || []).map(String)));
 
     return (
     <div className="space-y-6">
@@ -285,7 +286,7 @@ const EventDetail = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-[hsl(var(--loom-text-muted))]">Created by</span>
-                <span>{event.created_by === user?.id ? 'You' : partnerForDisplay?.display_name}</span>
+                <span>{event.created_by === meUser?.id ? 'You' : partnerForDisplay?.display_name}</span>
               </div>
             </div>
           </div>
@@ -304,19 +305,19 @@ const EventDetail = () => {
               <h3 className="font-medium mb-3">Attendees</h3>
               <div className="space-y-2">
                 {attendeesToDisplay.map((attendeeId) => {
-                  const attendee = attendeeId === user?.id ? user : partnerForDisplay;
+                  const attendee = attendeeId === meUser?.id ? meUser : (attendeeId === partnerForDisplay?.id ? partnerForDisplay : null);
                   if (!attendee) return null;
                   
                   return (
                     <div key={attendeeId} className="flex items-center space-x-3">
                       <div className={cn(
                         'w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold',
-                        attendeeId === user?.id ? 'bg-[hsl(var(--loom-user))]' : 'bg-[hsl(var(--loom-partner))]'
+                        attendeeId === meUser?.id ? 'bg-[hsl(var(--loom-user))]' : 'bg-[hsl(var(--loom-partner))]'
                       )}>
                         {attendee.display_name.charAt(0).toUpperCase()}
                       </div>
                       <span>{attendee.display_name}</span>
-                      {attendeeId === user?.id && (
+                      {attendeeId === meUser?.id && (
                         <span className="text-xs text-[hsl(var(--loom-text-muted))]">(You)</span>
                       )}
                     </div>

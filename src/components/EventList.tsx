@@ -5,10 +5,11 @@ import { Clock, MapPin, Users, Bell, Trash2 } from 'lucide-react';
 import { Event } from '../types';
 import { useTranslation } from '../i18n';
 import { useAuthState } from '../contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys, userQueries } from '../api/queries';
 import { useToastContext } from '../contexts/ToastContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../api/client';
-import { queryKeys } from '../api/queries';
 
 interface EventListProps {
   events: Event[];
@@ -33,6 +34,8 @@ const EventList: React.FC<EventListProps> = ({ events, range, isLoading, onEvent
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuthState();
+  const { data: meData } = useQuery({ queryKey: queryKeys.user, queryFn: userQueries.getMe, staleTime: 30000 });
+  const meUser = meData?.data || user;
   const { addToast } = useToastContext();
   const queryClient = useQueryClient();
 
@@ -133,7 +136,7 @@ const EventList: React.FC<EventListProps> = ({ events, range, isLoading, onEvent
             {list.map(ev => {
               const start = parseISO(ev.start_time);
               const end = parseISO(ev.end_time);
-              const isOwner = ev.created_by === user?.id;
+              const isOwner = ev.created_by === meUser?.id;
 
               return (
                 <div

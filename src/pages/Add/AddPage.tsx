@@ -20,7 +20,8 @@ import { convertTimeToISO, computeEndFromStart } from '../../utils/datetime';
 import { parseTitle, parseTime, parseDay } from '../../utils/nlp';
 import { useProposalSlots } from './hooks/useProposalSlots';
 import { submitEvent, submitProposal } from './submitters';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryKeys, partnerQueries } from '../../api/queries';
 import EventForm from './EventForm';
 import ProposalForm from './ProposalForm';
 
@@ -39,6 +40,14 @@ const AddPage = () => {
 
   const isProposal = searchParams.get('type') === 'proposal';
 
+  // Load partner via React Query for consistent availability
+  const { data: partnerResponse } = useQuery({
+    queryKey: queryKeys.partner,
+    queryFn: partnerQueries.getPartner,
+    enabled: !!user,
+  });
+  const partnerForDisplay = partnerResponse?.data || partner;
+
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -49,6 +58,10 @@ const AddPage = () => {
   const [visibility, setVisibility] = useState<VisibilityType>('shared');
   const [includePartner, setIncludePartner] = useState(false);
   const [reminders, setReminders] = useState([10]);
+  // Track if user has manually interacted with visibility, to avoid overriding their choice
+  const [userTouchedVisibility, setUserTouchedVisibility] = useState(false);
+  // Track whether we auto-forced to private because partner was missing
+  const [autoForcedToPrivate, setAutoForcedToPrivate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Proposal: support multiple proposed time slots (minimal UX)
@@ -72,33 +85,31 @@ const AddPage = () => {
     { value: 60, label: t('oneHour') },
   ], [t]);
 
-  // Ensure partner is loaded for proposal flow
-  useEffect(() => {
-    const loadPartnerIfNeeded = async () => {
-      if (!isProposal) return;
-      const validId = partner && /^[a-fA-F0-9]{24}$/.test(partner.id);
-      if (!validId) {
-        try {
-          const resp = await apiClient.getPartner();
-          if (resp?.data) {
-            authDispatch({ type: 'SET_PARTNER', payload: resp.data });
-          }
-        } catch {
-          // ignore
-        }
-      }
-    };
-    loadPartnerIfNeeded();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isProposal]);
+  // Remove manual partner loading; React Query handles it above
 
   // If no partner is connected, ensure visibility is Private (since Shared is not possible)
   useEffect(() => {
-    if (!partner && visibility === 'shared') {
+    if (!partnerForDisplay && visibility === 'shared') {
       setVisibility('private');
       setIncludePartner(false);
+      setAutoForcedToPrivate(true);
     }
-  }, [partner, visibility]);
+  }, [partnerForDisplay, visibility]);
+
+  // UX refinement: if partner becomes available and user hasn't manually changed visibility,
+  // restore visibility to 'shared' (it may have been auto-forced to 'private' earlier)
+  useEffect(() => {
+    if (partnerForDisplay && visibility === 'private' && !userTouchedVisibility && autoForcedToPrivate) {
+      setVisibility('shared');
+      setAutoForcedToPrivate(false);
+    }
+  }, [partnerForDisplay, visibility, userTouchedVisibility, autoForcedToPrivate]);
+
+  // Wrap setter to record that user intentionally changed visibility
+  const handleSetVisibility = (v: VisibilityType) => {
+    setUserTouchedVisibility(true);
+    setVisibility(v);
+  };
 
   // Natural language parsing via utils
   const parseNaturalLanguage = (input: string) => {
@@ -138,7 +149,7 @@ const AddPage = () => {
   // Proposal slots helpers are provided by useProposalSlots
 
   const handleSubmit = async () => {
-    if (isProposal && !partner) {
+    if (isProposal && !partnerForDisplay) {
       addToast({
         type: 'error',
         title: t('unableToPropose'),
@@ -167,7 +178,7 @@ const AddPage = () => {
         endDateTime = convertTimeToISO(endTime, nextDay);
       }
 
-      if (isProposal && partner) {
+      if (isProposal && partnerForDisplay) {
         const times = proposalSlots.map((slot) => {
           const s = convertTimeToISO(slot.startTime, slot.date);
           let e = convertTimeToISO(slot.endTime, slot.date);
@@ -193,12 +204,12 @@ const AddPage = () => {
           addToast({ type: 'error', title: t('invalidTimeSlot'), description: `${t('endTimeMustBeAfterStartTime')} (${bad.start_time} – ${bad.end_time}).` });
           return;
         }
-        if (!/^[a-fA-F0-9]{24}$/.test(partner.id)) {
+        if (!/^[a-fA-F0-9]{24}$/.test(partnerForDisplay.id)) {
           try {
-            const resp = await apiClient.getPartner();
-            if (resp?.data && /^[a-fA-F0-9]{24}$/.test(resp.data.id)) {
-              authDispatch({ type: 'SET_PARTNER', payload: resp.data });
-            } else {
+            // Re-fetch partner via React Query in case of transient state
+            await queryClient.invalidateQueries({ queryKey: queryKeys.partner });
+            const refreshed = await partnerQueries.getPartner();
+            if (!(refreshed?.data && /^[a-fA-F0-9]{24}$/.test(refreshed.data.id))) {
               addToast({ type: 'error', title: t('partnerNotReady'), description: t('reconnectPartnerTryAgain') });
               return;
             }
@@ -214,10 +225,10 @@ const AddPage = () => {
           message: proposalMessage || undefined,
           proposed_times: times,
           location: location || undefined,
-          proposed_to: partner.id as string,
+          proposed_to: partnerForDisplay.id as string,
         };
         if (!proposalPayload.proposed_to) {
-          console.error('Missing proposed_to. Partner state:', partner);
+          console.error('Missing proposed_to. Partner state:', partnerForDisplay);
           addToast({ type: 'error', title: t('partnerNotReady'), description: t('couldNotDeterminePartnerIdReload') });
           return;
         }
@@ -230,7 +241,7 @@ const AddPage = () => {
           end_time: endDateTime,
           location: location || undefined,
           visibility,
-          attendees: includePartner && partner ? [user!.id, partner.id] : [user!.id],
+          attendees: includePartner && partnerForDisplay ? [user!.id, partnerForDisplay.id] : [user!.id],
           created_by: user!.id,
           reminders,
         }, { apiClient, addToast, queryClient, t });
@@ -265,7 +276,7 @@ const AddPage = () => {
         <SubmitButton
           onClick={handleSubmit}
           isLoading={isSubmitting}
-          disabled={isSubmitting || !title.trim() || (isProposal && !partner)}
+          disabled={isSubmitting || !title.trim() || (isProposal && !partnerForDisplay)}
           fullWidth={false}
           className="px-4 py-1.5"
         >
@@ -310,10 +321,10 @@ const AddPage = () => {
             onStartTimeChange={setStartTime}
             onEndTimeChange={setEndTime}
             computeEndFromStart={computeEndFromStart}
-            partnerDisplayName={partner?.display_name}
-            partnerExists={!!partner}
+            partnerDisplayName={partnerForDisplay?.display_name}
+            partnerExists={!!partnerForDisplay}
             visibility={visibility}
-            setVisibility={setVisibility}
+            setVisibility={handleSetVisibility}
             includePartner={includePartner}
             setIncludePartner={setIncludePartner}
             reminders={reminders}

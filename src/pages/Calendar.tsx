@@ -8,7 +8,7 @@ import { PageHeader } from '../components/ui/page-header';
 import { Section } from '../components/ui/section';
 import CustomCalendar from '../components/CustomCalendar';
 import { useQuery } from '@tanstack/react-query';
-import { queryKeys, eventQueries } from '../api/queries';
+import { queryKeys, eventQueries, userQueries, partnerQueries } from '../api/queries';
 import { useToastContext } from '../contexts/ToastContext';
 import { useTranslation } from '../i18n';
 import { useAuthState } from '../contexts/AuthContext';
@@ -35,6 +35,12 @@ const CalendarPage = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showFilters, setShowFilters] = useState(false);
   const [calendarHeight, setCalendarHeight] = useState('600px');
+
+  // React Query for fresh user/partner
+  const { data: meData } = useQuery({ queryKey: queryKeys.user, queryFn: userQueries.getMe, staleTime: 30000, enabled: true });
+  const meUser = meData?.data || user;
+  const { data: partnerData } = useQuery({ queryKey: queryKeys.partner, queryFn: partnerQueries.getPartner, staleTime: 30000, enabled: true });
+  const partnerForDisplay = partnerData?.data || partner;
 
   // Use React Query for events data
   const { data: events = [], isLoading, error } = useQuery({
@@ -76,9 +82,9 @@ const CalendarPage = () => {
     return events.filter((event) => {
       switch (filter.type) {
         case 'mine':
-          return user ? event.created_by === user.id : true;
+          return meUser ? event.created_by === meUser.id : true;
         case 'partner':
-          return partner ? event.created_by === partner.id : false;
+          return partnerForDisplay ? event.created_by === partnerForDisplay.id : false;
         case 'shared':
           return event.attendees.length > 1;
         case 'all':
@@ -86,7 +92,7 @@ const CalendarPage = () => {
           return true;
       }
     });
-  }, [events, filter.type, user, partner]);
+  }, [events, filter.type, meUser, partnerForDisplay]);
 
   // Transform events for calendar
   const calendarEvents = useMemo(() => {

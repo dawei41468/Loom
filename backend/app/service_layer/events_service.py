@@ -75,7 +75,13 @@ class EventsService:
         event = Event(**doc)
         user_id_str = str(user.id)
         if user_id_str not in [str(a) for a in event.attendees] and str(event.created_by) != user_id_str:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this event")
+            # Allow partner to view details of shared events created by their partner (FYI visibility)
+            try:
+                partner_id = await self._get_partner_id(user_id_str)
+            except Exception:
+                partner_id = None
+            if not (partner_id and str(event.created_by) == partner_id and event.visibility == "shared"):
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this event")
         return event
 
     async def update_event(self, event_id: str, event_update: EventUpdate, user: User) -> Event:

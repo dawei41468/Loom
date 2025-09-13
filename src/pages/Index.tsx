@@ -8,7 +8,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthState } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
 import { apiClient } from '../api/client';
-import { queryKeys, eventQueries, proposalQueries } from '../api/queries';
+import { queryKeys, eventQueries, proposalQueries, userQueries, partnerQueries } from '../api/queries';
 import { Event as LoomEvent } from '../types';
 import { PageHeader } from '../components/ui/page-header';
 import { EmptyState } from '../components/ui/empty-state';
@@ -21,6 +21,23 @@ const Index = () => {
   const { addToast } = useToastContext();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+
+  // React Query reads: user, partner, events and proposals
+  const { data: meData } = useQuery({
+    queryKey: queryKeys.user,
+    queryFn: userQueries.getMe,
+    staleTime: 30_000,
+    enabled: true,
+  });
+  const meUser = meData?.data || user;
+
+  const { data: partnerData } = useQuery({
+    queryKey: queryKeys.partner,
+    queryFn: partnerQueries.getPartner,
+    staleTime: 30_000,
+    enabled: true,
+  });
+  const partnerForDisplay = partnerData?.data || partner;
 
   // React Query reads: events and proposals
   const { data: events = [] } = useQuery({
@@ -175,9 +192,9 @@ const Index = () => {
 
   const getEventType = React.useCallback((event: LoomEvent): 'user' | 'partner' | 'shared' => {
     if (event.attendees.length > 1) return 'shared';
-    if (event.created_by === user?.id) return 'user';
+    if (event.created_by === meUser?.id) return 'user';
     return 'partner';
-  }, [user?.id]);
+  }, [meUser?.id]);
 
   const formatEventTime = React.useCallback((event: LoomEvent) => {
     const start = parseISO(event.start_time);
@@ -197,7 +214,7 @@ const Index = () => {
       {/* Enhanced Header */}
       <PageHeader
         title={format(new Date(), 'MM/dd/yyyy')}
-        subtitle={partner ? `${t('youAnd')} ${partner.display_name}` : t('yourSchedule')}
+        subtitle={partnerForDisplay ? `${t('youAnd')} ${partnerForDisplay.display_name}` : t('yourSchedule')}
       />
 
       {/* Next Up Card - Enhanced */}
