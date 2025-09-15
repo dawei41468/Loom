@@ -38,14 +38,8 @@ export function PushNotificationProvider({ children }: { children: React.ReactNo
   const { data: subscription, isLoading } = useQuery<PushSubscription>({
     queryKey: ['push-subscription'],
     queryFn: async () => {
-      // This would be implemented based on your API
-      // For now, we'll return a mock response
-      return {
-        endpoint: '',
-        keys: { p256dh: '', auth: '' },
-        topics: ['proposals', 'reminders'],
-        active: false
-      };
+      const response = await apiClient.getPushSubscription();
+      return response.data;
     },
     enabled: permission === 'granted',
   });

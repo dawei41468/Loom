@@ -22,9 +22,6 @@ class PyObjectId(ObjectId):
             return ObjectId(v)
         raise ValueError("Invalid ObjectId")
 
-    def __str__(self):
-        return str(self)
-
 
 class MongoBaseModel(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")

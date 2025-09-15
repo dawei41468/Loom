@@ -20,6 +20,7 @@ const UserProfileMenu = React.memo(() => {
   const { data: meData } = useQuery({ queryKey: queryKeys.user, queryFn: userQueries.getMe, staleTime: 30000 });
   const meUser = meData?.data || user;
   const dispatch = useAuthDispatch();
+
   // Always call hooks in same order - React requirement
   const uiState = useUIState();
   const uiActions = useUIActions();

@@ -23,6 +23,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { partnerQueries, userQueries, queryKeys } from '../api/queries';
 import { apiClient } from '../api/client';
 import { Partner } from '../types';
+import { NotificationSettings } from '../components/NotificationSettings';
 const Settings = () => {
   const { user } = useAuthState();
   const authDispatch = useAuthDispatch();
@@ -68,7 +69,7 @@ const Settings = () => {
         description: t('accountDeletedDesc'),
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       addToast({
         type: 'error',
         title: t('error'),
@@ -94,7 +95,7 @@ const Settings = () => {
         description: t('pleaseSignInAgainWithNewPassword'),
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       addToast({
         type: 'error',
         title: t('error'),
@@ -154,7 +155,7 @@ const Settings = () => {
 
   const handleUpdateProfile = async (field: string, value: string) => {
     try {
-      await updateProfileMutation.mutateAsync({ [field]: value } as any);
+      await updateProfileMutation.mutateAsync({ [field]: value } as Partial<Partner>);
       // Invalidate and refetch user profile
       await queryClient.invalidateQueries({ queryKey: queryKeys.user });
       addToast({
@@ -604,7 +605,9 @@ const Settings = () => {
           ))}
         </div>
       </div>
-      
+
+      {/* Push Notifications */}
+      <NotificationSettings />
 
       {/* Logout Button */}
       <div className="pt-8">

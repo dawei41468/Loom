@@ -101,6 +101,23 @@ async def update_push_subscription_topics(
     except Exception as e:
         logger.error(f"Error updating push subscription topics: {e}")
         raise HTTPException(status_code=500, detail="Failed to update push subscription topics")
+@router.get("/push/subscribe")
+async def get_push_subscription(
+    user: models.User = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Get the current active push subscription for the user"""
+    try:
+        subscription = await db.push_subscriptions.find_one({"user_id": user.id, "active": True})
+
+        if not subscription:
+            return {"data": None}
+
+        return {"data": subscription}
+    except Exception as e:
+        logger.error(f"Error getting push subscription: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get push subscription")
+
 
 @router.post("/push/test")
 async def send_test_notification(

@@ -60,10 +60,13 @@ ssh -i ${SSH_KEY_PATH} ${SERVER_USER}@${SERVER_IP} << EOF
   mkdir -p frontend
 
  echo "Extracting frontend-staging.tar.gz..."
-  tar --no-xattrs -xzf frontend-staging.tar.gz -C frontend --strip-components=0
+ tar --no-xattrs -xzf frontend-staging.tar.gz -C frontend --strip-components=0
 
-  echo "Removing frontend-staging.tar.gz on server..."
-  rm -f frontend-staging.tar.gz
+ echo "Removing frontend-staging.tar.gz on server..."
+ rm -f frontend-staging.tar.gz
+
+ echo "Setting up staging PWA manifest..."
+ cp frontend/public/manifest-staging.webmanifest frontend/public/manifest.webmanifest
 
  echo "Navigating to frontend directory..."
   cd frontend

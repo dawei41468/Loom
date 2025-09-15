@@ -1,7 +1,7 @@
 import React from 'react';
 import { usePushNotifications } from '@/contexts/PushNotificationContext';
 import { useTranslation } from '@/i18n';
-import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -84,10 +84,10 @@ export function NotificationSettings() {
                     {t(topic.descriptionKey)}
                   </p>
                 </div>
-                <Switch
+                <Checkbox
                   checked={enabledTopics.includes(topic.id)}
-                  onCheckedChange={(checked) => handleTopicToggle(topic.id, checked)}
-                  className="[--loom-switch-bg:hsl(var(--loom-primary))]"
+                  onCheckedChange={(checked) => handleTopicToggle(topic.id, Boolean(checked))}
+                  className="data-[state=checked]:bg-[hsl(var(--loom-primary))] data-[state=checked]:border-[hsl(var(--loom-primary))]"
                 />
               </div>
             ))}

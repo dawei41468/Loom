@@ -186,13 +186,13 @@ AppRoutes.displayName = 'AppRoutes';
 
 const App = React.memo(() => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <ToastProvider>
-          <AuthProvider>
-            <PushNotificationProvider>
-              <CalendarUIProvider>
-                <UIProvider>
+    <UIProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <ToastProvider>
+            <AuthProvider>
+              <PushNotificationProvider>
+                <CalendarUIProvider>
                   <ThemeProvider>
                   <BrowserRouter
                     future={{
@@ -209,13 +209,13 @@ const App = React.memo(() => {
                     </div>
                   </BrowserRouter>
                 </ThemeProvider>
-              </UIProvider>
-            </CalendarUIProvider>
-          </PushNotificationProvider>
-        </AuthProvider>
-        </ToastProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
+              </CalendarUIProvider>
+            </PushNotificationProvider>
+          </AuthProvider>
+          </ToastProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </UIProvider>
   );
 });
 

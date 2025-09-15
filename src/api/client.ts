@@ -468,8 +468,11 @@ class ApiClient {
           method: 'DELETE',
       });
   }
-  
   // Push Notifications
+  async getPushSubscription(): Promise<ApiResponse<PushSubscription | null>> {
+      return this.request<ApiResponse<PushSubscription | null>>('/push/subscribe');
+  }
+  
   async createPushSubscription(subscription: PushSubscriptionCreate): Promise<ApiResponse<PushSubscription>> {
       return this.request<ApiResponse<PushSubscription>>('/push/subscribe', {
           method: 'POST',
