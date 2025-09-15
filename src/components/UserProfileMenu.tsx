@@ -20,8 +20,15 @@ const UserProfileMenu = React.memo(() => {
   const { data: meData } = useQuery({ queryKey: queryKeys.user, queryFn: userQueries.getMe, staleTime: 30000 });
   const meUser = meData?.data || user;
   const dispatch = useAuthDispatch();
-  const { theme, language } = useUIState();
-  const { setTheme, setLanguage } = useUIActions();
+  // Always call hooks in same order - React requirement
+  const uiState = useUIState();
+  const uiActions = useUIActions();
+
+  // Provide fallbacks in case context is not available
+  const theme = uiState?.theme || 'light';
+  const language = uiState?.language || 'en';
+  const setTheme = uiActions?.setTheme || (() => {});
+  const setLanguage = uiActions?.setLanguage || (() => {});
   const { t } = useTranslation();
   const [isThemeOpen, setIsThemeOpen] = React.useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = React.useState(false);

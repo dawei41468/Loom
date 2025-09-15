@@ -25,6 +25,10 @@ const UI_STORAGE_KEY = 'ui-preferences';
 // 5. Load from localStorage
 const loadFromStorage = (): UIState | null => {
   try {
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return null;
+    }
     const stored = localStorage.getItem(UI_STORAGE_KEY);
     return stored ? JSON.parse(stored) : null;
   } catch {
@@ -35,6 +39,10 @@ const loadFromStorage = (): UIState | null => {
 // 6. Save to localStorage
 const saveToStorage = (state: UIState) => {
   try {
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
     localStorage.setItem(UI_STORAGE_KEY, JSON.stringify(state));
   } catch (error) {
     console.error('Failed to save UI preferences:', error);
