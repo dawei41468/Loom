@@ -160,44 +160,15 @@ class ApiClient {
         headers,
       });
 
+      console.log(`API Response for ${endpoint}: Status=${response.status}, OK=${response.ok}`);
+
       if (!response.ok) {
-        if (response.status === 401 && !isRetry && this.refreshToken) {
-          // Attempt to refresh token and retry the request
-          try {
-            if (this.isRefreshing) {
-              // Wait for ongoing refresh to complete
-              await this.refreshPromise;
-            } else {
-              // Start refresh process
-              this.isRefreshing = true;
-              this.refreshPromise = this.refreshTokens();
-              const newTokens = await this.refreshPromise;
-
-              // Update AuthContext with new tokens
-              // This will be handled by the AuthContext when tokens are updated
-              this.isRefreshing = false;
-              this.refreshPromise = null;
-            }
-
-            // Retry the original request with new token
-            return this.request<T>(endpoint, options, true);
-          } catch (refreshError) {
-            this.isRefreshing = false;
-            this.refreshPromise = null;
-            // If refresh fails, throw the original 401 error
-            throw new Error('Authentication failed. Please login again.');
-          }
-        } else if (response.status === 401) {
-          // Either no refresh token or already retried
-          throw new Error('Authentication failed. Please login again.');
-        }
-
-        // Try to parse JSON error body for more details (e.g., FastAPI validation errors)
         const text = await response.text();
+        console.error(`API Error Response Text for ${endpoint}:`, text);
         let errorMessage = `API Error: ${response.status} ${response.statusText}`;
+        
         try {
           const errorData = JSON.parse(text);
-          // FastAPI validation error shape: { detail: [{ loc, msg, type }, ...] }
           interface ErrorDetail {
             loc?: (string | number)[];
             msg?: string;
@@ -206,7 +177,7 @@ class ApiClient {
           
           if (Array.isArray(errorData?.detail)) {
             const msgs = errorData.detail.map((d: ErrorDetail) => {
-              const loc = Array.isArray(d?.loc) ? d.loc.slice(1).join('.') : undefined; // slice to drop 'body'
+              const loc = Array.isArray(d?.loc) ? d.loc.slice(1).join('.') : undefined;
               const msg = d?.msg || JSON.stringify(d);
               return loc ? `${loc}: ${msg}` : msg;
             }).join('; ');
@@ -216,21 +187,44 @@ class ApiClient {
           } else if (typeof errorData?.message === 'string') {
             errorMessage = errorData.message;
           } else {
-            errorMessage = text || errorMessage;
+              errorMessage = text || errorMessage;
           }
         } catch {
-          // Not JSON; use raw text if available
           if (text) errorMessage = text;
+        }
+
+        // Handle token refresh only if it's a 401 and not a retry
+        if (response.status === 401 && !isRetry && this.refreshToken) {
+          try {
+            if (this.isRefreshing) {
+              await this.refreshPromise;
+            } else {
+              this.isRefreshing = true;
+              this.refreshPromise = this.refreshTokens();
+              await this.refreshPromise;
+              this.isRefreshing = false;
+              this.refreshPromise = null;
+            }
+            return this.request<T>(endpoint, options, true);
+          } catch (refreshError) {
+            this.isRefreshing = false;
+            this.refreshPromise = null;
+            throw new Error('Authentication failed. Please login again.');
+          }
+        } else if (response.status === 401) {
+          throw new Error('Authentication failed. Please login again.');
         }
         throw new Error(errorMessage);
       }
 
-      // Handle cases with no content
       if (response.status === 204) {
+        console.log(`API Response for ${endpoint}: No content (204)`);
         return {} as T;
       }
 
-      return response.json();
+      const jsonResponse = await response.json();
+      console.log(`API Response JSON for ${endpoint}:`, jsonResponse);
+      return jsonResponse;
     } catch (error) {
       console.error('API request failed:', error);
       throw error;

@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PushSubscription } from '@/contexts/PushNotificationContext';
 
 const NOTIFICATION_TOPICS = [
   { id: 'proposals', labelKey: 'proposals', descriptionKey: 'proposalsDesc' },
@@ -17,10 +18,11 @@ const NOTIFICATION_TOPICS = [
 ];
 
 export function NotificationSettings() {
-  const { 
-    permission, 
-    enabledTopics, 
+  const {
+    permission,
+    enabledTopics,
     isLoading,
+    subscription, // Destructure subscription from context
     enableNotifications,
     disableNotifications,
     toggleTopic
@@ -52,7 +54,7 @@ export function NotificationSettings() {
               {t('receiveTimelyNotifications')}
             </p>
           </div>
-          {permission === 'granted' ? (
+          {permission === 'granted' && subscription?.active ? ( // If permission granted and active subscription exists
             <Button
               onClick={handleDisableNotifications}
               variant="destructive"
@@ -60,7 +62,7 @@ export function NotificationSettings() {
             >
               {isLoading ? t('disabling') : t('disable')}
             </Button>
-          ) : (
+          ) : ( // Otherwise, show Enable (or Blocked if denied)
             <Button
               onClick={handleEnableNotifications}
               disabled={permission === 'denied' || isLoading}

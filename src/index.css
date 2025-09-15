@@ -621,10 +621,7 @@
       @apply mt-3;
     }
 
-    /* Better touch targets */
-    button {
-      @apply min-h-[44px];
-    }
+    /* Better touch targets (removed generic min-height for all buttons) */
 
     /* Optimize text sizes */
     .text-sm {
@@ -664,6 +661,13 @@
 
     .mobile-space-y-3 > * + * {
       @apply mt-3;
+    }
+
+    /* Checkbox specific override for mobile */
+    .loom-checkbox {
+      height: 16px !important;
+      width: 16px !important;
+      min-height: 16px !important;
     }
   }
 }

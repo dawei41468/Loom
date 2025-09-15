@@ -3,8 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from '@/i18n';
+import { useAuthState } from '@/contexts/AuthContext';
 
-interface PushSubscription {
+export interface PushSubscription {
   endpoint: string;
   keys: {
     p256dh: string;
@@ -20,6 +21,7 @@ interface PushNotificationContextType {
   permission: NotificationPermission;
   enabledTopics: string[];
   isLoading: boolean;
+  subscription: PushSubscription | undefined; // Add subscription to the context type
   requestPermission: () => Promise<void>;
   enableNotifications: () => Promise<void>;
   disableNotifications: () => Promise<void>;
@@ -32,6 +34,7 @@ export function PushNotificationProvider({ children }: { children: React.ReactNo
   const { toast } = useToast();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuthState();
   const [permission, setPermission] = useState<NotificationPermission>('default');
   
   // Get current subscription
@@ -41,7 +44,7 @@ export function PushNotificationProvider({ children }: { children: React.ReactNo
       const response = await apiClient.getPushSubscription();
       return response.data;
     },
-    enabled: permission === 'granted',
+    enabled: permission === 'granted' && isAuthenticated,
   });
   
   const enabledTopics = subscription?.topics || ['proposals', 'reminders'];
@@ -73,7 +76,8 @@ export function PushNotificationProvider({ children }: { children: React.ReactNo
 
       return apiClient.createPushSubscription(subscriptionData);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Push subscription successful:', data);
       queryClient.invalidateQueries({ queryKey: ['push-subscription'] });
       toast({
         title: t('notificationsEnabled'),
@@ -81,6 +85,7 @@ export function PushNotificationProvider({ children }: { children: React.ReactNo
       });
     },
     onError: (error) => {
+      console.error('Push subscription failed:', error);
       toast({
         title: t('notificationError'),
         description: t('failedToEnableNotifications'),
@@ -168,14 +173,19 @@ export function PushNotificationProvider({ children }: { children: React.ReactNo
   };
 
  const enableNotifications = async () => {
-    if (permission !== 'granted') {
-      await requestPermission();
-    }
-    
-    if (Notification.permission === 'granted') {
-      subscribeMutation.mutate(enabledTopics);
-    }
-  };
+   console.log('Attempting to enable notifications...');
+   if (permission !== 'granted') {
+     console.log('Permission not granted, requesting permission...');
+     await requestPermission();
+   }
+   
+   if (Notification.permission === 'granted') {
+     console.log('Permission granted, subscribing with topics:', enabledTopics);
+     subscribeMutation.mutate(enabledTopics);
+   } else {
+     console.log('Permission not granted after request, cannot subscribe.');
+   }
+ };
 
   const disableNotifications = async () => {
     unsubscribeMutation.mutate();
@@ -196,6 +206,7 @@ export function PushNotificationProvider({ children }: { children: React.ReactNo
     permission,
     enabledTopics,
     isLoading,
+    subscription, // Add subscription to the context value
     requestPermission,
     enableNotifications,
     disableNotifications,
