@@ -177,6 +177,12 @@ export const useWebSocketBase = (
       return;
     }
 
+    // 🔧 CLEANUP: Close any existing connection before creating new one
+    if (wsRef.current) {
+      wsRef.current.close(1000, 'Cleanup before reconnect');
+      wsRef.current = null;
+    }
+
     connectionAttemptsRef.current += 1;
     updateState({
       isConnecting: true,
@@ -189,7 +195,6 @@ export const useWebSocketBase = (
       await apiClient.ensureValidAccessToken();
 
       const wsUrl = getWebSocketUrlWithToken();
-      console.log('Creating WebSocket connection to:', wsUrl);
       const ws = new WebSocket(wsUrl);
 
       // Set connection timeout
@@ -201,7 +206,6 @@ export const useWebSocketBase = (
 
       ws.onopen = () => {
         clearTimeout(connectionTimeout);
-        console.log('WebSocket connected');
         updateState({
           isConnected: true,
           isConnecting: false,
@@ -254,7 +258,7 @@ export const useWebSocketBase = (
           clearTimeout(pongTimeoutRef.current);
           pongTimeoutRef.current = null;
         }
-        console.log('WebSocket disconnected:', event.code, event.reason);
+        // WebSocket disconnected
 
         const now = new Date();
         updateState({
@@ -265,11 +269,14 @@ export const useWebSocketBase = (
           isHealthy: false,
         });
 
+        // 🔧 CLEANUP: Clear WebSocket reference immediately on close
         wsRef.current = null;
         onDisconnect?.();
 
         // Attempt to reconnect if not a manual disconnect and within attempt limits
         const isAuthError = event.code === 4001 || event.code === 4003;
+        const isConnectionLimitError = event.code === 1008; // Policy violation (connection limit)
+
         if (!isManualDisconnectRef.current && !isAuthError && connectionAttemptsRef.current < finalConfig.maxReconnectAttempts) {
           updateState({ isReconnecting: true });
           const delay = Math.min(
@@ -277,9 +284,9 @@ export const useWebSocketBase = (
             finalConfig.maxReconnectDelay
           );
 
+          // 🔧 CLEANUP: Add small delay before reconnecting to allow cleanup
           reconnectTimeoutRef.current = setTimeout(() => {
-            console.log(`Attempting to reconnect (${connectionAttemptsRef.current + 1}/${finalConfig.maxReconnectAttempts})...`);
-            connect();
+            connect(); // This will now cleanup before connecting
           }, delay);
         } else {
           updateState({ isReconnecting: false });

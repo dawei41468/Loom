@@ -32,48 +32,46 @@ async def create_push_subscription(
 ):
     """Create or update a push subscription for the current user"""
     try:
-        logger.info(f"Received push subscription data for user {user.id}: {subscription_data.model_dump_json()}")
-
         # Check if subscription already exists
+        user_id_str = str(user.id)
         existing_subscription = await db.push_subscriptions.find_one({
-            "user_id": user.id,
+            "user_id": user_id_str,
             "endpoint": subscription_data.endpoint
         })
-        
+
         subscription_dict = subscription_data.model_dump()
-        subscription_dict["user_id"] = user.id
-        
+        subscription_dict["user_id"] = user_id_str
+
         if existing_subscription:
-            logger.info(f"Existing subscription found for user {user.id} at endpoint {subscription_data.endpoint}")
             # Update existing subscription
             result = await db.push_subscriptions.update_one(
                 {"_id": existing_subscription["_id"]},
                 {"$set": {**subscription_dict, "updated_at": datetime.utcnow(), "active": True}}
             )
-            logger.info(f"Updated existing subscription: modified_count={result.modified_count}")
             raw_subscription = await db.push_subscriptions.find_one({"_id": existing_subscription["_id"]})
             if raw_subscription:
                 raw_subscription["_id"] = str(raw_subscription["_id"])
                 raw_subscription["user_id"] = str(raw_subscription["user_id"])
-            # No need to convert to Pydantic model here, just return the dict
             subscription_to_return = raw_subscription
         else:
-            logger.info(f"No existing subscription found for user {user.id} at endpoint {subscription_data.endpoint}. Creating new one.")
             # Create new subscription
             subscription_model = models.PushSubscription(**subscription_dict)
-            result = await db.push_subscriptions.insert_one(subscription_model.model_dump())
-            logger.info(f"Inserted new subscription with ID: {result.inserted_id}")
+            subscription_dict_with_active = subscription_model.model_dump(by_alias=True)
+            # Ensure active is explicitly set to True for new subscriptions
+            subscription_dict_with_active["active"] = True
+            # Remove the id field if it exists, let MongoDB generate _id
+            if "id" in subscription_dict_with_active:
+                del subscription_dict_with_active["id"]
+            result = await db.push_subscriptions.insert_one(subscription_dict_with_active)
             raw_subscription = await db.push_subscriptions.find_one({"_id": result.inserted_id})
             if raw_subscription:
                 raw_subscription["_id"] = str(raw_subscription["_id"])
                 raw_subscription["user_id"] = str(raw_subscription["user_id"])
-            # No need to convert to Pydantic model here, just return the dict
             subscription_to_return = raw_subscription
-        
+
         if not subscription_to_return:
             raise HTTPException(status_code=500, detail="Failed to retrieve created or updated subscription")
 
-        logger.info(f"Returning subscription for user {user.id}: {subscription_to_return}")
         return {"data": subscription_to_return}
     except Exception as e:
         logger.error(f"Error creating push subscription: {e}", exc_info=True)
@@ -87,21 +85,13 @@ async def delete_push_subscription(
 ):
     """Deactivate a push subscription for the current user"""
     try:
-        logger.info(f"Received delete request for user {user.id} with endpoint data: {endpoint_data}")
-        query = {"user_id": user.id, "endpoint": endpoint_data["endpoint"]}
-        logger.info(f"Attempting to find and deactivate subscription with query: {query}")
+        user_id_str = str(user.id)
 
-        result = await db.push_subscriptions.update_one(
-            query,
+        result = await db.push_subscriptions.update_many(
+            {"user_id": user_id_str},
             {"$set": {"active": False, "updated_at": datetime.utcnow()}}
         )
-        
-        logger.info(f"Delete operation result for user {user.id}: modified_count={result.modified_count}")
 
-        if result.modified_count == 0:
-            logger.error(f"Subscription not found for user {user.id} with endpoint {endpoint_data['endpoint']}")
-            raise HTTPException(status_code=404, detail="Subscription not found")
-        
         return {"data": None, "message": "Subscription deactivated successfully"}
     except Exception as e:
         logger.error(f"Error deleting push subscription: {e}", exc_info=True)
@@ -115,31 +105,22 @@ async def update_push_subscription_topics(
 ):
     """Update notification topics for the user's push subscription"""
     try:
-        # First check if there are any subscriptions for this user
-        all_user_subs = await db.push_subscriptions.find({"user_id": user.id}).to_list(None)
-        logger.info(f"User {user.id} has {len(all_user_subs)} total subscriptions")
-
-        active_subs = [s for s in all_user_subs if s.get("active", False)]
-        logger.info(f"User {user.id} has {len(active_subs)} active subscriptions")
+        user_id_str = str(user.id)
 
         result = await db.push_subscriptions.update_one(
-            {"user_id": user.id, "active": True},
+            {"user_id": user_id_str, "active": True},
             {"$set": {"topics": topics_data.topics, "updated_at": datetime.utcnow()}}
         )
 
-        logger.info(f"Update result for user {user.id}: modified_count={result.modified_count}")
-
         if result.modified_count == 0:
-            logger.error(f"No active subscription found for user {user.id}")
             raise HTTPException(status_code=404, detail="Active subscription not found")
 
-        subscription = await db.push_subscriptions.find_one({"user_id": user.id, "active": True})
-        # Manually convert ObjectId to string for JSON serialization
-        subscription_dict = subscription.model_dump()
-        subscription_dict["_id"] = str(subscription_dict["_id"])
-        subscription_dict["user_id"] = str(subscription_dict["user_id"])
-        logger.info(f"Retrieved updated subscription for user {user.id}: {subscription_dict}")
-        return {"data": subscription_dict}
+        subscription = await db.push_subscriptions.find_one({"user_id": user_id_str, "active": True})
+        if subscription:
+            # Convert ObjectId fields to strings for JSON serialization
+            subscription["_id"] = str(subscription["_id"])
+            subscription["user_id"] = str(subscription["user_id"])
+        return {"data": subscription}
     except Exception as e:
         logger.error(f"Error updating push subscription topics: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to update push subscription topics")
@@ -150,10 +131,16 @@ async def get_push_subscription(
 ):
     """Get the current active push subscription for the user"""
     try:
-        subscription = await db.push_subscriptions.find_one({"user_id": user.id, "active": True})
+        user_id_str = str(user.id)
+        subscription = await db.push_subscriptions.find_one({"user_id": user_id_str, "active": True})
 
         if not subscription:
             return {"data": None}
+
+        # Convert ObjectId fields to strings for JSON serialization
+        if subscription:
+            subscription["_id"] = str(subscription["_id"])
+            subscription["user_id"] = str(subscription["user_id"])
 
         return {"data": subscription}
     except Exception as e:
@@ -171,6 +158,7 @@ async def send_test_notification(
     # Only allow in development environments
     if settings.ENV != "dev" and settings.ENV != "development":
         raise HTTPException(status_code=403, detail="Test notifications only available in development")
-    
+
+    user_id_str = str(user.id)
     # Implementation would go here
     return {"data": None, "message": "Test notification sent successfully"}

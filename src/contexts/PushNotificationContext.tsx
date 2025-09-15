@@ -77,7 +77,6 @@ export function PushNotificationProvider({ children }: { children: React.ReactNo
       return apiClient.createPushSubscription(subscriptionData);
     },
     onSuccess: (data) => {
-      console.log('Push subscription successful:', data);
       queryClient.invalidateQueries({ queryKey: ['push-subscription'] });
       toast({
         title: t('notificationsEnabled'),
@@ -98,10 +97,11 @@ export function PushNotificationProvider({ children }: { children: React.ReactNo
     mutationFn: async () => {
       const registration = await navigator.serviceWorker.ready;
       const pushSubscription = await registration.pushManager.getSubscription();
-      
+
+      // Always try to deactivate subscriptions on the backend, regardless of browser state
+      await apiClient.deletePushSubscription(''); // Empty endpoint will deactivate all user subscriptions
+
       if (pushSubscription) {
-        await apiClient.deletePushSubscription(pushSubscription.endpoint);
-        
         await pushSubscription.unsubscribe();
       }
     },
@@ -173,18 +173,13 @@ export function PushNotificationProvider({ children }: { children: React.ReactNo
   };
 
  const enableNotifications = async () => {
-   console.log('Attempting to enable notifications...');
-   if (permission !== 'granted') {
-     console.log('Permission not granted, requesting permission...');
-     await requestPermission();
-   }
-   
-   if (Notification.permission === 'granted') {
-     console.log('Permission granted, subscribing with topics:', enabledTopics);
-     subscribeMutation.mutate(enabledTopics);
-   } else {
-     console.log('Permission not granted after request, cannot subscribe.');
-   }
+  if (permission !== 'granted') {
+    await requestPermission();
+  }
+
+  if (Notification.permission === 'granted') {
+    subscribeMutation.mutate(enabledTopics);
+  }
  };
 
   const disableNotifications = async () => {

@@ -66,14 +66,15 @@ export function NotificationSettings() {
             <Button
               onClick={handleEnableNotifications}
               disabled={permission === 'denied' || isLoading}
-              className="bg-[hsl(var(--loom-primary))] hover:bg-[hsl(var(--loom-primary)/0.9)]"
+              className="bg-[hsl(var(--loom-primary))] hover:bg-[hsl(var(--loom-primary)/0.9)] min-h-[44px] touch-manipulation"
+              style={{ touchAction: 'manipulation' }}
             >
               {isLoading ? t('enabling') : (permission === 'denied' ? t('blocked') : t('enable'))}
             </Button>
           )}
         </div>
 
-        {permission === 'granted' && (
+        {permission === 'granted' && subscription?.active && (
           <div className="space-y-4">
             <h4 className="font-medium text-[hsl(var(--loom-text))]">{t('notificationTypes')}</h4>
             {NOTIFICATION_TOPICS.map((topic) => (

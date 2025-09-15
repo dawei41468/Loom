@@ -95,56 +95,34 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     return User(**user_doc)
 async def get_current_user_ws(token: str) -> Optional[User]:
     """Get current authenticated user for WebSocket connections"""
-    import logging
-    logger = logging.getLogger(__name__)
-
-    logger.debug("WebSocket token validation started")
-
     try:
-        logger.debug("Decoding JWT token...")
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        logger.debug(f"JWT payload: {payload}")
 
         token_type = payload.get("type")
-        logger.debug(f"Token type: {token_type}")
-
         if token_type != "access":
-            logger.error(f"Invalid token type: {token_type}, expected 'access'")
             return None
 
         user_id = payload.get("sub")
-        logger.debug(f"User ID from token: {user_id}")
-
         if user_id is None:
-            logger.error("No user_id in token payload")
             return None
 
         token_data = TokenData(user_id=str(user_id))
-        logger.debug(f"TokenData created: {token_data.user_id}")
 
-    except JWTError as e:
-        logger.error(f"JWT decode error: {e}")
+    except JWTError:
         return None
 
-    logger.debug("Checking database connection...")
     db = get_database()
     if db is None:
-        logger.error("Database connection not available")
         return None
 
-    logger.debug(f"Looking up user in database: {token_data.user_id}")
     from bson import ObjectId
     user_doc = await db.users.find_one({"_id": ObjectId(token_data.user_id)})
     if user_doc is None:
-        logger.error(f"User not found in database: {token_data.user_id}")
         return None
-
-    logger.debug(f"User found: {user_doc.get('email', 'unknown')}")
 
     # Convert ObjectId to string for Pydantic validation
     user_doc["_id"] = str(user_doc["_id"])
     user = User(**user_doc)
-    logger.debug(f"User object created successfully: {user.id}")
 
     return user
 

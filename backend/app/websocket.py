@@ -48,20 +48,15 @@ class ConnectionManager:
         """Connect a WebSocket to an event room"""
         try:
             # User is pre-authenticated by the endpoint
-            logger.debug(f"Connecting user {user.id} to event {event_id}")
 
             # Check connection limits
             if self.user_connection_counts[str(user.id)] >= settings.WS_MAX_CONNECTIONS_PER_USER:
-                logger.warning(f"User {user.id} exceeded max connections ({settings.WS_MAX_CONNECTIONS_PER_USER})")
                 await websocket.close(code=1008)  # Policy violation
                 return False
 
             if self.room_connection_counts[event_id] >= settings.WS_MAX_CONNECTIONS_PER_ROOM:
-                logger.warning(f"Room {event_id} exceeded max connections ({settings.WS_MAX_CONNECTIONS_PER_ROOM})")
                 await websocket.close(code=1008)  # Policy violation
                 return False
-
-            logger.debug(f"WebSocket authentication successful for user {user.id}, event {event_id}")
 
             # Create connection metadata
             connection_info = {
@@ -82,7 +77,6 @@ class ConnectionManager:
             # Send any queued messages
             await self.send_queued_messages(str(user.id), websocket)
 
-            logger.debug(f"User {user.id} connected to event {event_id}. Total connections: user={self.user_connection_counts[str(user.id)]}, room={self.room_connection_counts[event_id]}")
             return True
 
         except Exception as e:
@@ -141,11 +135,9 @@ class ConnectionManager:
         user_id = str(user.id)
         try:
             # User is pre-authenticated by the endpoint
-            logger.debug(f"Connecting user {user_id} for partner notifications")
 
             # Check connection limit
             if self.user_connection_counts[user_id] >= settings.WS_MAX_CONNECTIONS_PER_USER:
-                logger.warning(f"User {user_id} exceeded max connections ({settings.WS_MAX_CONNECTIONS_PER_USER})")
                 await websocket.close(code=1008)  # Policy violation
                 return False
 
@@ -166,7 +158,6 @@ class ConnectionManager:
             # Send any queued messages
             await self.send_queued_messages(user_id, websocket)
 
-            logger.debug(f"User {user_id} connected for partner notifications")
             return True
 
         except Exception as e:

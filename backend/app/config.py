@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     # WebSocket Settings
     WS_HEARTBEAT_INTERVAL: int = 30  # seconds
     WS_CONNECTION_TIMEOUT: int = 10  # seconds
-    WS_MAX_CONNECTIONS_PER_USER: int = 10
+    WS_MAX_CONNECTIONS_PER_USER: int = 50  # Increased from 10 to prevent connection limit issues
     WS_MAX_CONNECTIONS_PER_ROOM: int = 100
     WS_MESSAGE_QUEUE_SIZE: int = 50
     WS_RECONNECT_MAX_ATTEMPTS: int = 5
