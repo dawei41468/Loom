@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from ..models import Event, ChecklistItem, ChecklistItemCreate, ChecklistItemUpdate, User
 from ..database import get_database
 from ..websocket import manager
+from ..services import push_notification_service
 from pymongo import ReturnDocument
 
 
@@ -43,6 +44,24 @@ class ChecklistService:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create checklist item")
         item = ChecklistItem(**created)
         await manager.broadcast_to_event(event_id, {"type": "new_checklist_item", "data": item.model_dump(mode='json')})
+        
+        # Send push notification to assignee if different from creator
+        user_id_str = str(user.id)
+        if item.assigned_to and str(item.assigned_to) != user_id_str:
+            await push_notification_service.send_notifications_to_user(
+                db=self.db,
+                user_id=str(item.assigned_to),
+                payload={
+                    "title": "Checklist Item Assigned",
+                    "body": f"You have been assigned a new checklist item: {item.title}",
+                    "data": {
+                        "type": "checklist_item",
+                        "event_id": event_id,
+                        "item_id": str(item.id)
+                    }
+                },
+                topic="checklists"
+            )
         return item
 
     async def update_item(self, event_id: str, item_id: str, item_update: ChecklistItemUpdate, user: User) -> ChecklistItem:
@@ -62,6 +81,30 @@ class ChecklistService:
             else:
                 update_data["completed_by"] = None
                 update_data["completed_at"] = None
+        
+        # Handle assigned_to updates
+        user_id_str = str(user.id)
+        if "assigned_to" in update_data and str(update_data["assigned_to"]) != user_id_str:
+            # Get the item title for the notification
+            item_doc = await self.db.event_checklist_items.find_one({"_id": ObjectId(item_id)})
+            item_title = item_doc.get("title", "Checklist Item") if item_doc else "Checklist Item"
+            
+            # Send push notification to new assignee
+            await push_notification_service.send_notifications_to_user(
+                db=self.db,
+                user_id=str(update_data["assigned_to"]),
+                payload={
+                    "title": "Checklist Item Assigned",
+                    "body": f"You have been assigned a checklist item: {item_title}",
+                    "data": {
+                        "type": "checklist_item",
+                        "event_id": event_id,
+                        "item_id": item_id
+                    }
+                },
+                topic="checklists"
+            )
+        
         updated_doc = await self.db.event_checklist_items.find_one_and_update(
             {"_id": ObjectId(item_id)},
             {"$set": update_data},

@@ -1,4 +1,9 @@
+from typing import Optional
 from .websocket import manager
+from pywebpush import webpush, WebPushException
+import json
+import logging
+from .config import settings
 
 
 class NotificationService:
@@ -49,4 +54,76 @@ class NotificationService:
 
 
 notification_service = NotificationService(manager)
+
+
+logger = logging.getLogger(__name__)
+
+
+class PushNotificationService:
+    def __init__(self, vapid_subject: str, vapid_public_key: str, vapid_private_key: str):
+        self.vapid_subject = vapid_subject
+        self.vapid_public_key = vapid_public_key
+        self.vapid_private_key = vapid_private_key
+    
+    async def send_notification(self, subscription: dict, payload: dict) -> bool:
+        """
+        Send a push notification to a specific subscription
+        Returns True if successful, False otherwise
+        """
+        try:
+            webpush(
+                subscription_info={
+                    "endpoint": subscription["endpoint"],
+                    "keys": subscription["keys"]
+                },
+                data=json.dumps(payload),
+                vapid_private_key=self.vapid_private_key,
+                vapid_claims={
+                    "sub": self.vapid_subject
+                }
+            )
+            return True
+        except WebPushException as e:
+            # Handle specific exceptions like expired subscriptions
+            if e.response and e.response.status_code == 410:
+                # Subscription expired, mark as inactive
+                logger.info(f"Subscription expired: {subscription.get('endpoint')}")
+            else:
+                logger.error(f"Failed to send push notification: {e}")
+            return False
+    
+    async def send_notifications_to_user(self, db, user_id: str, payload: dict, topic: Optional[str] = None) -> int:
+        """
+        Send notifications to all active subscriptions for a user
+        Returns the number of successful sends
+        """
+        try:
+            # Get user's active subscriptions
+            query = {"user_id": user_id, "active": True}
+            if topic:
+                query["topics"] = {"$in": [topic]}
+            
+            subscriptions = await db.push_subscriptions.find(query).to_list(None)
+            
+            if not subscriptions:
+                logger.info(f"No active subscriptions found for user {user_id}")
+                return 0
+            
+            successful_sends = 0
+            for subscription in subscriptions:
+                if await self.send_notification(subscription, payload):
+                    successful_sends += 1
+            
+            return successful_sends
+        except Exception as e:
+            logger.error(f"Error sending notifications to user {user_id}: {e}")
+            return 0
+
+
+# Initialize the service
+push_notification_service = PushNotificationService(
+    vapid_subject=getattr(settings, "VAPID_SUBJECT", "mailto:admin@loom.com"),
+    vapid_public_key=getattr(settings, "VAPID_PUBLIC_KEY", ""),
+    vapid_private_key=getattr(settings, "VAPID_PRIVATE_KEY", "")
+)
 

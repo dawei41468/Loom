@@ -29,6 +29,7 @@ import { ToastProvider } from './contexts/ToastContext';
 import { AuthProvider, useAuthState } from './contexts/AuthContext';
 import { CalendarUIProvider } from './contexts/CalendarUIContext';
 import { UIProvider } from './contexts/UIContext';
+import { PushNotificationProvider } from './contexts/PushNotificationContext';
 
 // Hooks
 import { usePolling } from './hooks/usePolling';
@@ -189,9 +190,10 @@ const App = React.memo(() => {
       <TooltipProvider>
         <ToastProvider>
           <AuthProvider>
-            <CalendarUIProvider>
-              <UIProvider>
-                <ThemeProvider>
+            <PushNotificationProvider>
+              <CalendarUIProvider>
+                <UIProvider>
+                  <ThemeProvider>
                   <BrowserRouter
                     future={{
                       v7_startTransition: true,
@@ -209,7 +211,8 @@ const App = React.memo(() => {
                 </ThemeProvider>
               </UIProvider>
             </CalendarUIProvider>
-          </AuthProvider>
+          </PushNotificationProvider>
+        </AuthProvider>
         </ToastProvider>
       </TooltipProvider>
     </QueryClientProvider>

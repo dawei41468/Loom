@@ -292,21 +292,28 @@ class ChecklistItemBase(BaseModel):
     title: str
     description: Optional[str] = None
     completed: bool = False
+    assigned_to: Optional[PyObjectId] = None  # User ID assigned to this item
 
     @field_serializer('event_id')
     def serialize_event_id(self, value):
         return str(value)
+    
+    @field_serializer('assigned_to')
+    def serialize_assigned_to(self, value):
+        return str(value) if value else None
 
 
 class ChecklistItemCreate(BaseModel):
     title: str
     description: Optional[str] = None
+    assigned_to: Optional[PyObjectId] = None
 
 
 class ChecklistItemUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     completed: Optional[bool] = None
+    assigned_to: Optional[PyObjectId] = None
 
 
 class ChecklistItem(MongoBaseModel, ChecklistItemBase):
@@ -369,3 +376,49 @@ class ChangePasswordRequest(BaseModel):
 
 class DeleteAccountRequest(BaseModel):
     current_password: str
+
+
+# Push Subscription Models
+class PushSubscriptionBase(BaseModel):
+    user_id: PyObjectId
+    endpoint: str
+    keys: dict  # Contains 'p256dh' and 'auth' keys
+    ua: Optional[str] = None  # User agent
+    platform: Optional[Literal["web", "ios_pwa", "android_pwa", "desktop"]] = "web"
+    topics: List[str] = []  # User's notification preferences
+
+class PushSubscriptionCreate(PushSubscriptionBase):
+    pass
+
+class PushSubscriptionUpdate(BaseModel):
+    topics: Optional[List[str]] = None
+    active: Optional[bool] = None
+
+class PushSubscription(MongoBaseModel, PushSubscriptionBase):
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    active: bool = True
+
+    @field_serializer('user_id')
+    def serialize_user_id(self, value):
+        return str(value)
+
+# Notification Event Models
+class NotificationEventBase(BaseModel):
+    user_id: PyObjectId
+    type: str  # e.g., 'proposals', 'chat', 'checklists', 'invites', 'reminders', 'system'
+    subtype: Optional[str] = None  # e.g., 'awaiting_approval', 'mention', etc.
+    entity_ref: dict  # References to related entities
+    payload_summary: str  # Short string for debugging/analytics
+    dedupe_key: str  # type:entity:user:bucket for deduplication
+
+class NotificationEventCreate(NotificationEventBase):
+    pass
+
+class NotificationEvent(MongoBaseModel, NotificationEventBase):
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    delivery_status: List[dict] = []  # Status for each subscription
+
+    @field_serializer('user_id')
+    def serialize_user_id(self, value):
+        return str(value)

@@ -6,7 +6,7 @@ from .config import settings
 from .database import connect_to_mongo, close_mongo_connection
 from .middleware import setup_middleware
 from .cache import cache_manager
-from .routers import auth, events, tasks, proposals, partner, availability, websockets
+from .routers import auth, events, tasks, proposals, partner, availability, websockets, push
 
 
 def _validate_security_settings():
@@ -66,7 +66,7 @@ cors_kwargs = dict(
 )
 if getattr(settings, "ENV", "dev") in {"dev", "development"}:
     # In development, allow localhost variants on any port
-    cors_kwargs["allow_origin_regex"] = r"^https?://(localhost|127\\.0\\.0\\.1|\\[::1\\]):\\d+$"
+    # Note: allow_origin_regex expects a list of strings, not a single string
     logger.info(
         "ENV=%s - CORS enabled for development with origins: %s and regex: %s",
         getattr(settings, "ENV", "dev"),
@@ -92,6 +92,7 @@ app.include_router(proposals.router, prefix=settings.API_V1_STR)
 app.include_router(partner.router, prefix=settings.API_V1_STR)
 app.include_router(availability.router, prefix=settings.API_V1_STR)
 app.include_router(websockets.router, prefix=settings.API_V1_STR)
+app.include_router(push.router, prefix=settings.API_V1_STR)
 
 
 @app.get("/health")

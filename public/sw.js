@@ -187,21 +187,21 @@ self.addEventListener('sync', (event) => {
   }
 });
 
-// Push notifications (for future feature)
+// Push notifications
 self.addEventListener('push', (event) => {
   if (event.data) {
     const data = event.data.json();
     
     const options = {
-      body: data.body,
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-96x96.png',
+      body: data.body || '',
+      icon: '/icons/loom-logo-192.png', // Use Loom branded icon
+      badge: '/icons/loom-logo-96.png', // Use Loom branded badge
       tag: 'loom-notification',
-      data: data.data,
+      data: data.data || {},
       actions: [
         {
           action: 'view',
-          title: 'View Event'
+          title: 'View'
         },
         {
           action: 'dismiss',
@@ -211,7 +211,7 @@ self.addEventListener('push', (event) => {
     };
 
     event.waitUntil(
-      self.registration.showNotification(data.title, options)
+      self.registration.showNotification(data.title || 'Loom Notification', options)
     );
   }
 });
@@ -221,9 +221,22 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   if (event.action === 'view') {
-    // Open the app to the relevant event
+    // Handle deep linking based on notification data
+    const data = event.notification.data;
+    let url = '/';
+    
+    if (data?.type === 'event_created' && data?.event_id) {
+      url = `/event/${data.event_id}`;
+    } else if (data?.type === 'chat_message' && data?.event_id) {
+      url = `/event/${data.event_id}`;
+    } else if (data?.type === 'proposal_created' && data?.proposal_id) {
+      url = `/proposal/${data.proposal_id}`;
+    } else if (data?.type === 'checklist_item' && data?.event_id) {
+      url = `/event/${data.event_id}`;
+    }
+    
     event.waitUntil(
-      clients.openWindow(`/event/${event.notification.data?.eventId || ''}`)
+      clients.openWindow(url)
     );
   }
 });

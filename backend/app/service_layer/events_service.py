@@ -6,7 +6,7 @@ from pymongo import ReturnDocument
 
 from ..models import Event, EventCreate, EventUpdate, User
 from ..database import get_database
-from ..services import notification_service
+from ..services import notification_service, push_notification_service
 
 
 class EventsService:
@@ -64,6 +64,21 @@ class EventsService:
         # Notify partner for shared events, even if not an attendee (FYI visibility)
         if visibility == "shared" and partner_id:
             await notification_service.notify_event_created(partner_id, event.model_dump(mode='json'))
+            
+            # Send push notification to partner
+            await push_notification_service.send_notifications_to_user(
+                db=self.db,
+                user_id=partner_id,
+                payload={
+                    "title": "New Shared Event",
+                    "body": f"{event.title} has been shared with you",
+                    "data": {
+                        "type": "event_created",
+                        "event_id": str(event.id)
+                    }
+                },
+                topic="events"
+            )
         return event
 
     async def get_event_by_id(self, event_id: str, user: User) -> Event:
