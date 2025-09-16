@@ -67,6 +67,14 @@ class ApiClient {
     this.refreshToken = refreshToken;
   }
 
+  public getAccessToken(): string | null {
+    return this.token;
+  }
+
+  public getRefreshToken(): string | null {
+    return this.refreshToken;
+  }
+
   // Decode a JWT without verifying signature to read the payload
   private decodeJwt(token: string): { exp?: number } | null {
     try {

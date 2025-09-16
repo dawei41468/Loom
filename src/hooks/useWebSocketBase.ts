@@ -89,14 +89,22 @@ export const useWebSocketBase = (
   const getWebSocketUrlWithToken = useCallback(() => {
     const baseUrl = getWebSocketUrl();
 
-    if (!token) {
+    // Always read latest token from apiClient to avoid stale React state
+    const currentToken = apiClient.getAccessToken();
+
+    // If no base URL (e.g., eventId not ready), do not attempt to construct a URL
+    if (!baseUrl) {
+      return baseUrl;
+    }
+
+    if (!currentToken) {
       console.error('No token available for WebSocket connection!');
       return baseUrl;
     }
 
-    const urlWithToken = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}token=${token}`;
+    const urlWithToken = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}token=${currentToken}`;
     return urlWithToken;
-  }, [getWebSocketUrl, token]);
+  }, [getWebSocketUrl]);
 
   const updateState = useCallback((updates: Partial<WebSocketState> | ((prevState: WebSocketState) => Partial<WebSocketState>)) => {
     setState(prev => {
@@ -120,14 +128,14 @@ export const useWebSocketBase = (
     lastPingSentRef.current = null;
     lastPongReceivedRef.current = null;
 
-    // Set up pong timeout checker - runs every 10 seconds to check for missed pongs
+    // Set up pong timeout checker - runs periodically to check for missed pongs
     heartbeatIntervalRef.current = setInterval(() => {
       const now = Date.now();
 
       // If we sent a ping but haven't received a pong within the timeout period
       if (lastPingSentRef.current && !lastPongReceivedRef.current) {
         const timeSincePing = now - lastPingSentRef.current;
-        if (timeSincePing > finalConfig.connectionTimeout * 1000) {
+        if (timeSincePing > finalConfig.connectionTimeout) {
           console.warn('Pong timeout detected, connection may be unhealthy');
           // Force reconnection by closing the connection
           if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -151,7 +159,7 @@ export const useWebSocketBase = (
               wsRef.current.close(1008, 'Pong timeout');
             }
           }
-        }, finalConfig.connectionTimeout * 1000);
+        }, finalConfig.connectionTimeout);
       }
     }, finalConfig.heartbeatInterval * 3); // Check every 90 seconds (3x server interval to avoid interference)
   }, [finalConfig.heartbeatInterval, finalConfig.connectionTimeout]);
@@ -173,28 +181,56 @@ export const useWebSocketBase = (
   }, []);
 
   const connect = useCallback(async () => {
-    if (!token || state.isConnecting) {
+    if (state.isConnecting) {
+      return;
+    }
+
+    // Avoid trying to connect while offline; we'll reconnect on 'online'
+    if (typeof navigator !== 'undefined' && 'onLine' in navigator && !navigator.onLine) {
+      console.warn('Skipping WebSocket connect: browser is offline');
       return;
     }
 
     // 🔧 CLEANUP: Close any existing connection before creating new one
     if (wsRef.current) {
+      // Skip if already open or connecting
+      if (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING) {
+        return;
+      }
       wsRef.current.close(1000, 'Cleanup before reconnect');
       wsRef.current = null;
     }
 
-    connectionAttemptsRef.current += 1;
+    // Reset manual disconnect flag since we're initiating a (re)connect
+    isManualDisconnectRef.current = false;
+
     updateState({
       isConnecting: true,
       lastError: null,
-      connectionAttempts: connectionAttemptsRef.current
     });
 
     try {
       // Ensure access token is valid before attempting connection
       await apiClient.ensureValidAccessToken();
 
-      const wsUrl = getWebSocketUrlWithToken();
+      // Verify URL and token availability before attempting
+      const baseUrl = getWebSocketUrl();
+      if (!baseUrl) {
+        updateState({ isConnecting: false, lastError: 'WebSocket URL not available' });
+        return;
+      }
+
+      const currentToken = apiClient.getAccessToken();
+      if (!currentToken) {
+        updateState({ isConnecting: false, lastError: 'Missing access token' });
+        return;
+      }
+
+      // Count an actual connection attempt
+      connectionAttemptsRef.current += 1;
+      updateState({ connectionAttempts: connectionAttemptsRef.current });
+
+      const wsUrl = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}token=${currentToken}`;
       const ws = new WebSocket(wsUrl);
 
       // Set connection timeout
@@ -275,19 +311,45 @@ export const useWebSocketBase = (
 
         // Attempt to reconnect if not a manual disconnect and within attempt limits
         const isAuthError = event.code === 4001 || event.code === 4003;
-        const isConnectionLimitError = event.code === 1008; // Policy violation (connection limit)
 
-        if (!isManualDisconnectRef.current && !isAuthError && connectionAttemptsRef.current < finalConfig.maxReconnectAttempts) {
-          updateState({ isReconnecting: true });
-          const delay = Math.min(
-            finalConfig.baseReconnectDelay * Math.pow(2, connectionAttemptsRef.current),
-            finalConfig.maxReconnectDelay
-          );
+        // If offline, wait for connectivity to return
+        if (typeof navigator !== 'undefined' && 'onLine' in navigator && !navigator.onLine) {
+          updateState({ isReconnecting: false });
+          return;
+        }
 
-          // 🔧 CLEANUP: Add small delay before reconnecting to allow cleanup
-          reconnectTimeoutRef.current = setTimeout(() => {
-            connect(); // This will now cleanup before connecting
-          }, delay);
+        if (!isManualDisconnectRef.current) {
+          if (isAuthError) {
+            // Try a one-time token refresh and reconnect
+            (async () => {
+              try {
+                await apiClient.ensureValidAccessToken();
+                connect();
+              } catch {
+                // Give up; require user action
+                updateState({ isReconnecting: false });
+              }
+            })();
+            return;
+          }
+
+          if (connectionAttemptsRef.current < finalConfig.maxReconnectAttempts) {
+            updateState({ isReconnecting: true });
+            const baseDelay = Math.min(
+              finalConfig.baseReconnectDelay * Math.pow(2, connectionAttemptsRef.current),
+              finalConfig.maxReconnectDelay
+            );
+            // Add jitter (±20%) to avoid thundering herd
+            const jitterFactor = 0.8 + Math.random() * 0.4;
+            const delay = Math.floor(baseDelay * jitterFactor);
+
+            // 🔧 CLEANUP: Add small delay before reconnecting to allow cleanup
+            reconnectTimeoutRef.current = setTimeout(() => {
+              connect(); // This will now cleanup before connecting
+            }, delay);
+          } else {
+            updateState({ isReconnecting: false });
+          }
         } else {
           updateState({ isReconnecting: false });
         }
@@ -400,9 +462,10 @@ export const useWebSocketBase = (
     };
   }, [state.isHealthy, state.lastHeartbeatAt]);
 
-  // Auto-connect when user changes
+  // Auto-connect when user changes and a valid WS URL is available
   useEffect(() => {
-    if (token && !state.isConnected && !state.isConnecting) {
+    const baseUrl = getWebSocketUrl();
+    if (token && baseUrl && !state.isConnected && !state.isConnecting) {
       connect();
     } else if (!token) {
       disconnect();
@@ -411,7 +474,7 @@ export const useWebSocketBase = (
     // The disconnect should only happen on unmount, not on token change.
     // The effect is designed to connect when a token is present and disconnect when it's not.
     // Adding a cleanup function here that calls disconnect() causes a loop.
-  }, [token, state.isConnected, state.isConnecting, connect, disconnect]);
+  }, [token, state.isConnected, state.isConnecting, connect, disconnect, getWebSocketUrl]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -419,6 +482,26 @@ export const useWebSocketBase = (
       disconnect();
     };
   }, [disconnect]);
+
+  // Reconnect automatically when the browser comes back online; close when offline to speed recovery
+  useEffect(() => {
+    const handleOnline = () => {
+      if (!wsRef.current && !state.isConnecting && apiClient.getAccessToken()) {
+        connect();
+      }
+    };
+    const handleOffline = () => {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.close(1001, 'Network offline');
+      }
+    };
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [connect, state.isConnecting]);
 
   return {
     ...state,
