@@ -17,6 +17,7 @@ const EventDetail = React.lazy(() => import('./pages/EventDetail'));
 const EditEvent = React.lazy(() => import('./pages/EditEvent'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
 const Invite = React.lazy(() => import('./pages/Invite'));
+const Proposals = React.lazy(() => import('./pages/Proposals'));
 
 // Components
 import Layout from './components/Layout';
@@ -157,6 +158,7 @@ const AppRoutes = React.memo(() => {
           <Route path="tasks" element={<Tasks />} />
           <Route path="partner" element={<Partner />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="proposals" element={<Proposals />} />
         </Route>
         <Route
           path="/event/:id"

@@ -8,9 +8,7 @@ const STATIC_FILES = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
-  '/src/main.tsx',
-  '/src/index.css',
-  // Add other critical static assets
+  // Note: Do not include dev-only /src/* files here; hashed assets are cached at runtime
 ];
 
 // API endpoints to cache
@@ -195,7 +193,7 @@ self.addEventListener('push', (event) => {
     const options = {
       body: data.body || '',
       icon: '/icons/loom-logo-192.png', // Use Loom branded icon
-      badge: '/icons/loom-logo-96.png', // Use Loom branded badge
+      badge: '/icons/loom-logo-144.png', // Use Loom branded badge
       tag: 'loom-notification',
       data: data.data || {},
       actions: [
@@ -220,24 +218,18 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  if (event.action === 'view') {
-    // Handle deep linking based on notification data
-    const data = event.notification.data;
+  // Treat clicking the notification body the same as the 'view' action
+  if (event.action === 'view' || !event.action) {
+    const data = event.notification.data || {};
     let url = '/';
-    
-    if (data?.type === 'event_created' && data?.event_id) {
+
+    if ((data.type === 'event_created' || data.type === 'chat_message' || data.type === 'checklist_item' || data.type === 'reminder') && data.event_id) {
       url = `/event/${data.event_id}`;
-    } else if (data?.type === 'chat_message' && data?.event_id) {
-      url = `/event/${data.event_id}`;
-    } else if (data?.type === 'proposal_created' && data?.proposal_id) {
-      url = `/proposal/${data.proposal_id}`;
-    } else if (data?.type === 'checklist_item' && data?.event_id) {
-      url = `/event/${data.event_id}`;
+    } else if (data.type === 'proposal_created' || data.type === 'proposal_accepted' || data.type === 'proposal_declined') {
+      url = '/proposals';
     }
-    
-    event.waitUntil(
-      clients.openWindow(url)
-    );
+
+    event.waitUntil(clients.openWindow(url));
   }
 });
 

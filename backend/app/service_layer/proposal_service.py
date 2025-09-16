@@ -5,13 +5,14 @@ from pymongo import ReturnDocument
 
 from .. import models
 from ..database import get_database
-from ..services import notification_service
+from ..services import notification_service, push_notification_service
 
 
 class ProposalService:
     def __init__(self, db, notification_service):
         self.db = db
         self.notification_service = notification_service
+        self.push_notification_service = push_notification_service
 
     async def get_proposals_for_user(self, user: models.User):
         proposals_cursor = self.db.proposals.find({
@@ -45,6 +46,20 @@ class ProposalService:
         await self.notification_service.notify_proposal_created(
             str(proposal.proposed_to),
             {"proposal": proposal.model_dump(), "message": f"New proposal from {user.display_name}"}
+        )
+        # Send web push notification to proposed recipient
+        await self.push_notification_service.send_notifications_to_user(
+            db=self.db,
+            user_id=str(proposal.proposed_to),
+            payload={
+                "title": "New Proposal",
+                "body": f"{user.display_name} sent you a proposal",
+                "data": {
+                    "type": "proposal_created",
+                    "proposal_id": str(proposal.id),
+                },
+            },
+            topic="proposals",
         )
         return proposal
 
@@ -80,6 +95,20 @@ class ProposalService:
             str(updated_proposal.proposed_by),
             {"proposal": updated_proposal.model_dump(), "message": f"Proposal accepted by {user.display_name}"}
         )
+        # Send web push notification to proposer about acceptance
+        await self.push_notification_service.send_notifications_to_user(
+            db=self.db,
+            user_id=str(updated_proposal.proposed_by),
+            payload={
+                "title": "Proposal Accepted",
+                "body": f"{user.display_name} accepted your proposal",
+                "data": {
+                    "type": "proposal_accepted",
+                    "proposal_id": str(updated_proposal.id),
+                },
+            },
+            topic="proposals",
+        )
 
         event = await self._create_event_from_proposal(updated_proposal)
         return updated_proposal, event
@@ -106,6 +135,20 @@ class ProposalService:
         await self.notification_service.notify_proposal_updated(
             str(updated_proposal.proposed_by),
             {"proposal": updated_proposal.model_dump(), "message": f"Proposal declined by {user.display_name}"}
+        )
+        # Send web push notification to proposer about decline
+        await self.push_notification_service.send_notifications_to_user(
+            db=self.db,
+            user_id=str(updated_proposal.proposed_by),
+            payload={
+                "title": "Proposal Declined",
+                "body": f"{user.display_name} declined your proposal",
+                "data": {
+                    "type": "proposal_declined",
+                    "proposal_id": str(updated_proposal.id),
+                },
+            },
+            topic="proposals",
         )
         return updated_proposal
 

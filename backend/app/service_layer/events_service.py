@@ -77,7 +77,8 @@ class EventsService:
                         "event_id": str(event.id)
                     }
                 },
-                topic="events"
+                # Use 'invites' topic to match frontend NotificationSettings
+                topic="invites"
             )
         return event
 

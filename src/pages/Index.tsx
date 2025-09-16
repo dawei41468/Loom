@@ -1,13 +1,12 @@
 // Main Today View - Dashboard
 import * as React from 'react';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { format, isToday, isTomorrow, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { Plus, Clock, MapPin, Users, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthState } from '../contexts/AuthContext';
-import { useToastContext } from '../contexts/ToastContext';
-import { apiClient } from '../api/client';
+// Removed toast and API client imports for compact proposals preview
 import { queryKeys, eventQueries, proposalQueries, userQueries, partnerQueries } from '../api/queries';
 import { Event as LoomEvent } from '../types';
 import { PageHeader } from '../components/ui/page-header';
@@ -18,8 +17,7 @@ import { useTranslation } from '../i18n';
 const Index = () => {
   const navigate = useNavigate();
   const { user, partner } = useAuthState();
-  const { addToast } = useToastContext();
-  const queryClient = useQueryClient();
+  // Compact proposals preview; no local mutations here
   const { t } = useTranslation();
 
   // React Query reads: user, partner, events and proposals
@@ -53,118 +51,11 @@ const Index = () => {
     staleTime: 30_000,
   });
 
-  // Track selected time slot per proposal (index in proposed_times)
-  const [selectedSlots, setSelectedSlots] = useState<Record<string, number>>({});
+  // Compact preview does not manage per-proposal interactions
 
-  const acceptProposalMutation = useMutation({
-    mutationFn: ({ proposalId, selectedTimeSlot }: {
-      proposalId: string;
-      selectedTimeSlot: { start_time: string; end_time: string }
-    }) => apiClient.acceptProposal(proposalId, selectedTimeSlot),
-    onMutate: async ({ proposalId, selectedTimeSlot }) => {
-      // Cancel queries to avoid races
-      await queryClient.cancelQueries({ queryKey: queryKeys.proposals });
-      await queryClient.cancelQueries({ queryKey: queryKeys.events });
+  // Removed accept/decline mutations to reduce duplication with /proposals page
 
-      // Snapshot previous
-      const prevProposals = queryClient.getQueryData<any>(queryKeys.proposals);
-      const prevEvents = queryClient.getQueryData<any>(queryKeys.events);
-
-      // Optimistically update proposal status
-      queryClient.setQueryData<any>(queryKeys.proposals, (old: any) => {
-        const list = old?.data ?? old ?? [];
-        const next = list.map((p: any) =>
-          String(p.id) === String(proposalId)
-            ? { ...p, status: 'accepted', accepted_time_slot: selectedTimeSlot }
-            : p
-        );
-        return old?.data ? { ...old, data: next } : next;
-      });
-
-      return { prevProposals, prevEvents };
-    },
-    onError: (error: Error, _variables, context) => {
-      // Rollback proposals cache
-      if (context?.prevProposals !== undefined) {
-        queryClient.setQueryData(queryKeys.proposals, context.prevProposals);
-      }
-      addToast({
-        type: 'error',
-        title: t('failedToAcceptProposal'),
-        description: error.message,
-      });
-    },
-    onSuccess: (resp) => {
-      // Reconcile with server response: proposals + add created event
-      const accepted = resp.data?.proposal;
-      const createdEvent = resp.data?.event;
-      if (accepted?.id) {
-        queryClient.setQueryData<any>(queryKeys.proposals, (old: any) => {
-          const list = old?.data ?? old ?? [];
-          const next = list.map((p: any) => (String(p.id) === String(accepted.id) ? accepted : p));
-          return old?.data ? { ...old, data: next } : next;
-        });
-      }
-      if (createdEvent) {
-        queryClient.setQueryData<any>(queryKeys.events, (old: any) => {
-          const list = old?.data ?? old ?? [];
-          const next = [...list, createdEvent];
-          return old?.data ? { ...old, data: next } : next;
-        });
-      }
-      addToast({
-        type: 'success',
-        title: t('proposalAccepted'),
-        description: t('newEventCreated'),
-      });
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.proposals });
-      queryClient.invalidateQueries({ queryKey: queryKeys.events });
-    }
-  });
-
-  const declineProposalMutation = useMutation({
-    mutationFn: (proposalId: string) => apiClient.declineProposal(proposalId),
-    onMutate: async (proposalId: string) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.proposals });
-      const prevProposals = queryClient.getQueryData<any>(queryKeys.proposals);
-      queryClient.setQueryData<any>(queryKeys.proposals, (old: any) => {
-        const list = old?.data ?? old ?? [];
-        const next = list.map((p: any) => (String(p.id) === String(proposalId) ? { ...p, status: 'declined' } : p));
-        return old?.data ? { ...old, data: next } : next;
-      });
-      return { prevProposals };
-    },
-    onError: (error: Error, _proposalId, context) => {
-      if (context?.prevProposals !== undefined) {
-        queryClient.setQueryData(queryKeys.proposals, context.prevProposals);
-      }
-      addToast({
-        type: 'error',
-        title: t('failedToDeclineProposal'),
-        description: error.message,
-      });
-    },
-    onSuccess: (resp) => {
-      const declined = resp.data;
-      if (declined?.id) {
-        queryClient.setQueryData<any>(queryKeys.proposals, (old: any) => {
-          const list = old?.data ?? old ?? [];
-          const next = list.map((p: any) => (String(p.id) === String(declined.id) ? declined : p));
-          return old?.data ? { ...old, data: next } : next;
-        });
-      }
-      addToast({
-        type: 'info',
-        title: t('proposalDeclined'),
-        description: t('proposalHasBeenDeclined'),
-      });
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.proposals });
-    }
-  });
+  // Mutations removed
 
   // Initial data now loaded via React Query
 
@@ -248,87 +139,41 @@ const Index = () => {
         </Section>
       )}
 
-      {/* Pending Proposals - Enhanced */}
+      {/* Pending Proposals - Compact Preview */}
       {pendingProposals.length > 0 && (
-        <Section
-          title={t('pendingProposals')}
-          variant="card"
-        >
-          <div className="space-y-3">
-            {pendingProposals.map((proposal) => (
-              <div
-                key={proposal.id}
-                className="loom-card-compact hover-scale bg-[hsl(var(--loom-warning-light))] border-[hsl(var(--loom-warning)/0.2)]"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-sm mb-1 line-clamp-2">{proposal.title}</h3>
-                    <p className="loom-text-muted text-xs sm:text-sm">
+        <Section title={t('pendingProposals')} variant="card">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm text-[hsl(var(--loom-text-muted))]">
+              {t('youHave')} {pendingProposals.length} {t('pendingProposals').toLowerCase()}
+            </p>
+            <button
+              onClick={() => navigate('/proposals')}
+              className="loom-btn-ghost text-xs hover-scale"
+            >
+              {t('viewAllProposals')}
+            </button>
+          </div>
+          <div className="space-y-2">
+            {pendingProposals.slice(0, 3).map((proposal) => (
+              <div key={proposal.id} className="loom-card-compact hover-scale">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-sm line-clamp-1">{proposal.title}</h3>
+                    <p className="text-xs text-[hsl(var(--loom-text-muted))] line-clamp-1">
                       {t('from')} {proposal.proposed_by === user?.id ? t('you') : partner?.display_name}
                     </p>
-                    {proposal.proposed_times?.length > 1 && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {proposal.proposed_times.map((slot, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() =>
-                              setSelectedSlots((prev) => ({ ...prev, [proposal.id]: idx }))
-                            }
-                            className={`loom-chip text-xs ${
-                              (selectedSlots[proposal.id] ?? 0) === idx
-                                ? 'loom-chip-primary'
-                                : 'border border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))]'
-                            }`}
-                          >
-                            {format(parseISO(slot.start_time), 'MMM d, h:mm a')} – {format(parseISO(slot.end_time), 'h:mm a')}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {proposal.proposed_times?.length === 1 && (
-                      <p className="text-xs sm:text-sm mt-2">
-                        {format(parseISO(proposal.proposed_times[0].start_time), 'MMM d, h:mm a')} – {format(parseISO(proposal.proposed_times[0].end_time), 'h:mm a')}
-                      </p>
-                    )}
-                    {proposal.message && (
-                      <p className="text-xs sm:text-sm mt-2 line-clamp-2">{proposal.message}</p>
-                    )}
                   </div>
-                  {/* Only the recipient should see Accept/Decline */}
-                  {proposal.proposed_to === user?.id && (
-                    <div className="flex space-x-2 sm:ml-4">
-                      <button
-                        onClick={() => {
-                          const idx = selectedSlots[proposal.id] ?? 0;
-                          const slot = proposal.proposed_times[idx] || proposal.proposed_times[0];
-                          if (slot) {
-                            acceptProposalMutation.mutate({
-                              proposalId: proposal.id,
-                              selectedTimeSlot: {
-                                start_time: slot.start_time,
-                                end_time: slot.end_time,
-                              },
-                            });
-                          }
-                        }}
-                        disabled={acceptProposalMutation.isPending}
-                        className="loom-chip loom-chip-primary text-xs hover-scale flex-1 sm:flex-initial"
-                      >
-                        {acceptProposalMutation.isPending ? t('accepting') : t('accept')}
-                      </button>
-                      <button
-                        onClick={() => declineProposalMutation.mutate(proposal.id)}
-                        disabled={declineProposalMutation.isPending}
-                        className="loom-chip text-xs hover-scale border-[hsl(var(--loom-border))] bg-[hsl(var(--loom-surface))] flex-1 sm:flex-initial"
-                      >
-                        {declineProposalMutation.isPending ? t('declining') : t('decline')}
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             ))}
           </div>
+          {pendingProposals.length > 3 && (
+            <div className="mt-2">
+              <button onClick={() => navigate('/proposals')} className="loom-btn-ghost text-xs">
+                {t('viewAllProposals')} ({pendingProposals.length})
+              </button>
+            </div>
+          )}
         </Section>
       )}
 

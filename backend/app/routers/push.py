@@ -107,14 +107,17 @@ async def update_push_subscription_topics(
     try:
         user_id_str = str(user.id)
 
-        result = await db.push_subscriptions.update_one(
+        # Apply to all active subscriptions for this user
+        result = await db.push_subscriptions.update_many(
             {"user_id": user_id_str, "active": True},
             {"$set": {"topics": topics_data.topics, "updated_at": datetime.utcnow()}}
         )
 
-        if result.modified_count == 0:
+        # If no active subs matched, return 404
+        if result.matched_count == 0:
             raise HTTPException(status_code=404, detail="Active subscription not found")
 
+        # Return a representative active subscription (first found)
         subscription = await db.push_subscriptions.find_one({"user_id": user_id_str, "active": True})
         if subscription:
             # Convert ObjectId fields to strings for JSON serialization

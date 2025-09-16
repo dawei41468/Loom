@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     # Frontend base URL (used to generate absolute links like partner invites)
     FRONTEND_BASE_URL: str = "http://localhost:7100"
 
+    # Feature Flags
+    FEATURE_PUSH_NOTIFICATIONS: bool = False
+
     # Email/SMTP Settings (optional)
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
