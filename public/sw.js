@@ -395,28 +395,28 @@ async function attemptSyncAction(action) {
 
     switch (action.type) {
       case 'send_message':
-        endpoint = `/api/v1/events/${action.eventId}/messages`;
+        endpoint = `/api/events/${action.eventId}/messages`;
         body = JSON.stringify({ message: action.data.message });
         break;
 
       case 'create_checklist_item':
-        endpoint = `/api/v1/events/${action.eventId}/checklist`;
+        endpoint = `/api/events/${action.eventId}/checklist`;
         body = JSON.stringify(action.data);
         break;
 
       case 'update_checklist_item':
-        endpoint = `/api/v1/events/${action.eventId}/checklist/${action.data.itemId}`;
+        endpoint = `/api/events/${action.eventId}/checklist/${action.data.itemId}`;
         method = 'PUT';
         body = JSON.stringify(action.data.updates);
         break;
 
       case 'delete_message':
-        endpoint = `/api/v1/events/${action.eventId}/messages/${action.data.messageId}`;
+        endpoint = `/api/events/${action.eventId}/messages/${action.data.messageId}`;
         method = 'DELETE';
         break;
 
       case 'delete_checklist_item':
-        endpoint = `/api/v1/events/${action.eventId}/checklist/${action.data.itemId}`;
+        endpoint = `/api/events/${action.eventId}/checklist/${action.data.itemId}`;
         method = 'DELETE';
         break;
 
