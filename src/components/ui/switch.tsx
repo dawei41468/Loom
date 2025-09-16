@@ -14,9 +14,9 @@ const Switch = React.forwardRef<
       // Visible track border in both themes
       "border border-[hsl(var(--loom-border))] dark:border-[hsl(var(--loom-border-strong))]",
       // Track colors with good contrast
-      "transition-colors data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-300 dark:data-[state=unchecked]:bg-gray-600",
+      "transition-colors data-[state=checked]:bg-[hsl(var(--loom-primary))] data-[state=unchecked]:bg-gray-300 dark:data-[state=unchecked]:bg-gray-600",
       // Focus ring (offset blends with app surface)
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--loom-primary))] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900",
       // Disabled state
       "disabled:cursor-not-allowed disabled:opacity-50",
       className

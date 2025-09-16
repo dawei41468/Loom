@@ -21,6 +21,7 @@ interface PushNotificationContextType {
   permission: NotificationPermission;
   enabledTopics: string[];
   isLoading: boolean;
+  isUpdatingTopics: boolean;
   subscription: PushSubscription | undefined; // Add subscription to the context type
   requestPermission: () => Promise<void>;
   enableNotifications: () => Promise<void>;
@@ -36,7 +37,8 @@ export function PushNotificationProvider({ children }: { children: React.ReactNo
   const queryClient = useQueryClient();
   const { isAuthenticated } = useAuthState();
   const [permission, setPermission] = useState<NotificationPermission>('default');
-  
+  const [enabledTopics, setEnabledTopics] = useState<string[]>(['proposals', 'reminders']);
+
   // Get current subscription
   const { data: subscription, isLoading } = useQuery<PushSubscription>({
     queryKey: ['push-subscription'],
@@ -46,8 +48,13 @@ export function PushNotificationProvider({ children }: { children: React.ReactNo
     },
     enabled: permission === 'granted' && isAuthenticated,
   });
-  
-  const enabledTopics = subscription?.topics || ['proposals', 'reminders'];
+
+  // Update enabledTopics when subscription changes
+  useEffect(() => {
+    if (subscription?.topics) {
+      setEnabledTopics(subscription.topics);
+    }
+  }, [subscription?.topics]);
 
  // Check current notification permission status
   useEffect(() => {
@@ -122,8 +129,9 @@ export function PushNotificationProvider({ children }: { children: React.ReactNo
   });
 
   const updateTopicsMutation = useMutation({
-    mutationFn: async (topics: string[]) => {
-      return apiClient.updatePushSubscriptionTopics(topics);
+    mutationFn: async ({ topics, previousTopics }: { topics: string[]; previousTopics: string[] }) => {
+      const result = await apiClient.updatePushSubscriptionTopics(topics);
+      return { result, previousTopics };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['push-subscription'] });
@@ -132,7 +140,9 @@ export function PushNotificationProvider({ children }: { children: React.ReactNo
         description: t('notificationPreferencesUpdated')
       });
     },
-    onError: (error) => {
+    onError: (error, { previousTopics }) => {
+      // Revert optimistic update on error
+      setEnabledTopics(previousTopics);
       toast({
         title: t('notificationError'),
         description: t('failedToUpdatePreferences'),
@@ -187,20 +197,25 @@ export function PushNotificationProvider({ children }: { children: React.ReactNo
   };
 
   const toggleTopic = async (topicId: string, enabled: boolean) => {
+    const previousTopics = enabledTopics;
     let newTopics: string[];
     if (enabled) {
       newTopics = [...enabledTopics, topicId];
     } else {
       newTopics = enabledTopics.filter(id => id !== topicId);
     }
-    
-    updateTopicsMutation.mutate(newTopics);
+
+    // Optimistically update local state
+    setEnabledTopics(newTopics);
+
+    updateTopicsMutation.mutate({ topics: newTopics, previousTopics });
   };
 
   const value = {
     permission,
     enabledTopics,
     isLoading,
+    isUpdatingTopics: updateTopicsMutation.isPending,
     subscription, // Add subscription to the context value
     requestPermission,
     enableNotifications,
