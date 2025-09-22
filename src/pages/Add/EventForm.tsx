@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Clock, Users, Bell } from 'lucide-react';
-import { DatePicker } from '../../components/forms/DatePicker';
-import { TimePicker } from '../../components/forms/TimePicker';
+import { DateTimePicker } from '../../components/forms/DateTimePicker';
 import { cn } from '@/lib/utils';
 
 export type VisibilityType = 'shared' | 'private' | 'title_only';
@@ -12,14 +11,12 @@ interface ReminderOption {
 }
 
 interface Props {
-  // date & time
-  date: string;
-  startTime: string;
-  endTime: string;
-  onDateChange: (d: string) => void;
-  onStartTimeChange: (t: string) => void;
-  onEndTimeChange: (t: string) => void;
-  computeEndFromStart: (t: string) => string;
+   // date & time
+   startDateTime: Date;
+   endDateTime: Date;
+   onStartDateTimeChange: (dt: Date) => void;
+   onEndDateTimeChange: (dt: Date) => void;
+   computeEndFromStart: (dt: Date) => Date;
 
   // visibility & attendees
   partnerDisplayName?: string;
@@ -39,13 +36,11 @@ interface Props {
 }
 
 const EventForm: React.FC<Props> = ({
-  date,
-  startTime,
-  endTime,
-  onDateChange,
-  onStartTimeChange,
-  onEndTimeChange,
-  computeEndFromStart,
+   startDateTime,
+   endDateTime,
+   onStartDateTimeChange,
+   onEndDateTimeChange,
+   computeEndFromStart,
   partnerDisplayName,
   partnerExists,
   visibility,
@@ -67,19 +62,19 @@ const EventForm: React.FC<Props> = ({
         </div>
         <div className="space-y-3">
           <div>
-            <label className="block text-sm font-medium mb-2">{t('dateLabel')}</label>
-            <DatePicker value={date} onChange={onDateChange} />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <TimePicker
-              label={t('startTimeLabel')}
-              value={startTime}
+            <label className="block text-sm font-medium mb-2">From</label>
+            <DateTimePicker
+              mode="from"
+              value={startDateTime}
               onChange={(val) => {
-                onStartTimeChange(val);
-                onEndTimeChange(computeEndFromStart(val));
+                onStartDateTimeChange(val);
+                onEndDateTimeChange(computeEndFromStart(val));
               }}
             />
-            <TimePicker label={t('endTimeLabel')} value={endTime} onChange={onEndTimeChange} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">To</label>
+            <DateTimePicker mode="to" value={endDateTime} onChange={onEndDateTimeChange} />
           </div>
         </div>
       </div>

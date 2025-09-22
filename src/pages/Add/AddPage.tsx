@@ -51,9 +51,8 @@ const AddPage = () => {
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [startTime, setStartTime] = useState(format(addHours(new Date(), 1), 'h:mm a'));
-  const [endTime, setEndTime] = useState(format(addHours(new Date(), 2), 'h:mm a'));
+  const [startDateTime, setStartDateTime] = useState(addHours(new Date(), 1));
+  const [endDateTime, setEndDateTime] = useState(addHours(new Date(), 2));
   const [location, setLocation] = useState('');
   const [visibility, setVisibility] = useState<VisibilityType>('shared');
   const [includePartner, setIncludePartner] = useState(false);
@@ -66,9 +65,9 @@ const AddPage = () => {
 
   // Proposal: support multiple proposed time slots (minimal UX)
   const { proposalSlots, addProposalSlot, removeProposalSlot, updateProposalSlot, syncFirstSlot } = useProposalSlots({
-    date,
-    startTime,
-    endTime,
+    date: format(startDateTime, 'yyyy-MM-dd'),
+    startTime: format(startDateTime, 'h:mm a'),
+    endTime: format(endDateTime, 'h:mm a'),
   });
 
   // Proposal: optional message to partner
@@ -76,6 +75,7 @@ const AddPage = () => {
 
   // Natural language suggestions
   const [nlInput, setNlInput] = useState('');
+
 
   const reminderOptions = useMemo(() => [
     { value: 5, label: t('fiveMin') },
@@ -117,17 +117,24 @@ const AddPage = () => {
     if (t) setTitle(t);
 
     const tm = parseTime(input);
-    if (tm) {
-      setStartTime(tm.startDisplay);
-      setEndTime(tm.endDisplay);
-    }
-
     const day = parseDay(input);
-    if (day) setDate(day);
+
+    if (tm || day) {
+      const baseDate = day ? new Date(day) : new Date();
+      const startDateTime = tm ? new Date(`${baseDate.toDateString()} ${tm.startDisplay}`) : addHours(new Date(), 1);
+      const endDateTime = tm ? new Date(`${baseDate.toDateString()} ${tm.endDisplay}`) : addHours(startDateTime, 1);
+
+      setStartDateTime(startDateTime);
+      setEndDateTime(endDateTime);
+    }
 
     // Keep first proposal slot in sync when proposing and exactly one slot exists
     if (isProposal) {
-      syncFirstSlot(day ?? date, tm?.startDisplay ?? startTime, tm?.endDisplay ?? endTime);
+      const baseDate = day ? new Date(day) : new Date();
+      const startTimeStr = tm?.startDisplay ?? format(startDateTime, 'h:mm a');
+      const endTimeStr = tm?.endDisplay ?? format(endDateTime, 'h:mm a');
+      const dateStr = format(baseDate, 'yyyy-MM-dd');
+      syncFirstSlot(dateStr, startTimeStr, endTimeStr);
     }
   };
 
@@ -169,13 +176,16 @@ const AddPage = () => {
     setIsSubmitting(true);
 
     try {
-      let startDateTime = convertTimeToISO(startTime, date);
-      let endDateTime = convertTimeToISO(endTime, date);
-      const sCheck = Date.parse(startDateTime);
-      const eCheck = Date.parse(endDateTime);
-      if (!isNaN(sCheck) && !isNaN(eCheck) && eCheck <= sCheck) {
-        const nextDay = format(addDays(new Date(date), 1), 'yyyy-MM-dd');
-        endDateTime = convertTimeToISO(endTime, nextDay);
+      const startDateTimeISO = startDateTime.toISOString();
+      let endDateTimeISO = endDateTime.toISOString();
+      const sCheck = startDateTime.getTime();
+      const eCheck = endDateTime.getTime();
+      if (eCheck <= sCheck) {
+        const nextDay = new Date(startDateTime);
+        nextDay.setDate(nextDay.getDate() + 1);
+        nextDay.setHours(endDateTime.getHours());
+        nextDay.setMinutes(endDateTime.getMinutes());
+        endDateTimeISO = nextDay.toISOString();
       }
 
       if (isProposal && partnerForDisplay) {
@@ -196,8 +206,8 @@ const AddPage = () => {
           return;
         }
         const bad = times.find((s) => {
-          const s1 = Date.parse(s.start_time);
-          const s2 = Date.parse(s.end_time);
+          const s1 = new Date(s.start_time).getTime();
+          const s2 = new Date(s.end_time).getTime();
           return !isNaN(s1) && !isNaN(s2) && s2 <= s1;
         });
         if (bad) {
@@ -237,8 +247,8 @@ const AddPage = () => {
         await submitEvent({
           title,
           description: description || undefined,
-          start_time: startDateTime,
-          end_time: endDateTime,
+          start_time: startDateTimeISO,
+          end_time: endDateTimeISO,
           location: location || undefined,
           visibility,
           attendees: includePartner && partnerForDisplay ? [user!.id, partnerForDisplay.id] : [user!.id],
@@ -314,12 +324,10 @@ const AddPage = () => {
         {/* Date/Time, visibility, attendees, reminders (event mode) OR proposal slots (proposal mode) */}
         {!isProposal ? (
           <EventForm
-            date={date}
-            startTime={startTime}
-            endTime={endTime}
-            onDateChange={setDate}
-            onStartTimeChange={setStartTime}
-            onEndTimeChange={setEndTime}
+            startDateTime={startDateTime}
+            endDateTime={endDateTime}
+            onStartDateTimeChange={setStartDateTime}
+            onEndDateTimeChange={setEndDateTime}
             computeEndFromStart={computeEndFromStart}
             partnerDisplayName={partnerForDisplay?.display_name}
             partnerExists={!!partnerForDisplay}

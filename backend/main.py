@@ -25,14 +25,8 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS middleware - will be replaced by app.main configuration
+# The actual CORS setup is handled in app.main to ensure consistency
 
 # Security middleware (rate limiting and logging)
 setup_middleware(app)

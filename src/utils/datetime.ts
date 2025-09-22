@@ -49,34 +49,10 @@ export const convertTimeToISO = (timeString: string, dateString: string): string
 };
 
 /**
- * Compute an end time display string (e.g., "1:00 PM") one hour after the provided start time.
- * Accepts both AM/PM and 24h inputs.
+ * Compute an end Date object one hour after the provided start Date.
  */
-export const computeEndFromStart = (timeString: string): string => {
-  const trimmed = (timeString || '').trim();
-  // AM/PM
-  let m = trimmed.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/i);
-  if (m) {
-    let hour12 = parseInt(m[1], 10);
-    const minute = m[2] ? Math.min(59, parseInt(m[2], 10)) : 0;
-    const ampm = m[3].toUpperCase();
-    let hour24 = hour12 % 12;
-    if (ampm === 'PM') hour24 += 12;
-    hour24 = (hour24 + 1) % 24;
-    const displayHour = (hour24 % 12) === 0 ? 12 : (hour24 % 12);
-    const displayAmpm = hour24 >= 12 ? 'PM' : 'AM';
-    return `${displayHour}:${minute.toString().padStart(2, '0')} ${displayAmpm}`;
-  }
-  // 24h
-  m = trimmed.match(/^(\d{1,2})(?::(\d{2}))?$/);
-  if (m) {
-    let hour24 = Math.min(23, parseInt(m[1], 10));
-    const minute = m[2] ? Math.min(59, parseInt(m[2], 10)) : 0;
-    hour24 = (hour24 + 1) % 24;
-    const displayHour = (hour24 % 12) === 0 ? 12 : (hour24 % 12);
-    const displayAmpm = hour24 >= 12 ? 'PM' : 'AM';
-    return `${displayHour}:${minute.toString().padStart(2, '0')} ${displayAmpm}`;
-  }
-  // Default +1h from 12:00 PM
-  return '1:00 PM';
+export const computeEndFromStart = (startDateTime: Date): Date => {
+  const endDateTime = new Date(startDateTime);
+  endDateTime.setHours(endDateTime.getHours() + 1);
+  return endDateTime;
 };

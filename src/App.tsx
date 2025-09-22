@@ -18,6 +18,7 @@ const EditEvent = React.lazy(() => import('./pages/EditEvent'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
 const Invite = React.lazy(() => import('./pages/Invite'));
 const Proposals = React.lazy(() => import('./pages/Proposals'));
+const DateTimePickerTest = React.lazy(() => import('./pages/DateTimePickerTest'));
 
 // Components
 import Layout from './components/Layout';
@@ -130,6 +131,7 @@ const AppRoutes = React.memo(() => {
         <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
         <Route path="/register" element={isAuthenticated ? <Navigate to="/" replace /> : <Register />} />
         <Route path="/invite/:token" element={<Invite />} />
+        <Route path="/datetime-test" element={<DateTimePickerTest />} />
 
         {/* Onboarding route */}
         <Route

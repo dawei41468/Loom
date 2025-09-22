@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { Settings, User, LogOut, Globe, Sun, Moon, ChevronDown } from 'lucide-react';
 import { useAuthState, useAuthDispatch } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
@@ -20,6 +20,7 @@ const UserProfileMenu = React.memo(() => {
   const { data: meData } = useQuery({ queryKey: queryKeys.user, queryFn: userQueries.getMe, staleTime: 30000 });
   const meUser = meData?.data || user;
   const dispatch = useAuthDispatch();
+  const navigate = useNavigate();
 
   // Always call hooks in same order - React requirement
   const uiState = useUIState();
@@ -55,10 +56,10 @@ const UserProfileMenu = React.memo(() => {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          className="relative inline-flex h-10 w-10 min-h-10 min-w-10 rounded-full items-center justify-center shrink-0 overflow-hidden focus:outline-none focus:ring-0 border"
+          className="relative inline-flex h-9 w-9 min-h-9 min-w-9 rounded-full items-center justify-center shrink-0 overflow-hidden focus:outline-none focus:ring-0 border"
           style={{ borderColor: selfColor }}
         >
-          <User className="h-6 w-6" strokeWidth={2.5} style={{ color: selfColor }} />
+          <User className="h-5 w-5" strokeWidth={2.5} style={{ color: selfColor }} />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-64 p-1.5 text-[0.95rem] bg-[hsl(var(--loom-surface))] border-[hsl(var(--loom-border))]" align="end" forceMount>
@@ -135,14 +136,9 @@ const UserProfileMenu = React.memo(() => {
             </DropdownMenuItem>
           </div>
         )}
-        <DropdownMenuItem asChild>
-          <NavLink
-            to="/settings"
-            className="flex items-center cursor-pointer text-base"
-          >
-            <Settings className="mr-2 h-5 w-5 text-[hsl(var(--loom-text))]" />
-            <span className="text-[hsl(var(--loom-text))]">{t('settings')}</span>
-          </NavLink>
+        <DropdownMenuItem onClick={() => navigate('/settings')} className="flex items-center cursor-pointer text-base">
+          <Settings className="mr-2 h-5 w-5 text-[hsl(var(--loom-text))]" />
+          <span className="text-[hsl(var(--loom-text))]">{t('settings')}</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-[hsl(var(--loom-border))]" />
         <DropdownMenuItem onClick={() => dispatch({ type: 'LOGOUT' })} className="px-3 py-2 text-base">

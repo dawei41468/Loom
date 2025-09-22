@@ -68,22 +68,27 @@ app = FastAPI(
 
 # CORS middleware
 logger = logging.getLogger(__name__)
-cors_kwargs = dict(
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 if getattr(settings, "ENV", "dev") in {"dev", "development"}:
     # In development, allow localhost variants on any port
-    # Note: allow_origin_regex expects a list of strings, not a single string
+    cors_kwargs = dict(
+        allow_origin_regex=r"https?://localhost(:\d+)?",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     logger.info(
-        "ENV=%s - CORS enabled for development with origins: %s and regex: %s",
+        "ENV=%s - CORS enabled for development with regex: %s",
         getattr(settings, "ENV", "dev"),
-        settings.CORS_ORIGINS,
         cors_kwargs["allow_origin_regex"],
     )
 else:
+    # In production, use explicit origins
+    cors_kwargs = dict(
+        allow_origins=settings.CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     logger.info(
         "ENV=%s - CORS enabled with explicit origins: %s",
         getattr(settings, "ENV", "dev"),

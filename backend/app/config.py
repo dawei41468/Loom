@@ -87,10 +87,15 @@ class Settings(BaseSettings):
         if cors_env and isinstance(cors_env, str):
             try:
                 # Try to parse as JSON first
-                self.CORS_ORIGINS = json.loads(cors_env)
+                parsed_origins = json.loads(cors_env)
+                # Ensure it's a list of strings
+                if isinstance(parsed_origins, list):
+                    object.__setattr__(self, 'CORS_ORIGINS', parsed_origins)
+                else:
+                    object.__setattr__(self, 'CORS_ORIGINS', [str(parsed_origins)])
             except json.JSONDecodeError:
                 # If that fails, split by comma and strip whitespace
-                self.CORS_ORIGINS = [origin.strip() for origin in cors_env.split(",")]
+                object.__setattr__(self, 'CORS_ORIGINS', [origin.strip() for origin in cors_env.split(",")])
 
     # VAPID settings for push notifications
     VAPID_SUBJECT: str = "mailto:admin@loom.com"

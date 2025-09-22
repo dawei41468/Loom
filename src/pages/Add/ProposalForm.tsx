@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { DatePicker } from '../../components/forms/DatePicker';
-import { TimePicker } from '../../components/forms/TimePicker';
+import { DateTimePicker } from '../../components/forms/DateTimePicker';
 
 export type ProposalSlot = { date: string; startTime: string; endTime: string };
 
@@ -9,7 +8,7 @@ interface Props {
   onAdd: () => void;
   onRemove: (index: number) => void;
   onUpdate: (index: number, updates: Partial<ProposalSlot>) => void;
-  computeEndFromStart: (t: string) => string;
+  computeEndFromStart: (dt: Date) => Date;
   t: (key: string) => string;
 }
 
@@ -38,19 +37,45 @@ const ProposalForm: React.FC<Props> = ({
                 </button>
               )}
             </div>
-            <DatePicker value={slot.date} onChange={(val) => onUpdate(idx, { date: val })} />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <TimePicker
-                label={t('startTimeLabel')}
-                value={slot.startTime}
-                onChange={(val) =>
-                  onUpdate(idx, { startTime: val, endTime: computeEndFromStart(val) })
-                }
+            <div>
+              <label className="block text-sm font-medium mb-2">From</label>
+              <DateTimePicker
+                mode="from"
+                value={(() => {
+                  try {
+                    // Parse the existing date and time strings into a Date object
+                    const dateTimeStr = `${slot.date} ${slot.startTime}`;
+                    return new Date(dateTimeStr);
+                  } catch {
+                    return new Date();
+                  }
+                })()}
+                onChange={(val) => {
+                  const dateStr = val.toISOString().split('T')[0];
+                  const timeStr = val.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                  const endDateTime = computeEndFromStart(val);
+                  const endTimeStr = endDateTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                  onUpdate(idx, { date: dateStr, startTime: timeStr, endTime: endTimeStr });
+                }}
               />
-              <TimePicker
-                label={t('endTimeLabel')}
-                value={slot.endTime}
-                onChange={(val) => onUpdate(idx, { endTime: val })}
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">To</label>
+              <DateTimePicker
+                mode="to"
+                value={(() => {
+                  try {
+                    // Parse the existing date and time strings into a Date object
+                    const dateTimeStr = `${slot.date} ${slot.endTime}`;
+                    return new Date(dateTimeStr);
+                  } catch {
+                    return new Date();
+                  }
+                })()}
+                onChange={(val) => {
+                  const timeStr = val.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                  onUpdate(idx, { endTime: timeStr });
+                }}
               />
             </div>
           </div>
