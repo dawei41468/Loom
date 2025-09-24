@@ -12,11 +12,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys, eventQueries, partnerQueries } from '../api/queries';
 import TextInput from '../components/forms/TextInput';
 import TextArea from '../components/forms/TextArea';
-import { DatePicker } from '../components/forms/DatePicker';
-import { TimePicker } from '../components/forms/TimePicker';
+import { DateTimePicker } from '../components/forms/DateTimePicker';
 import SubmitButton from '../components/forms/SubmitButton';
 import { cn } from '@/lib/utils';
-import { convertTimeToISO, computeEndFromStart } from '../utils/datetime';
+import { computeEndFromStart } from '../utils/datetime';
 
 const EditEvent = () => {
   const { id } = useParams<{ id: string }>();
@@ -44,9 +43,8 @@ const EditEvent = () => {
   // Local state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [date, setDate] = useState<string>(''); // yyyy-MM-dd
-  const [startTime, setStartTime] = useState(''); // h:mm AM/PM
-  const [endTime, setEndTime] = useState('');
+  const [startDateTime, setStartDateTime] = useState<Date>(new Date());
+  const [endDateTime, setEndDateTime] = useState<Date>(new Date());
   const [location, setLocation] = useState('');
   const [visibility, setVisibility] = useState<'shared' | 'private'>('private');
   const [includePartner, setIncludePartner] = useState(false); // attendance only when shared
@@ -57,11 +55,6 @@ const EditEvent = () => {
   const [autoForcedToPrivate, setAutoForcedToPrivate] = useState(false);
 
   // Helpers
-  const toDisplayTime = (iso: string) => {
-    const d = parseISO(iso);
-    return format(d, 'h:mm a');
-  };
-  const toDateOnly = (iso: string) => format(parseISO(iso), 'yyyy-MM-dd');
 
 
   // Initialize form from event
@@ -70,9 +63,8 @@ const EditEvent = () => {
     setTitle(event.title);
     setDescription(event.description || '');
     setLocation(event.location || '');
-    setDate(toDateOnly(event.start_time));
-    setStartTime(toDisplayTime(event.start_time));
-    setEndTime(toDisplayTime(event.end_time));
+    setStartDateTime(parseISO(event.start_time));
+    setEndDateTime(parseISO(event.end_time));
     setReminders(event.reminders || []);
     // Determine visibility and attendance
     const isShared = event.visibility === 'shared';
@@ -127,22 +119,22 @@ const EditEvent = () => {
       await queryClient.cancelQueries({ queryKey: queryKeys.events });
 
       // Snapshot previous cache
-      const prevEvent = queryClient.getQueryData<any>(queryKeys.event(event.id));
-      const prevEvents = queryClient.getQueryData<any>(queryKeys.events);
+      const prevEvent = queryClient.getQueryData<unknown>(queryKeys.event(event.id));
+      const prevEvents = queryClient.getQueryData<unknown>(queryKeys.events);
 
       // Optimistically update single event cache
-      queryClient.setQueryData<any>(queryKeys.event(event.id), (old: any) => {
-        const curr = old?.data ?? old;
-        const merged = { ...(curr || {}), ...payload, id: event.id };
-        return old?.data ? { ...old, data: merged } : merged;
+      queryClient.setQueryData<unknown>(queryKeys.event(event.id), (old: unknown) => {
+        const curr = (old as { data?: unknown })?.data ?? old;
+        const merged = { ...(curr as Record<string, unknown> || {}), ...payload, id: event.id };
+        return (old as { data?: unknown })?.data ? { ...(old as Record<string, unknown>), data: merged } : merged;
       });
 
       // Optimistically update events list cache
-      queryClient.setQueryData<any>(queryKeys.events, (old: any) => {
-        const list = old?.data ?? old;
+      queryClient.setQueryData<unknown>(queryKeys.events, (old: unknown) => {
+        const list = (old as { data?: unknown })?.data ?? old;
         if (!Array.isArray(list)) return old;
         const next = list.map((e: Event) => (String(e.id) === String(event.id) ? { ...e, ...payload } : e));
-        return old?.data ? { ...old, data: next } : next;
+        return (old as { data?: unknown })?.data ? { ...(old as Record<string, unknown>), data: next } : next;
       });
 
       return { prevEvent, prevEvents };
@@ -178,13 +170,16 @@ const EditEvent = () => {
     }
     setIsSubmitting(true);
     try {
-      let startDateTime = convertTimeToISO(startTime, date);
-      let endDateTime = convertTimeToISO(endTime, date);
-      const sCheck = Date.parse(startDateTime);
-      const eCheck = Date.parse(endDateTime);
-      if (!isNaN(sCheck) && !isNaN(eCheck) && eCheck <= sCheck) {
-        const nextDay = format(addDays(new Date(date), 1), 'yyyy-MM-dd');
-        endDateTime = convertTimeToISO(endTime, nextDay);
+      const startDateTimeISO = startDateTime.toISOString();
+      let endDateTimeISO = endDateTime.toISOString();
+      const sCheck = startDateTime.getTime();
+      const eCheck = endDateTime.getTime();
+      if (eCheck <= sCheck) {
+        const nextDay = new Date(startDateTime);
+        nextDay.setDate(nextDay.getDate() + 1);
+        nextDay.setHours(endDateTime.getHours());
+        nextDay.setMinutes(endDateTime.getMinutes());
+        endDateTimeISO = nextDay.toISOString();
       }
 
       const attendees: string[] = [];
@@ -196,11 +191,11 @@ const EditEvent = () => {
       await updateMutation.mutateAsync({
         title,
         description: description || undefined,
-        start_time: startDateTime as unknown as any,
-        end_time: endDateTime as unknown as any,
+        start_time: startDateTimeISO,
+        end_time: endDateTimeISO,
         location: location || undefined,
         visibility,
-        attendees: attendees as unknown as any,
+        attendees,
         reminders,
       } as Partial<Event>);
     } finally {
@@ -253,23 +248,19 @@ const EditEvent = () => {
           </div>
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium mb-2">Date</label>
-              <DatePicker value={date} onChange={setDate} />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <TimePicker
-                label="Start time"
-                value={startTime}
+              <label className="block text-sm font-medium mb-2">From</label>
+              <DateTimePicker
+                mode="from"
+                value={startDateTime}
                 onChange={(val) => {
-                  setStartTime(val);
-                  setEndTime(computeEndFromStart(val));
+                  setStartDateTime(val);
+                  setEndDateTime(computeEndFromStart(val));
                 }}
               />
-              <TimePicker
-                label="End time"
-                value={endTime}
-                onChange={setEndTime}
-              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">To</label>
+              <DateTimePicker mode="to" value={endDateTime} onChange={setEndDateTime} />
             </div>
           </div>
         </div>
