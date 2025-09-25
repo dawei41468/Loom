@@ -36,6 +36,31 @@ const CalendarPage = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [calendarHeight, setCalendarHeight] = useState('600px');
 
+  const STORAGE_KEY = 'calendar_last_viewed_date';
+
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
+        const parsed = parseISO(stored);
+        setCurrentDate(parsed);
+      } catch {
+        // invalid, ignore
+      }
+    }
+  }, []);
+
+  const handleSetCurrentDate = (date: Date) => {
+    setCurrentDate(date);
+    localStorage.setItem(STORAGE_KEY, date.toISOString());
+  };
+
+  const handleHeaderClick = () => {
+    const now = new Date();
+    setCurrentDate(now);
+    localStorage.removeItem(STORAGE_KEY);
+  };
+
   // React Query for fresh user/partner
   const { data: meData } = useQuery({ queryKey: queryKeys.user, queryFn: userQueries.getMe, staleTime: 30000, enabled: true });
   const meUser = meData?.data || user;
@@ -129,7 +154,7 @@ const CalendarPage = () => {
     } else if (currentView === 'day') {
       newDate.setDate(newDate.getDate() + (direction === 'next' ? 1 : -1));
     }
-    setCurrentDate(newDate);
+    handleSetCurrentDate(newDate);
   };
 
   const getCalendarHeight = () => {
@@ -233,9 +258,10 @@ const CalendarPage = () => {
               view={currentView}
               date={currentDate}
               onViewChange={setCurrentView}
-              onNavigate={setCurrentDate}
+              onNavigate={handleSetCurrentDate}
               onSelectEvent={handleEventClick}
               onSelectSlot={handleSlotSelect}
+              onHeaderClick={handleHeaderClick}
               height={currentView === 'month' ? undefined : calendarHeight}
               className="loom-calendar"
             />

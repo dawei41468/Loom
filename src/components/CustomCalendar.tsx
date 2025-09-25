@@ -20,6 +20,7 @@ interface CustomCalendarProps {
   onNavigate: (date: Date) => void;
   onSelectEvent: (event: CustomCalendarEvent) => void;
   onSelectSlot: (slotInfo: { start: Date; end: Date }) => void;
+  onHeaderClick?: () => void;
   height?: string;
   className?: string;
 }
@@ -32,6 +33,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
   onNavigate,
   onSelectEvent,
   onSelectSlot,
+  onHeaderClick,
   height = '600px',
   className = '',
 }) => {
@@ -347,7 +349,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
         </button>
 
         <div className="text-center">
-          <h2 className="text-xl font-semibold">
+          <h2 className={`text-xl font-semibold ${onHeaderClick ? 'cursor-pointer hover:opacity-80' : ''}`} onClick={onHeaderClick}>
             {view === 'month' && format(currentDate, 'MMMM yyyy')}
             {view === 'week' && `${format(startOfWeek(currentDate), 'MMM d')} - ${format(endOfWeek(currentDate), 'MMM d, yyyy')}`}
             {view === 'day' && format(currentDate, 'EEEE, MMMM d, yyyy')}
