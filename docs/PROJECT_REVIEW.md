@@ -17,6 +17,7 @@
 - **Data Fetching**: TanStack React Query
 - **UI Components**: Radix UI primitives with custom styling
 - **PWA**: Service Worker and Web App Manifest
+- **Push Notifications**: Web Push API with VAPID keys and topic-based subscriptions
 
 #### Backend
 - **Framework**: FastAPI with Python
@@ -25,6 +26,9 @@
 - **Validation**: Pydantic models
 - **CORS**: Configured for cross-origin requests
 - **Documentation**: Auto-generated OpenAPI/Swagger
+- **Push Notifications**: pywebpush for Web Push with VAPID
+- **Reminders**: Background task for event reminders via push
+- **Service Layer**: Dedicated services for events, proposals, tasks, chat, checklists, partner
 
 ## Current Implementation Status
 
@@ -64,7 +68,7 @@
 
 ### ⚠️ Partially Implemented Features
 
-- **Push Notifications**: Frontend service worker is set up to handle push events, but the backend service to send notifications is not yet implemented.
+- None (all core features complete; push notifications now fully implemented with backend service, topics, and integration).
 
 ### 📋 Planned or Future Enhancements
 
@@ -72,6 +76,7 @@
 - Integration with external calendars (Google Calendar, Outlook).
 - Advanced search and filtering capabilities.
 - Data export/import functionality.
+- Monitoring and analytics dashboard.
 
 ## File Structure
 
@@ -85,8 +90,12 @@
 │   │   ├── models.py            # Pydantic models
 │   │   ├── websocket.py         # WebSocket utilities
 │   │   ├── email.py             # Email utilities (invite email)
-│   │   ├── services.py          # Service helpers
+│   │   ├── services.py          # Service helpers (incl. push notifications)
 │   │   ├── cache.py             # In-memory cache (dev) / pluggable
+│   │   ├── reminders.py         # Background reminders task
+│   │   ├── middleware.py        # Custom middleware
+│   │   ├── security.py          # Security utilities
+│   │   ├── utils.py             # Shared utilities
 │   │   └── routers/
 │   │       ├── auth.py          # Authentication & profile
 │   │       ├── events.py        # Event CRUD + chat/checklist routes
@@ -94,20 +103,25 @@
 │   │       ├── proposals.py     # Proposal system
 │   │       ├── partner.py       # Partner connect/disconnect, invites
 │   │       ├── availability.py  # Availability finding
-│   │       └── websockets.py    # WebSocket endpoints
-│   └── requirements.txt         # Python dependencies
+│   │       ├── websockets.py    # WebSocket endpoints
+│   │       └── push.py          # Push notification subscriptions
+│   └── requirements.txt         # Python dependencies (incl. pywebpush)
 ├── src/
 │   ├── components/
-│   │   ├── ui/                  # shadcn/ui components
-│   │   ├── forms/               # Reusable form primitives
+│   │   ├── ui/                  # shadcn/ui components (accordion, alert, etc.)
+│   │   ├── forms/               # Reusable form primitives (DatePicker, TimePicker, etc.)
 │   │   ├── CustomCalendar.tsx   # Calendar UI
 │   │   ├── EventChat.tsx        # Event chat UI
 │   │   ├── EventChecklist.tsx   # Event checklist UI
 │   │   ├── Layout.tsx           # Main layout
+│   │   ├── NotificationSettings.tsx # Push notification preferences
+│   │   ├── OfflineIndicator.tsx # Offline status
+│   │   ├── QRCodeModal.tsx      # QR code utilities
 │   │   └── ...
 │   ├── contexts/
 │   │   ├── AuthContext.tsx
 │   │   ├── CalendarUIContext.tsx
+│   │   ├── PushNotificationContext.tsx # Push notification management
 │   │   ├── ToastContext.tsx
 │   │   └── UIContext.tsx
 │   ├── pages/
@@ -115,11 +129,13 @@
 │   │   ├── Login.tsx
 │   │   ├── Register.tsx
 │   │   ├── Calendar.tsx
-│   │   ├── Add/
+│   │   ├── Add/                 # Event/Proposal forms (AddPage.tsx, EventForm.tsx, ProposalForm.tsx)
 │   │   ├── Partner.tsx
 │   │   ├── Invite.tsx
 │   │   ├── Settings.tsx
-│   │   └── Tasks.tsx
+│   │   ├── Tasks.tsx
+│   │   ├── Proposals.tsx
+│   │   └── EventDetail.tsx
 │   ├── api/
 │   │   ├── client.ts            # API client with token refresh
 │   │   └── queries.ts           # React Query keys and wrappers
@@ -127,10 +143,16 @@
 │   │   ├── useWebSocket.ts      # WebSocket setup
 │   │   ├── usePartnerWebSocket.ts
 │   │   ├── useOfflineQueue.ts   # Offline queueing for chat/checklist
+│   │   ├── usePolling.ts        # Fallback polling (secondary to WS)
+│   │   ├── useAsyncOperation.ts # Async helpers
 │   │   └── ...
 │   ├── types.ts                 # TypeScript definitions
+│   ├── i18n/                    # Internationalization
 │   └── index.css                # Tailwind CSS v4
-├── public/                      # Static assets
+├── public/                      # Static assets (icons, sw.js, sounds)
+├── docs/                        # Documentation (reviews, guides, plans)
+├── nginx/                       # Nginx configs for staging/production
+├── scripts/                     # Build scripts (e.g., generate-icons.mjs)
 └── package.json                 # Frontend dependencies
 ```
 
@@ -184,20 +206,27 @@
 - `POST /api/partner/accept/{id}` - Accept partnership
 - `POST /api/partner/decline/{id}` - Decline partnership
 
+### Push Notifications
+- `POST /api/push/subscribe` - Create/update push subscription
+- `DELETE /api/push/subscribe` - Deactivate subscription
+- `PUT /api/push/subscribe/topics` - Update notification topics
+- `POST /api/push/test` - Send test notification (dev only)
+
 ## Critical Gaps to Address
 
-With the core feature set being robust and stable, the main gaps are now in testing and further enhancements rather than bug fixes.
+The core feature set is robust, stable, and production-ready. Remaining gaps focus on testing, monitoring, and enhancements.
 
 ### High Priority
-1.  **Comprehensive Testing**: Introduce a testing suite for both frontend and backend to ensure code quality and prevent regressions. (`pytest` for backend, `React Testing Library` for frontend).
+1.  **Comprehensive Testing**: Add unit/integration tests for backend (pytest) and frontend (React Testing Library, Vitest) to cover services, components, and API flows.
 
 ### Medium Priority
-1.  **Push Notifications**: Complete the push notification system by implementing the backend service to send notifications to subscribed clients.
-2.  **Code Refinements**: Act on the suggestions in `docs/CODEBASE_IMPROVEMENT_SUGGESTIONS.md` to refactor large components and services.
+1.  **Monitoring & Logging**: Implement structured logging (e.g., structlog) and metrics (Prometheus) for production observability.
+2.  **Error Boundaries & Resilience**: Add global error handling in frontend and retry logic for WebSocket/push failures.
 
 ### Low Priority (Future Enhancements)
-1.  **Recurring Events**: Add support for creating events that repeat on a schedule.
-2.  **Calendar Integrations**: Allow users to connect and sync with Google Calendar or Outlook.
+1.  **Recurring Events**: Support repeating events with scheduling rules.
+2.  **Calendar Integrations**: Sync with Google Calendar/Outlook via OAuth.
+3.  **Advanced Analytics**: Usage insights and export features.
 
 ## Development Setup
 
@@ -236,25 +265,25 @@ VITE_USE_REAL_API=false
 ## Key Improvements Made
 
 ### Since Original Review
-1.  **Real-time System Overhaul**: Replaced the original polling mechanism with a full-featured WebSocket integration, providing instant updates for all users.
-2.  **Data Persistence Corrected**: All data loading and persistence issues (Calendar, Settings, EventDetail) have been resolved. The app now uses React Query effectively for server state management.
-3.  **Advanced Features Implemented**: Added event chat, shared checklists, and a complete email invitation system.
-4.  **State Management Refined**: Migrated from Zustand to a more standard React Context with `useReducer` pattern, clarifying data flow.
-5.  **Codebase Analysis**: A comprehensive codebase analysis has been performed, with actionable suggestions documented in `docs/CODEBASE_IMPROVEMENT_SUGGESTIONS.md`.
+1.  **Real-time System Overhaul**: Replaced polling with WebSocket integration for instant updates.
+2.  **Data Persistence Corrected**: Resolved loading issues; full React Query adoption for server state.
+3.  **Advanced Features Implemented**: Event chat, shared checklists, email invites, push notifications (full Web Push with topics), event reminders (background task).
+4.  **State Management Refined**: Context + useReducer for UI; React Query for data; optimistic updates across CRUD.
+5.  **Codebase Refinements**: Service layer extracted (events, proposals, tasks, chat, checklists); large components broken down (AddPage, forms); many improvements from `docs/CODEBASE_IMPROVEMENT_SUGGESTIONS.md` implemented.
+6.  **Deployment Enhancements**: PM2 configs, Nginx setups, staging/production envs, deploy scripts.
 
 ## Recommendations
 
-1. **Complete the critical data loading fixes** - Calendar, Settings, EventDetail
-2. **Standardize on React Query** - Convert any remaining direct API calls for consistency
-3. **Add comprehensive testing** - Unit tests for both frontend and backend
-4. **Harden WebSocket resilience** - Additional reconnect/backoff strategies and server heartbeats
-5. **Implement push notifications** - For better user engagement
-6. **Add advanced features gradually** - Recurring events, calendar integrations
+1. **Add comprehensive testing** - Unit/integration tests for services, components, APIs.
+2. **Enhance monitoring** - Logging, metrics, error tracking for production.
+3. **Harden resilience** - WebSocket reconnects, push retry logic, offline handling.
+4. **Implement advanced features** - Recurring events, external calendar sync.
+5. **Performance tuning** - List virtualization, bundle optimization if needed.
 
 ## Conclusion
 
-The project has evolved significantly since the original review. All major features identified as "missing" or "incomplete" have been implemented, tested, and are now stable.
+The project has matured considerably. Push notifications, reminders, and code refactors (service layer, optimistic updates) are now complete. Core features are stable and production-ready.
 
-The core functionality of the application is complete, robust, and production-ready. The focus has successfully shifted from bug-fixing and feature implementation to ongoing maintenance and future enhancements. The codebase is clean, modern, and demonstrates excellent full-stack development practices.
+The codebase follows modern practices: async FastAPI backend with service abstraction, React Query for data, Context for UI state, and full PWA support including push.
 
-**Current Status**: The app is functionally complete for its core use case. The remaining issues are integration and polish items rather than missing core functionality.
+**Current Status**: Fully functional for core scheduling/coordination. Next: testing suite and monitoring for sustained production use.
