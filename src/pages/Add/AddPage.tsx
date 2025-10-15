@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { format, addDays, addHours } from 'date-fns';
+import { format, addDays, addHours, setHours, setMinutes } from 'date-fns';
 import { X, MapPin } from 'lucide-react';
 // EventsContext no longer used for server-derived state
 import { useAuthState, useAuthDispatch } from '../../contexts/AuthContext';
@@ -121,15 +121,53 @@ const AddPage = () => {
 
     if (tm || day) {
       const baseDate = day ? new Date(day) : new Date();
-      const startDateTime = tm ? new Date(`${baseDate.toDateString()} ${tm.startDisplay}`) : addHours(new Date(), 1);
-      const endDateTime = tm ? new Date(`${baseDate.toDateString()} ${tm.endDisplay}`) : addHours(startDateTime, 1);
+      let startDateTime: Date;
+      let endDateTime: Date;
+
+      if (tm) {
+        // Parse start time from display string (e.g., "3:00 AM")
+        const startParts = tm.startDisplay.split(' ');
+        const startTimePart = startParts[0];
+        const startAmpm = startParts[1]?.toLowerCase();
+        const [startHourStr, startMinStr] = startTimePart.split(':');
+        let startHour = parseInt(startHourStr, 10);
+        const startMinute = parseInt(startMinStr, 10);
+
+        if (startAmpm === 'pm' && startHour !== 12) startHour += 12;
+        if (startAmpm === 'am' && startHour === 12) startHour = 0;
+
+        if (isNaN(startHour) || isNaN(startMinute)) return;
+
+        startDateTime = setHours(setMinutes(baseDate, startMinute), startHour);
+
+        // Parse end time
+        const endParts = tm.endDisplay.split(' ');
+        const endTimePart = endParts[0];
+        const endAmpm = endParts[1]?.toLowerCase();
+        const [endHourStr, endMinStr] = endTimePart.split(':');
+        let endHour = parseInt(endHourStr, 10);
+        const endMinute = parseInt(endMinStr, 10);
+
+        if (endAmpm === 'pm' && endHour !== 12) endHour += 12;
+        if (endAmpm === 'am' && endHour === 12) endHour = 0;
+
+        if (isNaN(endHour) || isNaN(endMinute)) return;
+
+        endDateTime = setHours(setMinutes(baseDate, endMinute), endHour);
+      } else {
+        startDateTime = addHours(baseDate, 1);
+        endDateTime = addHours(startDateTime, 1);
+      }
+
+      // Validate dates before setting
+      if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) return;
 
       setStartDateTime(startDateTime);
       setEndDateTime(endDateTime);
     }
 
     // Keep first proposal slot in sync when proposing and exactly one slot exists
-    if (isProposal) {
+    if (isProposal && (tm || day)) {
       const baseDate = day ? new Date(day) : new Date();
       const startTimeStr = tm?.startDisplay ?? format(startDateTime, 'h:mm a');
       const endTimeStr = tm?.endDisplay ?? format(endDateTime, 'h:mm a');

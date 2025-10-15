@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 import logging
+import os
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from .config import settings
@@ -20,7 +21,9 @@ def _validate_security_settings():
     logger = logging.getLogger(__name__)
 
     # Fail fast on bad secrets in production
-    if getattr(settings, "ENV", "dev") in {"prod", "production"}:
+    import os
+    app_env = os.getenv('APP_ENV', 'development')
+    if app_env == 'production':
         default_secret_substr = "your-super-secure-secret-key-change-this"
         if default_secret_substr in getattr(settings, "SECRET_KEY", ""):
             raise RuntimeError(
@@ -68,7 +71,8 @@ app = FastAPI(
 
 # CORS middleware
 logger = logging.getLogger(__name__)
-if getattr(settings, "ENV", "dev") in {"dev", "development"}:
+app_env = os.getenv('APP_ENV', 'development')
+if app_env in {"dev", "development"}:
     # In development, allow localhost variants on any port
     cors_kwargs = dict(
         allow_origin_regex=r"https?://localhost(:\d+)?",

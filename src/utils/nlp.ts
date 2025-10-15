@@ -25,8 +25,15 @@ export function parseTime(input: string): ParsedTime | null {
   const minute = m[2] ? parseInt(m[2], 10) : 0;
   const ampm = m[3]?.toLowerCase();
 
+  // Validation: reject invalid times
+  if (hour < 1 || hour > 12 || minute < 0 || minute > 59) return null;
+
+  // Secondary: prevent false positives like "30" being parsed as 3:00
+  // If no minutes specified and no am/pm, and hour has more than 1 digit, likely not a time
+  if (!m[2] && !ampm && m[1].length > 1) return null;
+
   let displayHour = hour;
-  let displayAmpm: 'am' | 'pm' = (ampm as any) || 'am';
+  let displayAmpm: 'am' | 'pm' = ampm ? (ampm as 'am' | 'pm') : 'am';
 
   if (ampm === 'pm' && hour !== 12) {
     displayHour = hour;

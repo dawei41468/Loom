@@ -1,4 +1,5 @@
 import os
+import logging
 from typing import List
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
@@ -16,8 +17,10 @@ else:
     # Default to .env.development if not in production or staging
     env_file = env_file_path / ".env.development"
 
+logger = logging.getLogger(__name__)
+
 class Settings(BaseSettings):
-    ENV: str = "dev"
+    ENV: str = app_env  # Use app_env instead of default "dev"
     PROJECT_NAME: str = "Loom"
     API_V1_STR: str = "/api"
     SECRET_KEY: str = "your-super-secure-secret-key-change-this-in-production-12345678901234567890"
