@@ -10,6 +10,7 @@ import { queryKeys, userQueries } from '../api/queries';
 import { useToastContext } from '../contexts/ToastContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../api/client';
+import { useUserColors } from '../hooks/useUserColors';
 
 interface EventListProps {
   events: Event[];
@@ -38,6 +39,7 @@ const EventList: React.FC<EventListProps> = ({ events, range, isLoading, onEvent
   const meUser = meData?.data || user;
   const { addToast } = useToastContext();
   const queryClient = useQueryClient();
+  const { getEventColor } = useUserColors();
 
   const deleteMutation = useMutation({
     mutationFn: (eventId: string) => apiClient.deleteEvent(eventId),
@@ -46,14 +48,13 @@ const EventList: React.FC<EventListProps> = ({ events, range, isLoading, onEvent
       await queryClient.cancelQueries({ queryKey: queryKeys.events });
 
       // Snapshot previous value
-      const previous = queryClient.getQueryData<any>(queryKeys.events);
+      const previous = queryClient.getQueryData<{ data: Event[] }>(queryKeys.events);
 
       // Optimistically remove from list cache
-      queryClient.setQueryData<any>(queryKeys.events, (old: any) => {
-        const list = old?.data ?? old;
-        if (!Array.isArray(list)) return old;
-        const next = list.filter((e: Event) => String(e.id) !== String(eventId));
-        return old?.data ? { ...old, data: next } : next;
+      queryClient.setQueryData<{ data: Event[] }>(queryKeys.events, (old) => {
+        if (!old?.data) return old;
+        const next = old.data.filter((e: Event) => String(e.id) !== String(eventId));
+        return { ...old, data: next };
       });
 
       return { previous };
@@ -137,6 +138,7 @@ const EventList: React.FC<EventListProps> = ({ events, range, isLoading, onEvent
               const start = parseISO(ev.start_time);
               const end = parseISO(ev.end_time);
               const isOwner = ev.created_by === meUser?.id;
+              const eventColor = getEventColor(ev.created_by);
 
               return (
                 <div
@@ -152,6 +154,10 @@ const EventList: React.FC<EventListProps> = ({ events, range, isLoading, onEvent
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
+                          <div
+                            className="w-2 h-2 rounded-full shrink-0"
+                            style={{ backgroundColor: eventColor }}
+                          />
                           <span className="font-medium truncate">{ev.title}</span>
                           {ev.reminders && ev.reminders.length > 0 && (
                             <Bell className="w-4 h-4 text-[hsl(var(--loom-primary))] shrink-0" />

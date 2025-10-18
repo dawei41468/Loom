@@ -3,6 +3,7 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInte
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Event } from '../types';
 import { useTranslation } from '../i18n';
+import { useUserColors } from '../hooks/useUserColors';
 
 interface CustomCalendarEvent {
   id: string;
@@ -43,6 +44,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
   const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const weekHeaderRef = useRef<HTMLDivElement | null>(null);
+  const { getEventColor } = useUserColors();
 
   useEffect(() => {
     setCurrentDate(date);
@@ -173,18 +175,22 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
               >
                 <div className="text-sm font-medium mb-1">{format(day, 'd')}</div>
                 <div className="space-y-1">
-                  {dayEvents.slice(0, 3).map(event => (
-                    <div
-                      key={event.id}
-                      className="text-xs p-1 rounded bg-[hsl(var(--loom-primary))] text-white truncate cursor-pointer hover:opacity-80"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectEvent(event);
-                      }}
-                    >
-                      {event.title}
-                    </div>
-                  ))}
+                  {dayEvents.slice(0, 3).map(event => {
+                    const eventColor = getEventColor(event.resource.created_by);
+                    return (
+                      <div
+                        key={event.id}
+                        className="text-xs p-1 rounded text-white truncate cursor-pointer hover:opacity-80"
+                        style={{ backgroundColor: eventColor }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectEvent(event);
+                        }}
+                      >
+                        {event.title}
+                      </div>
+                    );
+                  })}
                   {dayEvents.length > 3 && (
                     <div className="text-xs text-[hsl(var(--loom-text-muted))]">
                       +{dayEvents.length - 3} {t('more')}
@@ -251,18 +257,22 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                     onSelectSlot({ start, end });
                   }}
                 >
-                  {dayEvents.map(event => (
-                    <div
-                      key={event.id}
-                      className="text-xs p-1 mb-1 rounded bg-[hsl(var(--loom-primary))] text-white truncate cursor-pointer hover:opacity-80"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectEvent(event);
-                      }}
-                    >
-                      {event.title}
-                    </div>
-                  ))}
+                  {dayEvents.map(event => {
+                    const eventColor = getEventColor(event.resource.created_by);
+                    return (
+                      <div
+                        key={event.id}
+                        className="text-xs p-1 mb-1 rounded text-white truncate cursor-pointer hover:opacity-80"
+                        style={{ backgroundColor: eventColor }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectEvent(event);
+                        }}
+                      >
+                        {event.title}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
@@ -308,21 +318,25 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                     onSelectSlot({ start, end });
                   }}
                 >
-                  {hourEvents.map(event => (
-                    <div
-                      key={event.id}
-                      className="text-xs p-2 mb-1 rounded bg-[hsl(var(--loom-primary))] text-white cursor-pointer hover:opacity-80"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectEvent(event);
-                      }}
-                    >
-                      <div className="font-medium">{event.title}</div>
-                      <div className="text-xs opacity-80">
-                        {format(event.start, 'HH:mm')} - {format(event.end, 'HH:mm')}
+                  {hourEvents.map(event => {
+                    const eventColor = getEventColor(event.resource.created_by);
+                    return (
+                      <div
+                        key={event.id}
+                        className="text-xs p-2 mb-1 rounded text-white cursor-pointer hover:opacity-80"
+                        style={{ backgroundColor: eventColor }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectEvent(event);
+                        }}
+                      >
+                        <div className="font-medium">{event.title}</div>
+                        <div className="text-xs opacity-80">
+                          {format(event.start, 'HH:mm')} - {format(event.end, 'HH:mm')}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );

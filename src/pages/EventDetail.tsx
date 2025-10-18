@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys, eventQueries, partnerQueries, userQueries } from '../api/queries';
 import { apiClient } from '../api/client';
+import { useUserColors } from '../hooks/useUserColors';
 const EventChat = React.lazy(() => import('../components/EventChat'));
 const EventChecklist = React.lazy(() => import('../components/EventChecklist'));
 
@@ -29,6 +30,7 @@ const EventDetail = () => {
   const navigate = useNavigate();
   const { user, partner } = useAuthState();
   const { addToast } = useToastContext();
+  const { getEventColor, getUserColor } = useUserColors();
 
   const [activeTab, setActiveTab] = useState<'details' | 'chat' | 'checklist'>('details');
   const [showFullDetails, setShowFullDetails] = useState(true);
@@ -82,15 +84,14 @@ const EventDetail = () => {
       }
 
       // Snapshot previous caches
-      const prevEvents = queryClient.getQueryData<any>(queryKeys.events);
-      const prevEvent = eventId ? queryClient.getQueryData<any>(queryKeys.event(eventId)) : undefined;
+      const prevEvents = queryClient.getQueryData<{ data: Event[] }>(queryKeys.events);
+      const prevEvent = eventId ? queryClient.getQueryData<{ data: Event }>(queryKeys.event(eventId)) : undefined;
 
       // Optimistically remove from events list cache
-      queryClient.setQueryData<any>(queryKeys.events, (old: any) => {
-        const list = old?.data ?? old;
-        if (!Array.isArray(list)) return old;
-        const next = list.filter((e: Event) => String(e.id) !== String(eventId));
-        return old?.data ? { ...old, data: next } : next;
+      queryClient.setQueryData<{ data: Event[] }>(queryKeys.events, (old) => {
+        if (!old?.data) return old;
+        const next = old.data.filter((e: Event) => String(e.id) !== String(eventId));
+        return { ...old, data: next };
       });
 
       // Optimistically clear single event cache
@@ -231,10 +232,19 @@ const EventDetail = () => {
     // Do not add partner or current user implicitly based on visibility or creator
     const attendeesToDisplay = Array.from(new Set<string>((event.attendees || []).map(String)));
 
+    // Get custom color for the event based on creator
+    const eventColor = getEventColor(event.created_by);
+
     return (
     <div className="space-y-6">
       {/* Event Header */}
-      <div className={`event-block-${eventType} p-6`}>
+      <div
+        className="border-l-4 pl-4 py-2 bg-opacity-10 p-6 rounded-lg"
+        style={{
+          borderLeftColor: eventColor,
+          backgroundColor: `${eventColor}10` // Add transparency
+        }}
+      >
         <div className="flex items-start justify-between mb-2">
           <h1 className="text-xl font-semibold text-[hsl(var(--loom-text))]">{event.title}</h1>
           <div className="flex items-center space-x-2">
@@ -307,13 +317,16 @@ const EventDetail = () => {
                 {attendeesToDisplay.map((attendeeId) => {
                   const attendee = attendeeId === meUser?.id ? meUser : (attendeeId === partnerForDisplay?.id ? partnerForDisplay : null);
                   if (!attendee) return null;
-                  
+
+                  // Get custom color for this attendee
+                  const attendeeColor = getUserColor(attendeeId);
+
                   return (
                     <div key={attendeeId} className="flex items-center space-x-3">
-                      <div className={cn(
-                        'w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold',
-                        attendeeId === meUser?.id ? 'bg-[hsl(var(--loom-user))]' : 'bg-[hsl(var(--loom-partner))]'
-                      )}>
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold"
+                        style={{ backgroundColor: attendeeColor }}
+                      >
                         {attendee.display_name.charAt(0).toUpperCase()}
                       </div>
                       <span>{attendee.display_name}</span>

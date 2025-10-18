@@ -46,6 +46,8 @@ export default defineConfig(({ mode }) => ({
     // Reduce bundle size
     cssCodeSplit: true,
     reportCompressedSize: false, // Faster builds
+    // Increase chunk size warning limit since QR scanner is conditionally loaded
+    chunkSizeWarningLimit: 600,
   },
   // Optimize dependencies
   optimizeDeps: {

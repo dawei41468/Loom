@@ -1,8 +1,10 @@
-import React, { useState, useRef } from 'react';
-import QrScanner from 'react-qr-scanner';
+import React, { useState, useRef, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X, Camera, CameraOff } from 'lucide-react';
+
+// Lazy load the heavy QR scanner component
+const QrScanner = React.lazy(() => import('react-qr-scanner'));
 
 interface QRScannerModalProps {
   isOpen: boolean;
@@ -85,16 +87,27 @@ const QRScannerModal: React.FC<QRScannerModalProps> = ({
                 <div className="flex justify-center">
                   <div className="relative rounded-lg overflow-hidden border-2 border-[hsl(var(--loom-primary))]">
                     {scanning ? (
-                      <QrScanner
-                        ref={scannerRef}
-                        delay={300}
-                        style={previewStyle}
-                        onError={handleError}
-                        onScan={handleScan}
-                        constraints={{
-                          video: { facingMode: 'environment' }
-                        }}
-                      />
+                      <Suspense fallback={
+                        <div className="flex items-center justify-center bg-[hsl(var(--loom-surface))]" style={previewStyle}>
+                          <div className="text-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                            <p className="text-sm text-[hsl(var(--loom-text-muted))]">
+                              Loading scanner...
+                            </p>
+                          </div>
+                        </div>
+                      }>
+                        <QrScanner
+                          ref={scannerRef}
+                          delay={300}
+                          style={previewStyle}
+                          onError={handleError}
+                          onScan={handleScan}
+                          constraints={{
+                            video: { facingMode: 'environment' }
+                          }}
+                        />
+                      </Suspense>
                     ) : (
                       <div
                         className="flex items-center justify-center bg-[hsl(var(--loom-surface))]"

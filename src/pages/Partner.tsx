@@ -1,5 +1,5 @@
 // Partner Management Page
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Heart, QrCode, Camera, Copy, Check } from 'lucide-react';
 import { useAuthState, useAuthDispatch } from '../contexts/AuthContext';
@@ -9,8 +9,9 @@ import { Partner as PartnerType } from '../types';
 import { PageHeader } from '../components/ui/page-header';
 import { Section } from '../components/ui/section';
 import { useTranslation } from '../i18n';
-import QRCodeModal from '../components/QRCodeModal';
-import QRScannerModal from '../components/QRScannerModal';
+// Lazy load QR modals to reduce initial bundle size
+const QRCodeModal = React.lazy(() => import('../components/QRCodeModal'));
+const QRScannerModal = React.lazy(() => import('../components/QRScannerModal'));
 import { apiClient } from '@/api/client';
 import { useNavigate } from 'react-router-dom';
 
@@ -397,20 +398,24 @@ const Partner = () => {
         </div>
       </Section>
 
-      {/* QR Code Modals */}
-      <QRCodeModal
-        isOpen={showQRModal}
-        onClose={() => setShowQRModal(false)}
-        inviteUrl={inviteUrl}
-        title={t('yourInviteQrCode')}
-      />
+      {/* QR Code Modals - Lazy loaded */}
+      <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
+        <QRCodeModal
+          isOpen={showQRModal}
+          onClose={() => setShowQRModal(false)}
+          inviteUrl={inviteUrl}
+          title={t('yourInviteQrCode')}
+        />
+      </Suspense>
 
-      <QRScannerModal
-        isOpen={showQRScanner}
-        onClose={() => setShowQRScanner(false)}
-        onScanSuccess={handleQRScanSuccess}
-        title={t('scanQrCode')}
-      />
+      <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
+        <QRScannerModal
+          isOpen={showQRScanner}
+          onClose={() => setShowQRScanner(false)}
+          onScanSuccess={handleQRScanSuccess}
+          title={t('scanQrCode')}
+        />
+      </Suspense>
     </div>
   );
 };

@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from '@/i18n';
 import TextInput from '@/components/forms/TextInput';
 import SubmitButton from '@/components/forms/SubmitButton';
+import { useUserColors } from '../hooks/useUserColors';
 
 interface EventChatProps {
   eventId: string;
@@ -26,6 +27,7 @@ const EventChat: React.FC<EventChatProps> = ({ eventId, hasAccess = true }) => {
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
+  const { getUserColor } = useUserColors();
 
   console.log('EventChat component rendered', { eventId, hasAccess, userId: user?.id });
 
@@ -37,7 +39,9 @@ const EventChat: React.FC<EventChatProps> = ({ eventId, hasAccess = true }) => {
     enabled: !!eventId, // Only run if eventId is valid
   });
 
-  const messages = messagesData?.data || [];
+  // Extract messages in a memoized way to avoid ESLint warning
+  const messages = useMemo(() => messagesData?.data || [], [messagesData?.data]);
+
   // Deduplicate by ID at render time to avoid duplicate React keys if upstream delivered duplicates
   const uniqueMessages = useMemo(() => {
     const seen = new Set<string>();
@@ -175,19 +179,12 @@ const EventChat: React.FC<EventChatProps> = ({ eventId, hasAccess = true }) => {
   };
 
   const getSenderInfo = (message: EventMessage) => {
-    if (message.sender_id === user?.id) {
-      return {
-        name: t('you'),
-        color: 'bg-[hsl(var(--loom-user))]',
-        isCurrentUser: true,
-      };
-    } else {
-      return {
-        name: partner?.display_name || t('partner'),
-        color: 'bg-[hsl(var(--loom-partner))]',
-        isCurrentUser: false,
-      };
-    }
+    const isCurrentUser = message.sender_id === user?.id;
+    return {
+      name: isCurrentUser ? t('you') : (partner?.display_name || t('partner')),
+      color: getUserColor(message.sender_id),
+      isCurrentUser,
+    };
   };
 
   if (isLoading) {
@@ -258,10 +255,10 @@ const EventChat: React.FC<EventChatProps> = ({ eventId, hasAccess = true }) => {
               >
                 {/* Left avatar only on first message of a run */}
                 {!senderInfo.isCurrentUser && !isGrouped && (
-                  <div className={cn(
-                    'w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 shadow-sm',
-                    senderInfo.color
-                  )}>
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 shadow-sm"
+                    style={{ backgroundColor: senderInfo.color }}
+                  >
                     {senderInfo.name.charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -296,10 +293,10 @@ const EventChat: React.FC<EventChatProps> = ({ eventId, hasAccess = true }) => {
                 </div>
 
                 {senderInfo.isCurrentUser && !isGrouped && (
-                  <div className={cn(
-                    'w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 shadow-sm',
-                    senderInfo.color
-                  )}>
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 shadow-sm"
+                    style={{ backgroundColor: senderInfo.color }}
+                  >
                     {senderInfo.name.charAt(0).toUpperCase()}
                   </div>
                 )}
