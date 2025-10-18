@@ -21,9 +21,9 @@ const QRScannerModal: React.FC<QRScannerModalProps> = ({
 }) => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanning, setScanning] = useState(true);
-  const scannerRef = useRef<any>(null);
+  const scannerRef = useRef<React.Component | null>(null);
 
-  const handleScan = (data: any) => {
+  const handleScan = (data: { text: string } | null) => {
     if (data && scanning) {
       setScanning(false);
       onScanSuccess(data.text);
@@ -31,7 +31,7 @@ const QRScannerModal: React.FC<QRScannerModalProps> = ({
     }
   };
 
-  const handleError = (error: any) => {
+  const handleError = (error: Error) => {
     console.error('QR Scanner error:', error);
     if (error.name === 'NotAllowedError') {
       setHasPermission(false);
