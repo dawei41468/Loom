@@ -161,44 +161,6 @@ cp .env.example .env.development
 uvicorn app.main:app --reload --port 7500
 ```
 
-### Environment Variables
-
-Backend `.env` (see `backend/.env.example`; development typically uses `.env.development`):
-```env
-# Environment
-ENV=dev
-PROJECT_NAME=Loom
-API_V1_STR=/api
-
-# Security
-SECRET_KEY=CHANGE_ME_LONG_RANDOM
-ACCESS_TOKEN_EXPIRE_MINUTES=15
-REFRESH_TOKEN_EXPIRE_MINUTES=10080
-
-# Database
-MONGO_URI=mongodb://127.0.0.1:27017
-MONGO_DB=loom
-
-# CORS (match frontend dev origin)
-CORS_ORIGINS=["http://localhost:7100","http://localhost:7500"]
-
-# Optional Email
-SMTP_HOST=...
-SMTP_PORT=587
-SMTP_USERNAME=...
-SMTP_PASSWORD=...
-SMTP_USE_TLS=true
-EMAIL_FROM=...
-```
-
-Frontend `.env` (see `.env.example`):
-```env
-VITE_API_BASE_URL=http://localhost:7500/api
-VITE_USE_REAL_API=false
-# Optional
-# VITE_APP_NAME=Loom
-# VITE_APP_VERSION=1.0.0
-```
 
 ## 📊 Current Status
 
