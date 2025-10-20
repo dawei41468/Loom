@@ -137,13 +137,14 @@ const EventList: React.FC<EventListProps> = ({ events, range, isLoading, onEvent
             {list.map(ev => {
               const start = parseISO(ev.start_time);
               const end = parseISO(ev.end_time);
+              const isPast = isBefore(end, new Date());
               const isOwner = ev.created_by === meUser?.id;
               const eventColor = getEventColor(ev.created_by);
 
               return (
                 <div
                   key={ev.id}
-                  className="loom-card hover:bg-[hsl(var(--loom-surface-hover))] transition-colors cursor-pointer"
+                  className={`loom-card hover:bg-[hsl(var(--loom-surface-hover))] transition-colors cursor-pointer ${isPast ? 'opacity-60 grayscale-[0.2]' : ''}`}
                   onClick={() => handleClick(ev.id)}
                 >
                   <div className="flex items-start gap-3">
