@@ -1,7 +1,7 @@
 // Event Detail Page (iOS-style bottom sheet)
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isSameDay, differenceInDays, differenceInHours } from 'date-fns';
 import { 
   X, 
   MapPin, 
@@ -184,15 +184,65 @@ const EventDetail = () => {
   const formatEventDateTime = (event: Event) => {
     const start = parseISO(event.start_time);
     const end = parseISO(event.end_time);
-    
+
+    // Determine if this is a multi-day event
+    const isMultiDay = !isSameDay(start, end);
+
+    let dateString: string;
+    if (isMultiDay) {
+      // Multi-day: show range with smart formatting
+      if (start.getFullYear() === end.getFullYear() &&
+          start.getMonth() === end.getMonth()) {
+        // Same month/year: "Oct 18 - 20, 2024"
+        dateString = `${format(start, 'MMM dd')} - ${format(end, 'dd, yyyy')}`;
+      } else if (start.getFullYear() === end.getFullYear()) {
+        // Same year: "Oct 18 - Nov 2, 2024"
+        dateString = `${format(start, 'MMM dd')} - ${format(end, 'MMM dd, yyyy')}`;
+      } else {
+        // Different years: "Dec 30, 2024 - Jan 2, 2025"
+        dateString = `${format(start, 'MMM dd, yyyy')} - ${format(end, 'MMM dd, yyyy')}`;
+      }
+    } else {
+      // Single-day: current format
+      dateString = format(start, 'MM/dd/yyyy');
+    }
+
+    // Calculate duration with days and hours for multi-day events
+    const totalMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+    const totalHours = Math.round(totalMinutes / 60);
+    const days = differenceInDays(end, start);
+    const remainingHours = differenceInHours(end, start) - (days * 24);
+    const remainingMinutes = totalMinutes - (totalHours * 60);
+
+    let durationString: string;
+    if (isMultiDay) {
+      // For multi-day events: show days and remaining time
+      if (remainingHours > 0) {
+        durationString = `${days} day${days > 1 ? 's' : ''}, ${remainingHours} hour${remainingHours > 1 ? 's' : ''}`;
+      } else {
+        durationString = `${days} day${days > 1 ? 's' : ''}`;
+      }
+    } else {
+      // For single-day events: show minutes or hours
+      if (totalHours >= 1) {
+        durationString = `${totalHours} hour${totalHours > 1 ? 's' : ''}`;
+        if (remainingMinutes > 0) {
+          durationString += ` ${remainingMinutes} min`;
+        }
+      } else {
+        durationString = `${totalMinutes} minutes`;
+      }
+    }
+
     return {
-      date: format(start, 'MM/dd/yyyy'),
+      date: dateString,
       time: `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`,
-      duration: Math.round((end.getTime() - start.getTime()) / (1000 * 60)),
+      duration: durationString,
+      isMultiDay,
     };
   };
 
-  const { date, time, duration } = formatEventDateTime(event);
+  const { date, time, duration, isMultiDay } = formatEventDateTime(event);
 
   const handleDelete = () => {
     if (!event) return;
