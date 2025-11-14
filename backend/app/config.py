@@ -100,10 +100,6 @@ class Settings(BaseSettings):
                 # If that fails, split by comma and strip whitespace
                 object.__setattr__(self, 'CORS_ORIGINS', [origin.strip() for origin in cors_env.split(",")])
 
-    # VAPID settings for push notifications
-    VAPID_SUBJECT: str = "mailto:admin@loom.com"
-    VAPID_PUBLIC_KEY: str = ""
-    VAPID_PRIVATE_KEY: str = ""
 
 
 settings = Settings()

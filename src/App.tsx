@@ -31,7 +31,6 @@ import { ToastProvider } from './contexts/ToastContext';
 import { AuthProvider, useAuthState } from './contexts/AuthContext';
 import { CalendarUIProvider } from './contexts/CalendarUIContext';
 import { UIProvider } from './contexts/UIContext';
-import { PushNotificationProvider } from './contexts/PushNotificationContext';
 
 // Hooks
 import { usePolling } from './hooks/usePolling';
@@ -195,26 +194,24 @@ const App = React.memo(() => {
         <TooltipProvider>
           <ToastProvider>
             <AuthProvider>
-              <PushNotificationProvider>
-                <CalendarUIProvider>
-                  <ThemeProvider>
-                  <BrowserRouter
-                    future={{
-                      v7_startTransition: true,
-                      v7_relativeSplatPath: true,
-                    }}
-                  >
-                    <div className="min-h-screen bg-[hsl(var(--loom-bg))] text-[hsl(var(--loom-text))]">
-                      <ScrollToTop />
-                      <PollingManager />
-                      <AuthenticatedSocketManager />
-                      <AppRoutes />
-                      <ToastContainer />
-                    </div>
-                  </BrowserRouter>
-                </ThemeProvider>
-              </CalendarUIProvider>
-            </PushNotificationProvider>
+              <CalendarUIProvider>
+                <ThemeProvider>
+                <BrowserRouter
+                  future={{
+                    v7_startTransition: true,
+                    v7_relativeSplatPath: true,
+                  }}
+                >
+                  <div className="min-h-screen bg-[hsl(var(--loom-bg))] text-[hsl(var(--loom-text))]">
+                    <ScrollToTop />
+                    <PollingManager />
+                    <AuthenticatedSocketManager />
+                    <AppRoutes />
+                    <ToastContainer />
+                  </div>
+                </BrowserRouter>
+              </ThemeProvider>
+            </CalendarUIProvider>
           </AuthProvider>
           </ToastProvider>
         </TooltipProvider>

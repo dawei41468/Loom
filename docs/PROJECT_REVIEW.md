@@ -17,7 +17,6 @@
 - **Data Fetching**: TanStack React Query
 - **UI Components**: Radix UI primitives with custom styling
 - **PWA**: Service Worker and Web App Manifest
-- **Push Notifications**: Web Push API with VAPID keys and topic-based subscriptions
 
 #### Backend
 - **Framework**: FastAPI with Python
@@ -26,8 +25,7 @@
 - **Validation**: Pydantic models
 - **CORS**: Configured for cross-origin requests
 - **Documentation**: Auto-generated OpenAPI/Swagger
-- **Push Notifications**: pywebpush for Web Push with VAPID
-- **Reminders**: Background task for event reminders via push
+- **Reminders**: Background task for event reminders
 - **Service Layer**: Dedicated services for events, proposals, tasks, chat, checklists, partner
 
 ## Current Implementation Status
@@ -68,7 +66,7 @@
 
 ### ⚠️ Partially Implemented Features
 
-- None (all core features complete; push notifications now fully implemented with backend service, topics, and integration).
+- None (all core features complete).
 
 ### 📋 Planned or Future Enhancements
 
@@ -90,7 +88,7 @@
 │   │   ├── models.py            # Pydantic models
 │   │   ├── websocket.py         # WebSocket utilities
 │   │   ├── email.py             # Email utilities (invite email)
-│   │   ├── services.py          # Service helpers (incl. push notifications)
+│   │   ├── services.py          # Service helpers
 │   │   ├── cache.py             # In-memory cache (dev) / pluggable
 │   │   ├── reminders.py         # Background reminders task
 │   │   ├── middleware.py        # Custom middleware
@@ -103,9 +101,8 @@
 │   │       ├── proposals.py     # Proposal system
 │   │       ├── partner.py       # Partner connect/disconnect, invites
 │   │       ├── availability.py  # Availability finding
-│   │       ├── websockets.py    # WebSocket endpoints
-│   │       └── push.py          # Push notification subscriptions
-│   └── requirements.txt         # Python dependencies (incl. pywebpush)
+│   │       └── websockets.py    # WebSocket endpoints
+│   └── requirements.txt         # Python dependencies
 ├── src/
 │   ├── components/
 │   │   ├── ui/                  # shadcn/ui components (accordion, alert, etc.)
@@ -114,14 +111,12 @@
 │   │   ├── EventChat.tsx        # Event chat UI
 │   │   ├── EventChecklist.tsx   # Event checklist UI
 │   │   ├── Layout.tsx           # Main layout
-│   │   ├── NotificationSettings.tsx # Push notification preferences
 │   │   ├── OfflineIndicator.tsx # Offline status
 │   │   ├── QRCodeModal.tsx      # QR code utilities
 │   │   └── ...
 │   ├── contexts/
 │   │   ├── AuthContext.tsx
 │   │   ├── CalendarUIContext.tsx
-│   │   ├── PushNotificationContext.tsx # Push notification management
 │   │   ├── ToastContext.tsx
 │   │   └── UIContext.tsx
 │   ├── pages/
@@ -206,11 +201,6 @@
 - `POST /api/partner/accept/{id}` - Accept partnership
 - `POST /api/partner/decline/{id}` - Decline partnership
 
-### Push Notifications
-- `POST /api/push/subscribe` - Create/update push subscription
-- `DELETE /api/push/subscribe` - Deactivate subscription
-- `PUT /api/push/subscribe/topics` - Update notification topics
-- `POST /api/push/test` - Send test notification (dev only)
 
 ## Critical Gaps to Address
 
@@ -221,7 +211,7 @@ The core feature set is robust, stable, and production-ready. Remaining gaps foc
 
 ### Medium Priority
 1.  **Monitoring & Logging**: Implement structured logging (e.g., structlog) and metrics (Prometheus) for production observability.
-2.  **Error Boundaries & Resilience**: Add global error handling in frontend and retry logic for WebSocket/push failures.
+2.  **Error Boundaries & Resilience**: Add global error handling in frontend and retry logic for WebSocket failures.
 
 ### Low Priority (Future Enhancements)
 1.  **Recurring Events**: Support repeating events with scheduling rules.
@@ -267,7 +257,7 @@ VITE_USE_REAL_API=false
 ### Since Original Review
 1.  **Real-time System Overhaul**: Replaced polling with WebSocket integration for instant updates.
 2.  **Data Persistence Corrected**: Resolved loading issues; full React Query adoption for server state.
-3.  **Advanced Features Implemented**: Event chat, shared checklists, email invites, push notifications (full Web Push with topics), event reminders (background task).
+3.  **Advanced Features Implemented**: Event chat, shared checklists, email invites, event reminders (background task).
 4.  **State Management Refined**: Context + useReducer for UI; React Query for data; optimistic updates across CRUD.
 5.  **Codebase Refinements**: Service layer extracted (events, proposals, tasks, chat, checklists); large components broken down (AddPage, forms); many improvements from `docs/CODEBASE_IMPROVEMENT_SUGGESTIONS.md` implemented.
 6.  **Deployment Enhancements**: PM2 configs, Nginx setups, staging/production envs, deploy scripts.
@@ -276,14 +266,14 @@ VITE_USE_REAL_API=false
 
 1. **Add comprehensive testing** - Unit/integration tests for services, components, APIs.
 2. **Enhance monitoring** - Logging, metrics, error tracking for production.
-3. **Harden resilience** - WebSocket reconnects, push retry logic, offline handling.
+3. **Harden resilience** - WebSocket reconnects, offline handling.
 4. **Implement advanced features** - Recurring events, external calendar sync.
 5. **Performance tuning** - List virtualization, bundle optimization if needed.
 
 ## Conclusion
 
-The project has matured considerably. Push notifications, reminders, and code refactors (service layer, optimistic updates) are now complete. Core features are stable and production-ready.
+The project has matured considerably. Reminders and code refactors (service layer, optimistic updates) are now complete. Core features are stable and production-ready.
 
-The codebase follows modern practices: async FastAPI backend with service abstraction, React Query for data, Context for UI state, and full PWA support including push.
+The codebase follows modern practices: async FastAPI backend with service abstraction, React Query for data, Context for UI state, and full PWA support.
 
 **Current Status**: Fully functional for core scheduling/coordination. Next: testing suite and monitoring for sustained production use.

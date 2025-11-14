@@ -7,7 +7,7 @@ from .config import settings
 from .database import connect_to_mongo, close_mongo_connection, get_database
 from .middleware import setup_middleware
 from .cache import cache_manager
-from .routers import auth, events, tasks, proposals, partner, availability, websockets, push
+from .routers import auth, events, tasks, proposals, partner, availability, websockets
 from .reminders import start_reminders_loop, stop_reminders_loop
 
 
@@ -111,10 +111,6 @@ app.include_router(proposals.router, prefix=settings.API_V1_STR)
 app.include_router(partner.router, prefix=settings.API_V1_STR)
 app.include_router(availability.router, prefix=settings.API_V1_STR)
 app.include_router(websockets.router, prefix=settings.API_V1_STR)
-if getattr(settings, "FEATURE_PUSH_NOTIFICATIONS", False):
-    app.include_router(push.router, prefix=settings.API_V1_STR)
-else:
-    logger.info("FEATURE_PUSH_NOTIFICATIONS disabled; push routes not mounted.")
 
 
 @app.get("/health")

@@ -6,7 +6,6 @@ from fastapi import HTTPException, status
 from ..models import Event, EventMessage, EventMessageCreate, User
 from ..database import get_database
 from ..websocket import manager
-from ..services import push_notification_service
 
 
 class EventMessagesService:
@@ -43,46 +42,7 @@ class EventMessagesService:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create message")
         message = EventMessage(**created)
         await manager.broadcast_to_event(event_id, {"type": "new_message", "data": message.model_dump(mode='json')})
-        
-        # Send push notification to recipient
-        # Get event to find recipient (partner)
-        event_doc = await self.db.events.find_one({"_id": ObjectId(event_id)})
-        if event_doc:
-            # Find the partner user ID (the other user in the partnership)
-            user_id_str = str(user.id)
-            partner_id = None
-            
-            # Get partnership where user is either user1 or user2
-            partnership = await self.db.partnerships.find_one({
-                "$or": [
-                    {"user1_id": user_id_str, "status": "accepted"},
-                    {"user2_id": user_id_str, "status": "accepted"}
-                ]
-            })
-            
-            if partnership:
-                # Determine partner ID (the other user in the partnership)
-                if partnership["user1_id"] == user_id_str:
-                    partner_id = partnership["user2_id"]
-                else:
-                    partner_id = partnership["user1_id"]
-                
-                # Send push notification to partner
-                await push_notification_service.send_notifications_to_user(
-                    db=self.db,
-                    user_id=partner_id,
-                    payload={
-                        "title": "New Message",
-                        "body": "You have a new message",
-                        "data": {
-                            "type": "chat_message",
-                            "event_id": event_id,
-                            "message_id": str(message.id)
-                        }
-                    },
-                    topic="chat"
-                )
-        
+
         return message
 
     async def delete_message(self, event_id: str, message_id: str, user: User) -> None:

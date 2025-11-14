@@ -15,29 +15,6 @@ import {
   UserCreate
 } from '../types';
 
-// Push Notification Types
-interface PushSubscription {
-  endpoint: string;
-  keys: {
-    p256dh: string;
-    auth: string;
-  };
-  ua?: string;
-  platform?: 'web' | 'ios_pwa' | 'android_pwa' | 'desktop';
-  topics: string[];
-  active: boolean;
-}
-
-interface PushSubscriptionCreate {
-  endpoint: string;
-  keys: {
-    p256dh: string;
-    auth: string;
-  };
-  ua?: string;
-  platform?: 'web' | 'ios_pwa' | 'android_pwa' | 'desktop';
-  topics: string[];
-}
 
 // Configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7500/api';
@@ -468,31 +445,6 @@ class ApiClient {
   async deleteChecklistItem(eventId: string, itemId: string): Promise<ApiResponse<void>> {
       return this.request<ApiResponse<void>>(`/events/${eventId}/checklist/${itemId}`, {
           method: 'DELETE',
-      });
-  }
-  // Push Notifications
-  async getPushSubscription(): Promise<ApiResponse<PushSubscription | null>> {
-      return this.request<ApiResponse<PushSubscription | null>>('/push/subscribe');
-  }
-  
-  async createPushSubscription(subscription: PushSubscriptionCreate): Promise<ApiResponse<PushSubscription>> {
-      return this.request<ApiResponse<PushSubscription>>('/push/subscribe', {
-          method: 'POST',
-          body: JSON.stringify(subscription),
-      });
-  }
-  
-  async deletePushSubscription(endpoint: string): Promise<ApiResponse<void>> {
-      return this.request<ApiResponse<void>>('/push/subscribe', {
-          method: 'DELETE',
-          body: JSON.stringify({ endpoint }),
-      });
-  }
-  
-  async updatePushSubscriptionTopics(topics: string[]): Promise<ApiResponse<PushSubscription>> {
-      return this.request<ApiResponse<PushSubscription>>('/push/subscribe/topics', {
-          method: 'PUT',
-          body: JSON.stringify({ topics }),
       });
   }
 }

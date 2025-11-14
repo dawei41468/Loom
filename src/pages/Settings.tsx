@@ -23,7 +23,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { partnerQueries, userQueries, queryKeys } from '../api/queries';
 import { apiClient } from '../api/client';
 import { Partner } from '../types';
-import { NotificationSettings } from '../components/NotificationSettings';
 const Settings = () => {
   const { user } = useAuthState();
   const authDispatch = useAuthDispatch();
@@ -606,8 +605,6 @@ const Settings = () => {
         </div>
       </div>
 
-      {/* Push Notifications */}
-      <NotificationSettings />
 
       {/* Logout Button */}
       <div className="pt-8">

@@ -15,4 +15,3 @@ redis
 aiocache
 aiosmtplib>=3.0.1
 gunicorn
-pywebpush>=1.12.0

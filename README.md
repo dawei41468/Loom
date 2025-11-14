@@ -172,7 +172,7 @@ uvicorn app.main:app --reload --port 7500
 - **UI/UX**: The application is fully responsive, mobile-first, and includes a polished UI with dark/light themes.
 
 ### ⚠️ **Partially Implemented**
-- **Push Notifications**: The frontend service worker is ready to receive push notifications, but the backend service to send them is not yet implemented.
+- **Push Notifications**: Push notifications have been removed due to iOS Safari limitations and implementation complexity.
 
 ### 📋 **Planned Features**
 - **Comprehensive Testing**: Adding `pytest` and `React Testing Library` test suites.

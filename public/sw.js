@@ -185,53 +185,6 @@ self.addEventListener('sync', (event) => {
   }
 });
 
-// Push notifications
-self.addEventListener('push', (event) => {
-  if (event.data) {
-    const data = event.data.json();
-    
-    const options = {
-      body: data.body || '',
-      icon: '/icons/loom-logo-192.png', // Use Loom branded icon
-      badge: '/icons/loom-logo-144.png', // Use Loom branded badge
-      tag: 'loom-notification',
-      data: data.data || {},
-      actions: [
-        {
-          action: 'view',
-          title: 'View'
-        },
-        {
-          action: 'dismiss',
-          title: 'Dismiss'
-        }
-      ]
-    };
-
-    event.waitUntil(
-      self.registration.showNotification(data.title || 'Loom Notification', options)
-    );
-  }
-});
-
-// Notification click handler
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-
-  // Treat clicking the notification body the same as the 'view' action
-  if (event.action === 'view' || !event.action) {
-    const data = event.notification.data || {};
-    let url = '/';
-
-    if ((data.type === 'event_created' || data.type === 'chat_message' || data.type === 'checklist_item' || data.type === 'reminder') && data.event_id) {
-      url = `/event/${data.event_id}`;
-    } else if (data.type === 'proposal_created' || data.type === 'proposal_accepted' || data.type === 'proposal_declined') {
-      url = '/proposals';
-    }
-
-    event.waitUntil(clients.openWindow(url));
-  }
-});
 
 // IndexedDB helper functions for service worker
 class SWIndexedDBManager {

@@ -4,8 +4,6 @@ from typing import Optional, List
 from bson import ObjectId
 
 from .config import settings
-from .services import push_notification_service
-from .models import NotificationEventCreate
 
 # Background task reference
 _reminders_task: Optional[asyncio.Task] = None
@@ -59,9 +57,12 @@ async def _send_reminder_for_event(db, user_id: str, event_doc: dict, minutes: i
                 return datetime.fromisoformat(val.replace('Z', '+00:00'))
             return None
         start_dt = parse_dt(start_time)
-        if start_dt.tzinfo is None:
-            start_dt = start_dt.replace(tzinfo=timezone.utc)
-        time_str = start_dt.astimezone(timezone.utc).strftime("%H:%M UTC")
+        if start_dt is None:
+            time_str = "soon"
+        else:
+            if start_dt.tzinfo is None:
+                start_dt = start_dt.replace(tzinfo=timezone.utc)
+            time_str = start_dt.astimezone(timezone.utc).strftime("%H:%M UTC")
     except Exception:
         time_str = "soon"
 
@@ -74,14 +75,6 @@ async def _send_reminder_for_event(db, user_id: str, event_doc: dict, minutes: i
             "minutes": minutes,
         },
     }
-
-    # Send push
-    await push_notification_service.send_notifications_to_user(
-        db=db,
-        user_id=user_id,
-        payload=payload,
-        topic="reminders",
-    )
 
     # Log notification event (minimal)
     await db.notification_events.insert_one({
