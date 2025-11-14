@@ -82,7 +82,13 @@ async def find_overlap(
         for busy_event in day_busy_times:
             busy_start = busy_event["start_time"]
             busy_end = busy_event["end_time"]
-            
+
+            # Ensure busy times are timezone-aware (assume UTC if naive)
+            if busy_start.tzinfo is None:
+                busy_start = busy_start.replace(tzinfo=timezone.utc)
+            if busy_end.tzinfo is None:
+                busy_end = busy_end.replace(tzinfo=timezone.utc)
+
             # If there's a gap before this busy time
             if current_time + duration_delta <= busy_start:
                 # Check if the gap is large enough
