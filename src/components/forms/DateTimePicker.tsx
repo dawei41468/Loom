@@ -92,7 +92,9 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
         const newDate = new Date(currentDate.getTime());
         newDate.setFullYear(selectedDay.getFullYear(), selectedDay.getMonth(), selectedDay.getDate());
         setSelectedDate(newDate);
-        if (window.navigator.vibrate) window.navigator.vibrate(10);
+        if ('vibrate' in navigator && typeof navigator.vibrate === 'function') {
+          navigator.vibrate(10);
+        }
       }
     }
   }, [selectedDate, days]);
@@ -115,7 +117,9 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
       const newDate = new Date(selectedDate.getTime());
       newDate.setHours(clampedIndex, selectedDate.getMinutes(), 0, 0);
       setSelectedDate(newDate);
-      if (window.navigator.vibrate) window.navigator.vibrate(10);
+      if ('vibrate' in navigator && typeof navigator.vibrate === 'function') {
+        navigator.vibrate(10);
+      }
     }
   }, [selectedDate, hours]);
 
@@ -137,7 +141,9 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
       const newDate = new Date(selectedDate.getTime());
       newDate.setMinutes(clampedIndex, 0, 0);
       setSelectedDate(newDate);
-      if (window.navigator.vibrate) window.navigator.vibrate(10);
+      if ('vibrate' in navigator && typeof navigator.vibrate === 'function') {
+        navigator.vibrate(10);
+      }
     }
   }, [selectedDate, minutes]);
 
