@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import List, Optional, Literal
 from pydantic import BaseModel, Field, ConfigDict
 from pydantic.functional_serializers import field_serializer
+from pydantic.functional_validators import field_validator
 from bson import ObjectId
 from pydantic_core import core_schema
 
@@ -160,12 +161,6 @@ class EventBase(BaseModel):
     def serialize_attendees(self, value):
         return [str(attendee) for attendee in value]
 
-    # Serialize start/end with explicit UTC 'Z'
-    @field_serializer('start_time', 'end_time')
-    def serialize_event_times(self, value: datetime):
-        if value.tzinfo is None:
-            value = value.replace(tzinfo=timezone.utc)
-        return value.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
 
 
 class EventCreate(EventBase):
@@ -202,6 +197,29 @@ class Event(MongoBaseModel, EventBase):
         if value.tzinfo is None:
             value = value.replace(tzinfo=timezone.utc)
         return value.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
+
+    # Serialize start/end with explicit UTC 'Z'
+    @field_serializer('start_time', 'end_time')
+    def serialize_event_times(self, value: datetime):
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
+
+    # Parse datetime strings from MongoDB back to datetime objects
+    @field_validator('start_time', 'end_time', 'created_at', 'updated_at', mode='before')
+    @classmethod
+    def parse_datetime_strings(cls, value):
+        if isinstance(value, str):
+            # Handle ISO strings with 'Z' suffix
+            if value.endswith('Z'):
+                value = value[:-1] + '+00:00'
+            # Parse the datetime string
+            try:
+                return datetime.fromisoformat(value.replace('Z', '+00:00'))
+            except ValueError:
+                # Fallback: try parsing without timezone info
+                return datetime.fromisoformat(value)
+        return value
 
 
 # Proposal Models
