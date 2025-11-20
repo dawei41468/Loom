@@ -35,6 +35,7 @@ export interface Event {
   attendees: string[]; // User IDs
   created_by: string; // User ID
   reminders: number[]; // Minutes before event
+  timezone: string;
   created_at: string;
   updated_at: string;
 }

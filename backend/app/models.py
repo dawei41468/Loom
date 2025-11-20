@@ -156,6 +156,7 @@ class EventBase(BaseModel):
     visibility: Literal["shared", "private", "title_only"] = "shared"
     attendees: List[PyObjectId] = []  # User IDs
     reminders: List[int] = []  # Minutes before event
+    timezone: str = "UTC"
 
     @field_serializer('attendees')
     def serialize_attendees(self, value):
@@ -175,7 +176,9 @@ class EventUpdate(BaseModel):
     location: Optional[str] = None
     visibility: Optional[Literal["shared", "private", "title_only"]] = None
     attendees: Optional[List[PyObjectId]] = None
+    attendees: Optional[List[PyObjectId]] = None
     reminders: Optional[List[int]] = None
+    timezone: Optional[str] = None
 
     @field_serializer('attendees')
     def serialize_attendees(self, value):

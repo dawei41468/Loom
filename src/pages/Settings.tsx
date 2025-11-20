@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from '../i18n';
 import FormField from '../components/forms/FormField';
 import TextInput from '../components/forms/TextInput';
+import { TimezoneSelect } from '../components/forms/TimezoneSelect';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { partnerQueries, userQueries, queryKeys } from '../api/queries';
 import { apiClient } from '../api/client';
@@ -40,6 +41,7 @@ const Settings = () => {
   const meUser = meData?.data || user;
 
   const [displayNameInput, setDisplayNameInput] = useState(meUser?.display_name || '');
+  const [timezoneInput, setTimezoneInput] = useState(meUser?.timezone || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -130,7 +132,10 @@ const Settings = () => {
     if (typeof meUser?.display_name === 'string') {
       setDisplayNameInput(meUser.display_name);
     }
-  }, [meUser?.display_name]);
+    if (typeof meUser?.timezone === 'string') {
+      setTimezoneInput(meUser.timezone);
+    }
+  }, [meUser?.display_name, meUser?.timezone]);
 
   // Update profile via React Query mutation
   const updateProfileMutation = useMutation({
@@ -343,6 +348,23 @@ const Settings = () => {
                   onChange={(e) => handleUpdateProfile('ui_partner_color', e.target.value)}
                 />
               </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Timezone</label>
+            <TimezoneSelect value={timezoneInput} onChange={setTimezoneInput} />
+            <div>
+              <button
+                onClick={() => handleUpdateProfile('timezone', timezoneInput.trim())}
+                disabled={updateProfileMutation.isPending ||
+                  timezoneInput.trim() === '' ||
+                  timezoneInput.trim() === (meUser?.timezone || '').trim()
+                }
+                className="w-full sm:w-auto loom-btn-primary disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+              >
+                Update Timezone
+              </button>
             </div>
           </div>
 

@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { format, parseISO, addDays } from 'date-fns';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { MapPin, Clock, Users, Bell, X } from 'lucide-react';
 import { useAuthState } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
@@ -13,6 +14,7 @@ import { queryKeys, eventQueries, partnerQueries } from '../api/queries';
 import TextInput from '../components/forms/TextInput';
 import TextArea from '../components/forms/TextArea';
 import { DateTimePicker } from '../components/forms/DateTimePicker';
+import { TimezoneSelect } from '../components/forms/TimezoneSelect';
 import SubmitButton from '../components/forms/SubmitButton';
 import { cn } from '@/lib/utils';
 import { computeEndFromStart } from '../utils/datetime';
@@ -45,6 +47,7 @@ const EditEvent = () => {
   const [description, setDescription] = useState('');
   const [startDateTime, setStartDateTime] = useState<Date>(new Date());
   const [endDateTime, setEndDateTime] = useState<Date>(new Date());
+  const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [location, setLocation] = useState('');
   const [visibility, setVisibility] = useState<'shared' | 'private'>('private');
   const [includePartner, setIncludePartner] = useState(false); // attendance only when shared
@@ -54,17 +57,44 @@ const EditEvent = () => {
   const [userTouchedVisibility, setUserTouchedVisibility] = useState(false);
   const [autoForcedToPrivate, setAutoForcedToPrivate] = useState(false);
 
-  // Helpers
-
-
   // Initialize form from event
   useEffect(() => {
     if (!event) return;
     setTitle(event.title);
     setDescription(event.description || '');
     setLocation(event.location || '');
-    setStartDateTime(parseISO(event.start_time));
-    setEndDateTime(parseISO(event.end_time));
+
+    // Handle timezone
+    const eventTz = event.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    setTimezone(eventTz);
+
+    // Convert UTC to Wall Clock time in event timezone
+    // If event.start_time is "2023-10-10T10:00:00Z" and tz is "Asia/Tokyo",
+    // toZonedTime will return a Date representing 19:00 Tokyo time (but as a Date object)
+    // Wait, toZonedTime returns a Date object that *looks* like the local time if printed in that timezone?
+    // No, toZonedTime returns a Date object. When we pass it to DateTimePicker, DateTimePicker uses local browser time.
+    // This is tricky.
+    // If we want the DateTimePicker to show "10:00 AM", we need a Date object where getHours() returns 10.
+    // toZonedTime(utcDate, timeZone) returns a Date which has the same instant.
+    // We need to shift the time so that the "UTC" representation matches the "Wall Clock" time of the target timezone.
+    // Actually, date-fns-tz `toZonedTime` returns a Date instance which will print the correct wall-clock time
+    // ONLY if the system timezone matches the target timezone.
+    // If we want to edit "10:00 AM Tokyo" while in "New York", we need to "shift" the date.
+    // A common trick is to treat the Date object as a container for YMDHMS values, ignoring its actual timestamp.
+    // `toZonedTime` does exactly this: it returns a Date whose UTC components match the wall-clock time of the zoned date.
+    // Wait, no. `toZonedTime` constructs a Date instance with the given time in the specific time zone.
+    // If we want to bind this to a standard HTML input or our custom picker which uses local Date methods,
+    // we usually need to "mock" the date.
+    // Let's use `toZonedTime` but be careful.
+    // Actually, `toZonedTime` from date-fns-tz v3: "Get a date/time representing the local time in a given time zone..."
+    // It returns a Date object.
+
+    // Let's try to just use the values.
+    const s = toZonedTime(event.start_time, eventTz);
+    const e = toZonedTime(event.end_time, eventTz);
+    setStartDateTime(s);
+    setEndDateTime(e);
+
     setReminders(event.reminders || []);
     // Determine visibility and attendance
     const isShared = event.visibility === 'shared';
@@ -170,15 +200,19 @@ const EditEvent = () => {
     }
     setIsSubmitting(true);
     try {
-      const startDateTimeISO = startDateTime.toISOString();
-      let endDateTimeISO = endDateTime.toISOString();
-      const sCheck = startDateTime.getTime();
-      const eCheck = endDateTime.getTime();
+      // Convert Wall Clock + Timezone -> UTC
+      const startUtc = fromZonedTime(startDateTime, timezone);
+      const endUtc = fromZonedTime(endDateTime, timezone);
+
+      const startDateTimeISO = startUtc.toISOString();
+      let endDateTimeISO = endUtc.toISOString();
+
+      const sCheck = startUtc.getTime();
+      const eCheck = endUtc.getTime();
+
       if (eCheck <= sCheck) {
-        const nextDay = new Date(startDateTime);
+        const nextDay = new Date(startUtc);
         nextDay.setDate(nextDay.getDate() + 1);
-        nextDay.setHours(endDateTime.getHours());
-        nextDay.setMinutes(endDateTime.getMinutes());
         endDateTimeISO = nextDay.toISOString();
       }
 
@@ -197,6 +231,7 @@ const EditEvent = () => {
         visibility,
         attendees,
         reminders,
+        timezone,
       } as Partial<Event>);
     } finally {
       setIsSubmitting(false);
@@ -247,6 +282,10 @@ const EditEvent = () => {
             <span className="font-medium">When</span>
           </div>
           <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium mb-2">Timezone</label>
+              <TimezoneSelect value={timezone} onChange={setTimezone} />
+            </div>
             <div>
               <label className="block text-sm font-medium mb-2">From</label>
               <DateTimePicker

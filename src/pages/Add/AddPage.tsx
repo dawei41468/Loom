@@ -1,40 +1,31 @@
-// Add Event/Proposal Page (moved from src/pages/Add.tsx)
+// Add Event/Proposal Page
 import * as React from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format, addDays, addHours, setHours, setMinutes } from 'date-fns';
+import { fromZonedTime } from 'date-fns-tz';
 import { X, MapPin } from 'lucide-react';
-// EventsContext no longer used for server-derived state
-import { useAuthState, useAuthDispatch } from '../../contexts/AuthContext';
+import { useAuthState } from '../../contexts/AuthContext';
 import { useToastContext } from '../../contexts/ToastContext';
 import { apiClient } from '../../api/client';
-// no direct TimePicker usage in this container after splitting forms
-// import { TimePicker } from '../../components/forms/TimePicker';
-// import { cn } from '@/lib/utils';
 import { useTranslation } from '../../i18n';
-// import { DatePicker } from '../../components/forms/DatePicker';
 import TextInput from '../../components/forms/TextInput';
 import TextArea from '../../components/forms/TextArea';
 import SubmitButton from '../../components/forms/SubmitButton';
 import { convertTimeToISO, computeEndFromStart } from '../../utils/datetime';
 import { parseTitle, parseTime, parseDay } from '../../utils/nlp';
 import { useProposalSlots } from './hooks/useProposalSlots';
-import { submitEvent, submitProposal } from './submitters';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { submitProposal } from './submitters';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { queryKeys, partnerQueries } from '../../api/queries';
-import EventForm from './EventForm';
+import EventForm, { VisibilityType } from './EventForm';
 import ProposalForm from './ProposalForm';
-
-// TODO: In a subsequent step, extract NL parsing into src/utils/nlp.ts
-
-type VisibilityType = 'shared' | 'private' | 'title_only';
 
 const AddPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { user, partner } = useAuthState();
-  const authDispatch = useAuthDispatch();
   const { addToast } = useToastContext();
   const { t } = useTranslation();
 
@@ -53,6 +44,7 @@ const AddPage = () => {
   const [description, setDescription] = useState('');
   const [startDateTime, setStartDateTime] = useState(addHours(new Date(), 1));
   const [endDateTime, setEndDateTime] = useState(addHours(new Date(), 2));
+  const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [location, setLocation] = useState('');
   const [visibility, setVisibility] = useState<VisibilityType>('shared');
   const [includePartner, setIncludePartner] = useState(false);
@@ -76,7 +68,6 @@ const AddPage = () => {
   // Natural language suggestions
   const [nlInput, setNlInput] = useState('');
 
-
   const reminderOptions = useMemo(() => [
     { value: 5, label: t('fiveMin') },
     { value: 10, label: t('tenMin') },
@@ -85,7 +76,12 @@ const AddPage = () => {
     { value: 60, label: t('oneHour') },
   ], [t]);
 
-  // Remove manual partner loading; React Query handles it above
+  // Initialize timezone from user preference if available
+  useEffect(() => {
+    if (user?.timezone) {
+      setTimezone(user.timezone);
+    }
+  }, [user?.timezone]);
 
   // If no partner is connected, ensure visibility is Private (since Shared is not possible)
   useEffect(() => {
@@ -184,14 +180,24 @@ const AddPage = () => {
   };
 
   const toggleReminder = (minutes: number) => {
-    setReminders(prev => 
+    setReminders(prev =>
       prev.includes(minutes)
         ? prev.filter(r => r !== minutes)
         : [...prev, minutes].sort((a, b) => a - b)
     );
   };
 
-  // Proposal slots helpers are provided by useProposalSlots
+  const createEventMutation = useMutation({
+    mutationFn: apiClient.createEvent,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.events });
+      addToast({ type: 'success', title: t('eventCreated') });
+      navigate('/');
+    },
+    onError: (err: Error) => {
+      addToast({ type: 'error', title: t('failedToCreate'), description: err.message });
+    },
+  });
 
   const handleSubmit = async () => {
     if (isProposal && !partnerForDisplay) {
@@ -214,18 +220,6 @@ const AddPage = () => {
     setIsSubmitting(true);
 
     try {
-      const startDateTimeISO = startDateTime.toISOString();
-      let endDateTimeISO = endDateTime.toISOString();
-      const sCheck = startDateTime.getTime();
-      const eCheck = endDateTime.getTime();
-      if (eCheck <= sCheck) {
-        const nextDay = new Date(startDateTime);
-        nextDay.setDate(nextDay.getDate() + 1);
-        nextDay.setHours(endDateTime.getHours());
-        nextDay.setMinutes(endDateTime.getMinutes());
-        endDateTimeISO = nextDay.toISOString();
-      }
-
       if (isProposal && partnerForDisplay) {
         const times = proposalSlots.map((slot) => {
           const s = convertTimeToISO(slot.startTime, slot.date);
@@ -281,21 +275,32 @@ const AddPage = () => {
           return;
         }
         await submitProposal(proposalPayload, { apiClient, addToast, queryClient, t });
+        navigate('/');
       } else {
-        await submitEvent({
+        // Event Creation
+        // Convert "Wall Clock" time + Timezone -> UTC
+        const startUtc = fromZonedTime(startDateTime, timezone);
+        const endUtc = fromZonedTime(endDateTime, timezone);
+
+        const attendees: string[] = [];
+        if (user?.id) attendees.push(user.id);
+        if (visibility === 'shared' && includePartner && partnerForDisplay?.id) {
+          attendees.push(partnerForDisplay.id);
+        }
+
+        await createEventMutation.mutateAsync({
           title,
           description: description || undefined,
-          start_time: startDateTimeISO,
-          end_time: endDateTimeISO,
+          start_time: startUtc.toISOString(),
+          end_time: endUtc.toISOString(),
           location: location || undefined,
           visibility,
-          attendees: includePartner && partnerForDisplay ? [user!.id, partnerForDisplay.id] : [user!.id],
-          created_by: user!.id,
+          attendees,
           reminders,
-        }, { apiClient, addToast, queryClient, t });
+          timezone,
+          created_by: user!.id,
+        });
       }
-
-      navigate('/');
     } catch (error) {
       const message = error instanceof Error ? error.message : t('pleaseTryAgain');
       addToast({
@@ -309,7 +314,7 @@ const AddPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[hsl(var(--loom-bg))] safe-area-top">
+    <div className="min-h-screen bg-[hsl(var(--loom-bg))] safe-area-top pb-20">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-[hsl(var(--loom-bg))] flex items-center justify-between px-3 py-2 border-b border-[hsl(var(--loom-border))]">
         <button
@@ -352,7 +357,6 @@ const AddPage = () => {
         <div className="loom-card">
           <label className="block text-sm font-medium mb-2">{t('titleLabel')}</label>
           <TextInput
-            type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={t('eventTitlePlaceholder')}
@@ -367,6 +371,8 @@ const AddPage = () => {
             onStartDateTimeChange={setStartDateTime}
             onEndDateTimeChange={setEndDateTime}
             computeEndFromStart={computeEndFromStart}
+            timezone={timezone}
+            onTimezoneChange={setTimezone}
             partnerDisplayName={partnerForDisplay?.display_name}
             partnerExists={!!partnerForDisplay}
             visibility={visibility}
@@ -396,7 +402,6 @@ const AddPage = () => {
             <span className="font-medium">{t('whereSection')}</span>
           </div>
           <TextInput
-            type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder={t('addLocationPlaceholder')}
@@ -413,9 +418,7 @@ const AddPage = () => {
             rows={3}
           />
         </div>
-
-      {/* Event-only sections (visibility, attendees, reminders) now rendered inside EventForm */}
-    </div>
+      </div>
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Clock, Users, Bell } from 'lucide-react';
 import { DateTimePicker } from '../../components/forms/DateTimePicker';
+import { TimezoneSelect } from '../../components/forms/TimezoneSelect';
 import { cn } from '@/lib/utils';
 
 export type VisibilityType = 'shared' | 'private' | 'title_only';
@@ -11,12 +12,14 @@ interface ReminderOption {
 }
 
 interface Props {
-   // date & time
-   startDateTime: Date;
-   endDateTime: Date;
-   onStartDateTimeChange: (dt: Date) => void;
-   onEndDateTimeChange: (dt: Date) => void;
-   computeEndFromStart: (dt: Date) => Date;
+  // date & time
+  startDateTime: Date;
+  endDateTime: Date;
+  onStartDateTimeChange: (dt: Date) => void;
+  onEndDateTimeChange: (dt: Date) => void;
+  computeEndFromStart: (dt: Date) => Date;
+  timezone: string;
+  onTimezoneChange: (tz: string) => void;
 
   // visibility & attendees
   partnerDisplayName?: string;
@@ -36,11 +39,13 @@ interface Props {
 }
 
 const EventForm: React.FC<Props> = ({
-   startDateTime,
-   endDateTime,
-   onStartDateTimeChange,
-   onEndDateTimeChange,
-   computeEndFromStart,
+  startDateTime,
+  endDateTime,
+  onStartDateTimeChange,
+  onEndDateTimeChange,
+  computeEndFromStart,
+  timezone,
+  onTimezoneChange,
   partnerDisplayName,
   partnerExists,
   visibility,
@@ -61,6 +66,10 @@ const EventForm: React.FC<Props> = ({
           <span className="font-medium">{t('whenSection')}</span>
         </div>
         <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium mb-2">Timezone</label>
+            <TimezoneSelect value={timezone} onChange={onTimezoneChange} />
+          </div>
           <div>
             <label className="block text-sm font-medium mb-2">From</label>
             <DateTimePicker
