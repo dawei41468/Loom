@@ -95,7 +95,7 @@ class ApiClient {
     }
   }
 
-  private async refreshTokens(): Promise<Token> {
+  private refreshTokens = async (): Promise<Token> => {
     if (!this.refreshToken) {
       throw new Error('No refresh token available');
     }
@@ -127,7 +127,7 @@ class ApiClient {
     return tokenData;
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}, isRetry = false): Promise<T> {
+  private request = async <T>(endpoint: string, options: RequestInit = {}, isRetry = false): Promise<T> => {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       ...options.headers,
@@ -151,7 +151,7 @@ class ApiClient {
         const text = await response.text();
         console.error(`API Error Response Text for ${endpoint}:`, text);
         let errorMessage = `API Error: ${response.status} ${response.statusText}`;
-        
+
         try {
           const errorData = JSON.parse(text);
           interface ErrorDetail {
@@ -159,7 +159,7 @@ class ApiClient {
             msg?: string;
             type?: string;
           }
-          
+
           if (Array.isArray(errorData?.detail)) {
             const msgs = errorData.detail.map((d: ErrorDetail) => {
               const loc = Array.isArray(d?.loc) ? d.loc.slice(1).join('.') : undefined;
@@ -218,39 +218,39 @@ class ApiClient {
 
 
   // Auth
-  async login(credentials: UserLogin): Promise<Token> {
+  login = async (credentials: UserLogin): Promise<Token> => {
     return this.request<Token>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
   }
 
-  async register(userData: UserCreate): Promise<ApiResponse<User>> {
+  register = async (userData: UserCreate): Promise<ApiResponse<User>> => {
     return this.request<ApiResponse<User>>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
   }
 
-  async getMe(): Promise<ApiResponse<User>> {
+  getMe = async (): Promise<ApiResponse<User>> => {
     return this.request<ApiResponse<User>>('/auth/me');
   }
 
-  async updateMe(userData: Partial<User>): Promise<ApiResponse<User>> {
+  updateMe = async (userData: Partial<User>): Promise<ApiResponse<User>> => {
     return this.request<ApiResponse<User>>('/auth/me', {
       method: 'PUT',
       body: JSON.stringify(userData),
     });
   }
 
-  async changePassword(payload: { current_password: string; new_password: string }): Promise<ApiResponse<void>> {
+  changePassword = async (payload: { current_password: string; new_password: string }): Promise<ApiResponse<void>> => {
     return this.request<ApiResponse<void>>('/auth/change-password', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
   }
 
-  async deleteAccount(payload: { current_password: string }): Promise<ApiResponse<void>> {
+  deleteAccount = async (payload: { current_password: string }): Promise<ApiResponse<void>> => {
     return this.request<ApiResponse<void>>('/auth/me', {
       method: 'DELETE',
       body: JSON.stringify(payload),
@@ -258,191 +258,191 @@ class ApiClient {
   }
 
   // Partner
-  async getPartner(): Promise<ApiResponse<Partner | null>> {
+  getPartner = async (): Promise<ApiResponse<Partner | null>> => {
     return this.request<ApiResponse<Partner | null>>('/partner');
   }
 
 
-  async checkEmailRegistered(email: string): Promise<ApiResponse<{ is_registered: boolean; email: string }>> {
+  checkEmailRegistered = async (email: string): Promise<ApiResponse<{ is_registered: boolean; email: string }>> => {
     return this.request<ApiResponse<{ is_registered: boolean; email: string }>>(`/partner/check-email/${encodeURIComponent(email)}`);
   }
 
-  async connectPartner(token: { invite_token: string }): Promise<ApiResponse<Partner>> {
+  connectPartner = async (token: { invite_token: string }): Promise<ApiResponse<Partner>> => {
     return this.request<ApiResponse<Partner>>('/partner/connect', {
       method: 'POST',
       body: JSON.stringify(token),
     });
   }
 
-  async generateInviteToken(expiresInDays: number = 7): Promise<ApiResponse<{ invite_token: string; invite_url: string; expires_at: string }>> {
+  generateInviteToken = async (expiresInDays: number = 7): Promise<ApiResponse<{ invite_token: string; invite_url: string; expires_at: string }>> => {
     return this.request<ApiResponse<{ invite_token: string; invite_url: string; expires_at: string }>>('/partner/generate-invite', {
       method: 'POST',
       body: JSON.stringify({ expires_in_days: expiresInDays }),
     });
   }
 
-  async checkInviteToken(token: string): Promise<ApiResponse<{ inviter: { id: string; display_name: string; email: string }; expires_at: string; token: string }>> {
+  checkInviteToken = async (token: string): Promise<ApiResponse<{ inviter: { id: string; display_name: string; email: string }; expires_at: string; token: string }>> => {
     return this.request<ApiResponse<{ inviter: { id: string; display_name: string; email: string }; expires_at: string; token: string }>>(`/partner/check-invite/${token}`);
   }
 
-  async disconnectPartner(): Promise<ApiResponse<void>> {
+  disconnectPartner = async (): Promise<ApiResponse<void>> => {
     return this.request<ApiResponse<void>>('/partner', {
       method: 'DELETE',
     });
   }
 
   // Events
-  async getEvents(): Promise<ApiResponse<Event[]>> {
+  getEvents = async (): Promise<ApiResponse<Event[]>> => {
     return this.request<ApiResponse<Event[]>>('/events');
   }
 
-  async createEvent(event: Omit<Event, 'id' | 'created_at' | 'updated_at'>): Promise<ApiResponse<Event>> {
+  createEvent = async (event: Omit<Event, 'id' | 'created_at' | 'updated_at'>): Promise<ApiResponse<Event>> => {
     return this.request<ApiResponse<Event>>('/events', {
       method: 'POST',
       body: JSON.stringify(event),
     });
   }
 
-  async getEvent(eventId: string): Promise<ApiResponse<Event>> {
+  getEvent = async (eventId: string): Promise<ApiResponse<Event>> => {
     return this.request<ApiResponse<Event>>(`/events/${eventId}`);
   }
 
-  async updateEvent(eventId: string, eventData: Partial<Event>): Promise<ApiResponse<Event>> {
+  updateEvent = async (eventId: string, eventData: Partial<Event>): Promise<ApiResponse<Event>> => {
     return this.request<ApiResponse<Event>>(`/events/${eventId}`, {
       method: 'PUT',
       body: JSON.stringify(eventData),
     });
   }
 
-  async deleteEvent(eventId: string): Promise<ApiResponse<void>> {
+  deleteEvent = async (eventId: string): Promise<ApiResponse<void>> => {
     return this.request<ApiResponse<void>>(`/events/${eventId}`, {
       method: 'DELETE',
     });
   }
 
   // Proposals
-  async getProposals(): Promise<ApiResponse<Proposal[]>> {
+  getProposals = async (): Promise<ApiResponse<Proposal[]>> => {
     return this.request<ApiResponse<Proposal[]>>('/proposals');
   }
 
   // Matches backend ProposalCreate shape (no proposed_by; backend derives from auth)
-  async createProposal(proposal: {
+  createProposal = async (proposal: {
     title: string;
     description?: string;
     message?: string;
     proposed_times: { start_time: string; end_time: string }[];
     location?: string;
     proposed_to: string;
-  }): Promise<ApiResponse<Proposal>> {
+  }): Promise<ApiResponse<Proposal>> => {
     return this.request<ApiResponse<Proposal>>('/proposals', {
       method: 'POST',
       body: JSON.stringify(proposal),
     });
   }
 
-  async acceptProposal(proposalId: string, selectedTimeSlot: { start_time: string; end_time: string }): Promise<ApiResponse<{ proposal: Proposal; event: Event }>> {
+  acceptProposal = async (proposalId: string, selectedTimeSlot: { start_time: string; end_time: string }): Promise<ApiResponse<{ proposal: Proposal; event: Event }>> => {
     return this.request<ApiResponse<{ proposal: Proposal; event: Event }>>(`/proposals/${proposalId}/accept`, {
       method: 'POST',
       body: JSON.stringify(selectedTimeSlot),
     });
   }
 
-  async getProposal(proposalId: string): Promise<ApiResponse<Proposal>> {
+  getProposal = async (proposalId: string): Promise<ApiResponse<Proposal>> => {
     return this.request<ApiResponse<Proposal>>(`/proposals/${proposalId}`);
   }
 
-  async declineProposal(proposalId: string): Promise<ApiResponse<Proposal>> {
+  declineProposal = async (proposalId: string): Promise<ApiResponse<Proposal>> => {
     return this.request<ApiResponse<Proposal>>(`/proposals/${proposalId}/decline`, {
       method: 'POST',
     });
   }
 
   // Tasks
-  async getTasks(): Promise<ApiResponse<Task[]>> {
+  getTasks = async (): Promise<ApiResponse<Task[]>> => {
     return this.request<ApiResponse<Task[]>>('/tasks');
   }
 
-  async createTask(task: Omit<Task, 'id' | 'completed' | 'created_at' | 'updated_at'>): Promise<ApiResponse<Task>> {
+  createTask = async (task: Omit<Task, 'id' | 'completed' | 'created_at' | 'updated_at'>): Promise<ApiResponse<Task>> => {
     return this.request<ApiResponse<Task>>('/tasks', {
       method: 'POST',
       body: JSON.stringify(task),
     });
   }
 
-  async getTask(taskId: string): Promise<ApiResponse<Task>> {
+  getTask = async (taskId: string): Promise<ApiResponse<Task>> => {
     return this.request<ApiResponse<Task>>(`/tasks/${taskId}`);
   }
 
-  async updateTask(taskId: string, taskData: Partial<Task>): Promise<ApiResponse<Task>> {
+  updateTask = async (taskId: string, taskData: Partial<Task>): Promise<ApiResponse<Task>> => {
     return this.request<ApiResponse<Task>>(`/tasks/${taskId}`, {
       method: 'PUT',
       body: JSON.stringify(taskData),
     });
   }
 
-  async toggleTask(taskId: string): Promise<ApiResponse<Task>> {
+  toggleTask = async (taskId: string): Promise<ApiResponse<Task>> => {
     return this.request<ApiResponse<Task>>(`/tasks/${taskId}/toggle`, {
       method: 'PATCH',
     });
   }
 
-  async deleteTask(taskId: string): Promise<ApiResponse<void>> {
+  deleteTask = async (taskId: string): Promise<ApiResponse<void>> => {
     return this.request<ApiResponse<void>>(`/tasks/${taskId}`, {
       method: 'DELETE',
     });
   }
 
   // Availability
-  async findOverlap(params: { duration_minutes: number; date_range_days: number }): Promise<ApiResponse<AvailabilitySlot[]>> {
+  findOverlap = async (params: { duration_minutes: number; date_range_days: number }): Promise<ApiResponse<AvailabilitySlot[]>> => {
     return this.request<ApiResponse<AvailabilitySlot[]>>('/availability/find-overlap', {
       method: 'POST',
       body: JSON.stringify(params),
     });
   }
 
-  async getUserBusyTimes(startDate: string, endDate: string): Promise<ApiResponse<BusyTimeSlot[]>> {
+  getUserBusyTimes = async (startDate: string, endDate: string): Promise<ApiResponse<BusyTimeSlot[]>> => {
     const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
     return this.request<ApiResponse<BusyTimeSlot[]>>(`/availability/user-busy?${params.toString()}`);
   }
 
   // Event Chat
-  async getEventMessages(eventId: string): Promise<ApiResponse<EventMessage[]>> {
+  getEventMessages = async (eventId: string): Promise<ApiResponse<EventMessage[]>> => {
     return this.request<ApiResponse<EventMessage[]>>(`/events/${eventId}/messages`);
   }
 
-  async sendEventMessage(eventId: string, message: string): Promise<ApiResponse<EventMessage>> {
+  sendEventMessage = async (eventId: string, message: string): Promise<ApiResponse<EventMessage>> => {
     return this.request<ApiResponse<EventMessage>>(`/events/${eventId}/messages`, {
       method: 'POST',
       body: JSON.stringify({ message }),
     });
   }
 
-  async deleteEventMessage(eventId: string, messageId: string): Promise<ApiResponse<void>> {
+  deleteEventMessage = async (eventId: string, messageId: string): Promise<ApiResponse<void>> => {
     return this.request<ApiResponse<void>>(`/events/${eventId}/messages/${messageId}`, {
       method: 'DELETE',
     });
   }
 
   // Event Checklist
-  async getEventChecklist(eventId: string): Promise<ApiResponse<ChecklistItem[]>> {
+  getEventChecklist = async (eventId: string): Promise<ApiResponse<ChecklistItem[]>> => {
     return this.request<ApiResponse<ChecklistItem[]>>(`/events/${eventId}/checklist`);
   }
 
-  async createChecklistItem(eventId: string, item: { title: string; description?: string }): Promise<ApiResponse<ChecklistItem>> {
+  createChecklistItem = async (eventId: string, item: { title: string; description?: string }): Promise<ApiResponse<ChecklistItem>> => {
     return this.request<ApiResponse<ChecklistItem>>(`/events/${eventId}/checklist`, {
       method: 'POST',
       body: JSON.stringify(item),
     });
   }
 
-  async updateChecklistItem(eventId: string, itemId: string, updates: { completed: boolean }): Promise<ApiResponse<ChecklistItem>> {
+  updateChecklistItem = async (eventId: string, itemId: string, updates: { completed: boolean }): Promise<ApiResponse<ChecklistItem>> => {
     return this.request<ApiResponse<ChecklistItem>>(`/events/${eventId}/checklist/${itemId}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
     });
   }
 
-  async deleteChecklistItem(eventId: string, itemId: string): Promise<ApiResponse<void>> {
+  deleteChecklistItem = async (eventId: string, itemId: string): Promise<ApiResponse<void>> => {
       return this.request<ApiResponse<void>>(`/events/${eventId}/checklist/${itemId}`, {
           method: 'DELETE',
       });
