@@ -176,7 +176,6 @@ class EventUpdate(BaseModel):
     location: Optional[str] = None
     visibility: Optional[Literal["shared", "private", "title_only"]] = None
     attendees: Optional[List[PyObjectId]] = None
-    attendees: Optional[List[PyObjectId]] = None
     reminders: Optional[List[int]] = None
     timezone: Optional[str] = None
 
