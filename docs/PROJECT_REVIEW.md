@@ -70,7 +70,7 @@
 ### ⚠️ Partially Implemented Features
 
 - **Partner invite via email**: Email infrastructure exists, but the current partner flow is invite-links (token URLs). Email sending is not the primary/required invite mechanism in the current backend routes.
-- **Availability overlap**: Current `availability` endpoints use a simplified “partner events” heuristic rather than using the actual connected partner relationship.
+- **Availability overlap (UX)**: The overlap computation is partner-aware and correct; remaining work is UI/UX polish (e.g., richer overlap browsing and proposal creation flows).
 
 ### 📋 Planned or Future Enhancements
 
@@ -217,7 +217,7 @@ The core feature set is robust and usable end-to-end. Remaining gaps are primari
 
 ### High Priority
 1.  **Comprehensive Testing**: Add unit/integration tests for backend (pytest) and frontend (e.g., React Testing Library + a test runner) to cover services, components, and API flows.
-2.  **Availability Correctness**: Update availability computation to use the *actual connected partner* instead of the current heuristic.
+2.  **Availability UX**: The overlap computation is correct; focus next on product/UI polish and additional edge-case coverage.
 
 ### Medium Priority
 1.  **Monitoring & Logging**: Implement structured logging and production observability.
@@ -305,7 +305,11 @@ VITE_API_URL=http://localhost:7500
 
 ### Known limitations / technical debt
 - **Service worker background sync** is intentionally not used; offline mutations sync via the in-app queue when the app is open.
-- **Availability overlap** uses a simplified heuristic rather than the actual connected partner relationship.
+- **Availability overlap (correctness)**:
+  - Partner is derived from accepted partnerships.
+  - Partner private events are treated as busy.
+  - Returns `400` if no active partner; returns `[]` if no overlap.
+  - Partner page shows a small overlap preview (top suggestions) to make the feature visible.
 
 ### Push notifications (future: Push v1 plan)
 - **Goal**: Send real-time notifications when the recipient is not actively in the app (complements WebSockets).
@@ -340,7 +344,7 @@ VITE_API_URL=http://localhost:7500
 ### Next (high-value)
 - **Testing**: backend + frontend coverage.
 - **Observability**: structured logging and production monitoring.
-- **Correctness**: partner-aware availability.
+- **Product polish**: availability overlap browsing + proposal UX improvements.
 
 ## Key Improvements Made
 
@@ -366,4 +370,4 @@ The project has matured considerably. Core scheduling/proposals/tasks + chat/che
 
 The codebase follows modern practices: async FastAPI backend with service abstraction, React Query for data, Context for UI state, and PWA support.
 
-**Current Status**: Functional for core scheduling/coordination. Next: testing suite, production observability, and addressing the identified partial areas (availability correctness).
+**Current Status**: Functional for core scheduling/coordination. Next: testing suite, production observability, and polishing the availability UX.

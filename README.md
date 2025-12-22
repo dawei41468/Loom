@@ -294,8 +294,9 @@ which matches the backend route defined in `backend/app/routers/websockets.py` (
 # Frontend tests (when implemented)
 npm run test
 
-# Backend tests (when implemented)
+# Backend tests
 cd backend
+pip install -r requirements-dev.txt
 pytest
 ```
 
