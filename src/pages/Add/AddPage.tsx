@@ -425,6 +425,10 @@ const AddPage = () => {
             computeEndFromStart={computeEndFromStart}
             timezone={timezone}
             onTimezoneChange={setTimezone}
+            location={location}
+            onLocationChange={setLocation}
+            description={description}
+            onDescriptionChange={setDescription}
             partnerDisplayName={partnerForDisplay?.display_name}
             partnerExists={!!partnerForDisplay}
             visibility={visibility}
@@ -446,30 +450,6 @@ const AddPage = () => {
             t={t}
           />
         )}
-
-        {/* Location */}
-        <div className="loom-card">
-          <div className="flex items-center space-x-2 mb-3">
-            <MapPin className="w-5 h-5 text-[hsl(var(--loom-primary))]" />
-            <span className="font-medium">{t('whereSection')}</span>
-          </div>
-          <TextInput
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder={t('addLocationPlaceholder')}
-          />
-        </div>
-
-        {/* Description */}
-        <div className="loom-card">
-          <label className="block text-sm font-medium mb-2">{t('notesLabel')}</label>
-          <TextArea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder={t('addNotesOrDetailsPlaceholder')}
-            rows={3}
-          />
-        </div>
       </div>
     </div>
   );

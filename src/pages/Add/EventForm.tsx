@@ -1,7 +1,9 @@
 import * as React from 'react';
-import { Clock, Users, Bell } from 'lucide-react';
+import { Clock, Users, Bell, MapPin } from 'lucide-react';
 import { DateTimePicker } from '../../components/forms/DateTimePicker';
 import { TimezoneSelect } from '../../components/forms/TimezoneSelect';
+import TextInput from '../../components/forms/TextInput';
+import TextArea from '../../components/forms/TextArea';
 import { cn } from '@/lib/utils';
 
 export type VisibilityType = 'shared' | 'private' | 'title_only';
@@ -20,6 +22,12 @@ interface Props {
   computeEndFromStart: (dt: Date) => Date;
   timezone: string;
   onTimezoneChange: (tz: string) => void;
+
+  // location & notes
+  location: string;
+  onLocationChange: (v: string) => void;
+  description: string;
+  onDescriptionChange: (v: string) => void;
 
   // visibility & attendees
   partnerDisplayName?: string;
@@ -46,6 +54,10 @@ const EventForm: React.FC<Props> = ({
   computeEndFromStart,
   timezone,
   onTimezoneChange,
+  location,
+  onLocationChange,
+  description,
+  onDescriptionChange,
   partnerDisplayName,
   partnerExists,
   visibility,
@@ -86,6 +98,28 @@ const EventForm: React.FC<Props> = ({
             <DateTimePicker mode="to" value={endDateTime} onChange={onEndDateTimeChange} />
           </div>
         </div>
+      </div>
+
+      <div className="loom-card">
+        <div className="flex items-center space-x-2 mb-3">
+          <MapPin className="w-5 h-5 text-[hsl(var(--loom-primary))]" />
+          <span className="font-medium">{t('whereSection')}</span>
+        </div>
+        <TextInput
+          value={location}
+          onChange={(e) => onLocationChange(e.target.value)}
+          placeholder={t('addLocationPlaceholder')}
+        />
+      </div>
+
+      <div className="loom-card">
+        <label className="block text-sm font-medium mb-2">{t('notesLabel')}</label>
+        <TextArea
+          value={description}
+          onChange={(e) => onDescriptionChange(e.target.value)}
+          placeholder={t('addNotesOrDetailsPlaceholder')}
+          rows={3}
+        />
       </div>
 
       {/* Visibility */}
