@@ -13,12 +13,13 @@ const STATIC_FILES = [
 
 // API endpoints to cache
 const DATA_URLS = [
-  '/api/auth/me',
   '/api/events',
   '/api/proposals', 
   '/api/tasks',
   '/api/partner',
 ];
+
+const DATA_CACHE_MAX_AGE_MS = 60 * 60 * 1000;
 
 // Install event - cache static files
 self.addEventListener('install', (event) => {
@@ -71,6 +72,27 @@ self.addEventListener('fetch', (event) => {
 
   // Handle API requests with network-first strategy
   if (url.pathname.startsWith('/api/')) {
+    const apiPath = url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname;
+    const shouldCacheApi = request.method === 'GET' && DATA_URLS.includes(apiPath);
+
+    if (!shouldCacheApi) {
+      event.respondWith(
+        fetch(request).catch(() => {
+          return new Response(
+            JSON.stringify({
+              error: 'Offline',
+              message: 'You are offline. Some features may not be available.'
+            }),
+            {
+              status: 503,
+              headers: { 'Content-Type': 'application/json' }
+            }
+          );
+        })
+      );
+      return;
+    }
+
     event.respondWith(
       fetch(request)
         .then((response) => {
@@ -81,7 +103,7 @@ self.addEventListener('fetch', (event) => {
           if (response.status === 200 && request.method === 'GET') {
             caches.open(DATA_CACHE)
               .then((cache) => {
-                // Set cache expiry (7 days)
+                // Set cache timestamp (used to enforce a short TTL on read-only cached API responses)
                 const headers = new Headers(responseClone.headers);
                 headers.set('sw-cache-timestamp', Date.now().toString());
 
@@ -104,12 +126,12 @@ self.addEventListener('fetch', (event) => {
               return cache.match(request)
                 .then((cachedResponse) => {
                   if (cachedResponse) {
-                    // Check if cache is still valid (7 days)
+                    // Check if cache is still valid (short TTL)
                     const cacheTimestamp = cachedResponse.headers.get('sw-cache-timestamp');
                     const cacheAge = Date.now() - parseInt(cacheTimestamp || '0');
-                    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+                    const maxAge = DATA_CACHE_MAX_AGE_MS;
                     
-                    if (cacheAge < sevenDays) {
+                    if (cacheAge < maxAge) {
                       console.log('[SW] Serving cached API response:', request.url);
                       return cachedResponse;
                     } else {
@@ -176,244 +198,3 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
-
-// Background sync for when connection is restored
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'background-sync') {
-    console.log('[SW] Background sync triggered');
-    event.waitUntil(syncOfflineActions());
-  }
-});
-
-
-// IndexedDB helper functions for service worker
-class SWIndexedDBManager {
-  constructor() {
-    this.dbName = 'loom-offline-db';
-    this.version = 1;
-  }
-
-  async openDB() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName, this.version);
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
-
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains('offline-actions')) {
-          const store = db.createObjectStore('offline-actions', { keyPath: 'id' });
-          store.createIndex('timestamp', 'timestamp', { unique: false });
-        }
-      };
-    });
-  }
-
-  async getOfflineActions() {
-    const db = await this.openDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['offline-actions'], 'readonly');
-      const store = transaction.objectStore('offline-actions');
-      const index = store.index('timestamp');
-      const request = index.openCursor();
-
-      const actions = [];
-
-      request.onsuccess = (event) => {
-        const cursor = event.target.result;
-        if (cursor) {
-          actions.push(cursor.value);
-          cursor.continue();
-        } else {
-          resolve(actions);
-        }
-      };
-
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  async removeOfflineAction(actionId) {
-    const db = await this.openDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['offline-actions'], 'readwrite');
-      const store = transaction.objectStore('offline-actions');
-      const request = store.delete(actionId);
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  async updateOfflineAction(actionId, updates) {
-    const db = await this.openDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['offline-actions'], 'readwrite');
-      const store = transaction.objectStore('offline-actions');
-      const getRequest = store.get(actionId);
-
-      getRequest.onsuccess = () => {
-        const action = getRequest.result;
-        if (action) {
-          const updatedAction = { ...action, ...updates };
-          const putRequest = store.put(updatedAction);
-
-          putRequest.onsuccess = () => resolve();
-          putRequest.onerror = () => reject(putRequest.error);
-        } else {
-          reject(new Error('Action not found'));
-        }
-      };
-
-      getRequest.onerror = () => reject(getRequest.error);
-    });
-  }
-}
-
-// Helper function to sync offline actions
-async function syncOfflineActions() {
-  console.log('[SW] Starting background sync of offline actions...');
-
-  const dbManager = new SWIndexedDBManager();
-
-  try {
-    const actions = await dbManager.getOfflineActions();
-    console.log(`[SW] Found ${actions.length} offline actions to sync`);
-
-    if (actions.length === 0) {
-      return;
-    }
-
-    // Process each action
-    for (const action of actions) {
-      try {
-        console.log(`[SW] Processing action: ${action.type} for event ${action.eventId}`);
-
-        // Attempt to sync the action
-        const success = await attemptSyncAction(action);
-
-        if (success) {
-          await dbManager.removeOfflineAction(action.id);
-          console.log(`[SW] Successfully synced action: ${action.id}`);
-        } else {
-          // Increment retry count
-          if (action.retryCount < action.maxRetries) {
-            await dbManager.updateOfflineAction(action.id, {
-              retryCount: action.retryCount + 1
-            });
-            console.log(`[SW] Action ${action.id} failed, will retry (${action.retryCount + 1}/${action.maxRetries})`);
-          } else {
-            // Max retries reached, remove the action
-            await dbManager.removeOfflineAction(action.id);
-            console.log(`[SW] Action ${action.id} failed permanently after ${action.maxRetries} attempts`);
-          }
-        }
-      } catch (error) {
-        console.error(`[SW] Failed to process action ${action.id}:`, error);
-
-        // Increment retry count on error
-        if (action.retryCount < action.maxRetries) {
-          await dbManager.updateOfflineAction(action.id, {
-            retryCount: action.retryCount + 1
-          });
-        } else {
-          await dbManager.removeOfflineAction(action.id);
-        }
-      }
-    }
-
-    console.log('[SW] Background sync completed');
-
-  } catch (error) {
-    console.error('[SW] Background sync failed:', error);
-    throw error;
-  }
-}
-
-// Attempt to sync a single action
-async function attemptSyncAction(action) {
-  const baseUrl = self.location.origin;
-  const token = await getStoredAuthToken();
-
-  if (!token) {
-    console.warn('[SW] No auth token available for sync');
-    return false;
-  }
-
-  try {
-    let endpoint = '';
-    let method = 'POST';
-    let body = null;
-
-    switch (action.type) {
-      case 'send_message':
-        endpoint = `/api/events/${action.eventId}/messages`;
-        body = JSON.stringify({ message: action.data.message });
-        break;
-
-      case 'create_checklist_item':
-        endpoint = `/api/events/${action.eventId}/checklist`;
-        body = JSON.stringify(action.data);
-        break;
-
-      case 'update_checklist_item':
-        endpoint = `/api/events/${action.eventId}/checklist/${action.data.itemId}`;
-        method = 'PUT';
-        body = JSON.stringify(action.data.updates);
-        break;
-
-      case 'delete_message':
-        endpoint = `/api/events/${action.eventId}/messages/${action.data.messageId}`;
-        method = 'DELETE';
-        break;
-
-      case 'delete_checklist_item':
-        endpoint = `/api/events/${action.eventId}/checklist/${action.data.itemId}`;
-        method = 'DELETE';
-        break;
-
-      default:
-        console.warn(`[SW] Unknown action type: ${action.type}`);
-        return false;
-    }
-
-    const response = await fetch(`${baseUrl}${endpoint}`, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body
-    });
-
-    if (response.ok) {
-      return true;
-    } else if (response.status === 404) {
-      // Resource not found - this is expected for conflicts, consider it successful
-      console.log(`[SW] Action ${action.type} returned 404, treating as successful (conflict resolved)`);
-      return true;
-    } else {
-      console.warn(`[SW] Action failed with status: ${response.status}`);
-      return false;
-    }
-
-  } catch (error) {
-    console.error(`[SW] Network error syncing action:`, error);
-    return false;
-  }
-}
-
-// Get stored auth token from service worker context
-async function getStoredAuthToken() {
-  // Try to get token from various storage mechanisms
-  // This is a simplified version - in practice you might need to communicate with the main thread
-
-  try {
-    // Check if we can access localStorage (limited in service workers)
-    // For now, return null - the main app should handle token storage
-    return null;
-  } catch (error) {
-    return null;
-  }
-}

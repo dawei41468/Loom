@@ -64,15 +64,13 @@
 - Fully responsive, mobile-first design with a consistent UI/UX.
 - Dark/light theme support.
 - Comprehensive toast notification system.
-- PWA capabilities with offline support via a service worker (cached app shell + cached GET API responses).
+- PWA capabilities with offline support via a service worker (cached app shell + limited cached GET API responses).
 - Full calendar implementation with multiple views and filters.
 
 ### ⚠️ Partially Implemented Features
 
 - **Partner invite via email**: Email infrastructure exists, but the current partner flow is invite-links (token URLs). Email sending is not the primary/required invite mechanism in the current backend routes.
 - **Availability overlap**: Current `availability` endpoints use a simplified “partner events” heuristic rather than using the actual connected partner relationship.
-- **Service Worker background sync**: The service worker contains background sync scaffolding, but it cannot currently access auth tokens in the SW context, so background sync is not functional without additional integration.
-- **Health check routing**: Backend exposes `GET /health`, while the nginx configs reference `GET /api/health`.
 
 ### 📋 Planned or Future Enhancements
 
@@ -220,11 +218,10 @@ The core feature set is robust and usable end-to-end. Remaining gaps are primari
 ### High Priority
 1.  **Comprehensive Testing**: Add unit/integration tests for backend (pytest) and frontend (e.g., React Testing Library + a test runner) to cover services, components, and API flows.
 2.  **Availability Correctness**: Update availability computation to use the *actual connected partner* instead of the current heuristic.
-3.  **Health Check Consistency**: Align backend route(s) and nginx configuration (`/health` vs `/api/health`).
 
 ### Medium Priority
 1.  **Monitoring & Logging**: Implement structured logging and production observability.
-2.  **Offline/Background Sync**: If background sync is desired, implement a secure token handoff mechanism between app and service worker.
+2.  **Offline Behavior Clarity**: Keep offline mutations as in-app queue sync (while app is open); do not rely on service worker background sync.
 
 ### Low Priority (Future Enhancements)
 1.  **Recurring Events**: Support repeating events with scheduling rules.
@@ -307,8 +304,28 @@ VITE_API_URL=http://localhost:7500
   - Service worker caching for app shell + GET API responses.
 
 ### Known limitations / technical debt
-- **Service worker background sync** is not functional for authenticated requests (SW cannot access auth token without additional integration).
+- **Service worker background sync** is intentionally not used; offline mutations sync via the in-app queue when the app is open.
 - **Availability overlap** uses a simplified heuristic rather than the actual connected partner relationship.
+
+### Push notifications (future: Push v1 plan)
+- **Goal**: Send real-time notifications when the recipient is not actively in the app (complements WebSockets).
+- **Platforms (v1)**: Android Chrome PWA + desktop Chromium browsers first; iOS Safari later.
+- **Notification types (v1)**:
+  - Chat: new message
+  - Events: new event created
+  - Proposals: accepted / declined
+- **Content**: no message previews (title/body only; user opens Loom to view details).
+- **Delivery**: pure Web Push (VAPID). No Firebase.
+- **Frontend UX**:
+  - Single setting: “Enable notifications”.
+  - Request permission only after explicit user intent (avoid prompting on first load).
+- **Backend responsibilities**:
+  - Store push subscriptions per user (multiple devices).
+  - Send push to partner on the trigger events above; never notify the actor.
+  - Log per-delivery attempt; remove subscriptions that return 404/410.
+- **Service worker responsibilities**:
+  - Handle `push` event and display notification.
+  - Handle `notificationclick` and deep-link into Loom (event/proposal/chat context).
 
 ## Feature Status (Condensed)
 
@@ -349,4 +366,4 @@ The project has matured considerably. Core scheduling/proposals/tasks + chat/che
 
 The codebase follows modern practices: async FastAPI backend with service abstraction, React Query for data, Context for UI state, and PWA support.
 
-**Current Status**: Functional for core scheduling/coordination. Next: testing suite, production observability, and addressing the identified partial areas (availability correctness, SW background sync token integration, and health check alignment).
+**Current Status**: Functional for core scheduling/coordination. Next: testing suite, production observability, and addressing the identified partial areas (availability correctness).

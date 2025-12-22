@@ -184,7 +184,8 @@ uvicorn app.main:app --reload --port 7500
 The backend enforces basic configuration checks at startup to avoid insecure deployments.
 
 - **Production**
-  - Set `ENV=production` (or `prod`).
+  - Set `APP_ENV=production`.
+  - `ENV` is the app's internal environment string; in this codebase `APP_ENV` controls which backend env file is loaded.
   - Provide a strong, unique `SECRET_KEY` via environment variables. The app fails fast if a default placeholder is detected.
   - Configure `CORS_ORIGINS` explicitly for allowed domains (e.g., your site origins). The app fails fast if empty in production.
   - Auth endpoints are rate-limited (see `routers/auth.py`).
