@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addDays, addWeeks, addMonths, subDays, subWeeks, subMonths, getDay, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addDays, addWeeks, addMonths, subDays, subWeeks, subMonths, getDay, parseISO, addHours, startOfDay, isBefore } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Event } from '../types';
 import { useTranslation } from '../i18n';
@@ -171,7 +171,26 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                 className={`min-h-[80px] p-1 border border-[hsl(var(--loom-border))] rounded-md cursor-pointer hover:bg-[hsl(var(--loom-surface-hover))] ${
                   !isCurrentMonth ? 'text-[hsl(var(--loom-text-muted))]' : ''
                 } ${isToday ? 'bg-[hsl(var(--loom-primary-light))] border-[hsl(var(--loom-primary))]' : ''}`}
-                onClick={() => onSelectSlot({ start: day, end: addDays(day, 1) })}
+                onClick={() => {
+                  const todayStart = startOfDay(new Date());
+                  if (isBefore(day, todayStart)) return;
+
+                  const now = new Date();
+                  let start: Date;
+
+                  if (isSameDay(day, now)) {
+                    start = new Date(now);
+                    start.setSeconds(0, 0);
+                    start.setMinutes(0);
+                    start.setHours(start.getHours() + 1);
+                  } else {
+                    start = new Date(day);
+                    start.setHours(8, 0, 0, 0);
+                  }
+
+                  const end = addHours(start, 1);
+                  onSelectSlot({ start, end });
+                }}
               >
                 <div className="text-sm font-medium mb-1">{format(day, 'd')}</div>
                 <div className="space-y-1">
@@ -209,17 +228,22 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
     const weekStart = startOfWeek(currentDate);
     const weekEnd = endOfWeek(currentDate);
     const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
+    const now = new Date();
+    const currentHour = now.getHours();
 
     return (
       <div className="custom-calendar-week">
-        <div ref={weekHeaderRef} className="grid grid-cols-8 gap-1 sticky top-0 z-10 bg-[hsl(var(--loom-surface))] border-b border-[hsl(var(--loom-border))]">
+        <div ref={weekHeaderRef} className="grid grid-cols-8 gap-0 sticky top-0 z-10 bg-[hsl(var(--loom-surface))] border-b border-[hsl(var(--loom-border))]">
           {/* Time column */}
-          <div className="text-sm font-medium text-[hsl(var(--loom-text-muted))] py-2">{t('time')}</div>
-          {days.map(day => {
+          <div className="text-sm font-medium text-[hsl(var(--loom-text-muted))] py-2 pr-2 text-right">{t('time')}</div>
+          {days.map((day) => {
             const dayIndex = getDay(day);
             const dayNames = [t('sunday'), t('monday'), t('tuesday'), t('wednesday'), t('thursday'), t('friday'), t('saturday')];
             return (
-              <div key={day.toISOString()} className="text-center text-sm font-medium py-2">
+              <div
+                key={day.toISOString()}
+                className="text-center text-sm font-medium py-2 border-l border-[hsl(var(--loom-border))]"
+              >
                 <div>{dayNames[dayIndex]}</div>
                 <div className="text-xs">{format(day, 'd')}</div>
               </div>
@@ -229,7 +253,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
 
         {/* Time slots */}
         {Array.from({ length: 24 }, (_, hour) => (
-          <div key={hour} data-hour={hour} className="grid grid-cols-8 gap-1 border-t border-[hsl(var(--loom-border))]">
+          <div key={hour} data-hour={hour} className="grid grid-cols-8 gap-0 border-t border-[hsl(var(--loom-border))]">
             <div className="text-xs text-[hsl(var(--loom-text-muted))] py-2 pr-2 text-right">
               {format(new Date().setHours(hour, 0, 0, 0), 'HH:mm')}
             </div>
@@ -248,12 +272,21 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
               return (
                 <div
                   key={`${day.toISOString()}-${hour}`}
-                  className="min-h-[40px] p-1 cursor-pointer hover:bg-[hsl(var(--loom-surface-hover))]"
+                  className={`min-h-[40px] p-1 cursor-pointer hover:bg-[hsl(var(--loom-surface-hover))] border-l border-[hsl(var(--loom-border))] ${
+                    isSameDay(day, now) && hour === currentHour
+                      ? 'relative z-10 bg-[hsl(var(--loom-primary-light))] ring-1 ring-inset ring-[hsl(var(--loom-primary))]'
+                      : ''
+                  }`}
                   onClick={() => {
-                    const start = new Date(day);
-                    start.setHours(hour, 0, 0, 0);
-                    const end = new Date(start);
-                    end.setHours(hour + 1, 0, 0, 0);
+                    const slotStart = new Date(day);
+                    slotStart.setHours(hour, 0, 0, 0);
+                    const slotEnd = new Date(slotStart);
+                    slotEnd.setHours(hour + 1, 0, 0, 0);
+
+                    if (slotEnd.getTime() <= now.getTime()) return;
+
+                    const start = slotStart.getTime() <= now.getTime() ? slotEnd : slotStart;
+                    const end = addHours(start, 1);
                     onSelectSlot({ start, end });
                   }}
                 >
@@ -283,6 +316,8 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
   };
 
   const renderDayView = () => {
+    const now = new Date();
+    const currentHour = now.getHours();
     const dayStart = new Date(currentDate);
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(currentDate);
@@ -305,16 +340,25 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
 
             return (
               <div key={hour} data-hour={hour} className="flex border-b border-[hsl(var(--loom-border))]">
-                <div className="w-16 text-xs text-[hsl(var(--loom-text-muted))] py-2 pr-2 text-right">
+                <div className="w-16 text-xs text-[hsl(var(--loom-text-muted))] py-2 pr-2 text-right border-r border-[hsl(var(--loom-border))]">
                   {format(new Date().setHours(hour, 0, 0, 0), 'HH:mm')}
                 </div>
                 <div
-                  className="flex-1 min-h-[40px] p-1 cursor-pointer hover:bg-[hsl(var(--loom-surface-hover))]"
+                  className={`flex-1 min-h-[40px] p-1 cursor-pointer hover:bg-[hsl(var(--loom-surface-hover))] ${
+                    isSameDay(currentDate, now) && hour === currentHour
+                      ? 'relative z-10 bg-[hsl(var(--loom-primary-light))] ring-1 ring-inset ring-[hsl(var(--loom-primary))]'
+                      : ''
+                  }`}
                   onClick={() => {
-                    const start = new Date(currentDate);
-                    start.setHours(hour, 0, 0, 0);
-                    const end = new Date(start);
-                    end.setHours(hour + 1, 0, 0, 0);
+                    const slotStart = new Date(currentDate);
+                    slotStart.setHours(hour, 0, 0, 0);
+                    const slotEnd = new Date(slotStart);
+                    slotEnd.setHours(hour + 1, 0, 0, 0);
+
+                    if (slotEnd.getTime() <= now.getTime()) return;
+
+                    const start = slotStart.getTime() <= now.getTime() ? slotEnd : slotStart;
+                    const end = addHours(start, 1);
                     onSelectSlot({ start, end });
                   }}
                 >
@@ -403,7 +447,11 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
         </div>
       ) : (
         // For week/day, keep internal scrolling for the time grid
-        <div ref={scrollRef} className="overflow-auto" style={{ height: `calc(${height} - 120px)` }}>
+        <div
+          ref={scrollRef}
+          className="overflow-auto border border-[hsl(var(--loom-border))] rounded-md"
+          style={{ height: `calc(${height} - 120px)` }}
+        >
           {view === 'week' && renderWeekView()}
           {view === 'day' && renderDayView()}
         </div>

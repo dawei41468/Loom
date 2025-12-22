@@ -1,8 +1,8 @@
 // Add Event/Proposal Page
 import * as React from 'react';
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { format, addDays, addHours, setHours, setMinutes } from 'date-fns';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { format, addDays, addHours, setHours, setMinutes, parseISO } from 'date-fns';
 import { fromZonedTime } from 'date-fns-tz';
 import { X, MapPin } from 'lucide-react';
 import { useAuthState } from '../../contexts/AuthContext';
@@ -21,8 +21,31 @@ import { queryKeys, partnerQueries } from '../../api/queries';
 import EventForm, { VisibilityType } from './EventForm';
 import ProposalForm from './ProposalForm';
 
+type AddNavState = {
+  startTime?: string;
+  endTime?: string;
+};
+
+const parsePrefillFromNavState = (state: unknown): { start: Date; end: Date } | null => {
+  if (!state || typeof state !== 'object') return null;
+
+  const s = state as AddNavState;
+  if (!s.startTime) return null;
+
+  const start = parseISO(s.startTime);
+  if (isNaN(start.getTime())) return null;
+
+  const endCandidate = s.endTime ? parseISO(s.endTime) : addHours(start, 1);
+  const end = !isNaN(endCandidate.getTime()) && endCandidate.getTime() > start.getTime()
+    ? endCandidate
+    : addHours(start, 1);
+
+  return { start, end };
+};
+
 const AddPage = () => {
   const navigate = useNavigate();
+  const routerLocation = useLocation();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { user, partner } = useAuthState();
@@ -42,8 +65,9 @@ const AddPage = () => {
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [startDateTime, setStartDateTime] = useState(addHours(new Date(), 1));
-  const [endDateTime, setEndDateTime] = useState(addHours(new Date(), 2));
+  const initialPrefill = parsePrefillFromNavState(routerLocation.state);
+  const [startDateTime, setStartDateTime] = useState(initialPrefill?.start ?? addHours(new Date(), 1));
+  const [endDateTime, setEndDateTime] = useState(initialPrefill?.end ?? addHours(new Date(), 2));
   const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [location, setLocation] = useState('');
   const [visibility, setVisibility] = useState<VisibilityType>('shared');
@@ -61,6 +85,23 @@ const AddPage = () => {
     startTime: format(startDateTime, 'h:mm a'),
     endTime: format(endDateTime, 'h:mm a'),
   });
+
+  // Initialize from navigation state (calendar click prefill)
+  useEffect(() => {
+    const prefill = parsePrefillFromNavState(routerLocation.state);
+    if (!prefill) return;
+
+    setStartDateTime(prefill.start);
+    setEndDateTime(prefill.end);
+
+    if (isProposal) {
+      syncFirstSlot(
+        format(prefill.start, 'yyyy-MM-dd'),
+        format(prefill.start, 'h:mm a'),
+        format(prefill.end, 'h:mm a')
+      );
+    }
+  }, [routerLocation.key, routerLocation.state, isProposal, syncFirstSlot]);
 
   // Proposal: optional message to partner
   const [proposalMessage, setProposalMessage] = useState('');
