@@ -66,8 +66,19 @@ const AddPage = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const initialPrefill = parsePrefillFromNavState(routerLocation.state);
-  const [startDateTime, setStartDateTime] = useState(initialPrefill?.start ?? addHours(new Date(), 1));
-  const [endDateTime, setEndDateTime] = useState(initialPrefill?.end ?? addHours(new Date(), 2));
+  const defaultStart = (() => {
+    if (initialPrefill) return initialPrefill.start;
+    const now = new Date();
+    const ceiled = new Date(now);
+    ceiled.setSeconds(0, 0);
+    ceiled.setMinutes(0);
+    if (now.getMinutes() > 0 || now.getSeconds() > 0) {
+      ceiled.setHours(ceiled.getHours() + 1);
+    }
+    return ceiled;
+  })();
+  const [startDateTime, setStartDateTime] = useState(defaultStart);
+  const [endDateTime, setEndDateTime] = useState(initialPrefill?.end ?? addHours(defaultStart, 1));
   const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [location, setLocation] = useState('');
   const [visibility, setVisibility] = useState<VisibilityType>('shared');
