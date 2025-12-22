@@ -1,7 +1,6 @@
-// Edit Event Page
+// Edit Event Sheet Content
 import * as React from 'react';
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 import { format, parseISO, addDays } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { MapPin, Clock, Users, Bell, X } from 'lucide-react';
@@ -18,19 +17,24 @@ import { TimezoneSelect } from '../components/forms/TimezoneSelect';
 import SubmitButton from '../components/forms/SubmitButton';
 import { cn } from '@/lib/utils';
 import { computeEndFromStart } from '../utils/datetime';
+import { Button } from '../components/ui/button';
 
-const EditEvent = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+interface EditEventFormContentProps {
+  eventId: string;
+  onSuccess: () => void;
+  formRef: React.RefObject<HTMLFormElement>;
+}
+
+const EditEventFormContent = ({ eventId, onSuccess, formRef }: EditEventFormContentProps) => {
   const { user, partner } = useAuthState();
   const { addToast } = useToastContext();
   const queryClient = useQueryClient();
 
   // Load event
   const { data: eventResponse, isLoading } = useQuery({
-    queryKey: queryKeys.event(id!),
-    queryFn: () => eventQueries.getEvent(id!),
-    enabled: !!id,
+    queryKey: queryKeys.event(eventId),
+    queryFn: () => eventQueries.getEvent(eventId),
+    enabled: !!eventId,
   });
 
   const { data: partnerResp } = useQuery({
@@ -183,17 +187,18 @@ const EditEvent = () => {
     },
     onSuccess: () => {
       addToast({ type: 'success', title: 'Event updated' });
+      onSuccess();
     },
     onSettled: () => {
       if (!event) return;
       // Ensure caches are synced with server
       queryClient.invalidateQueries({ queryKey: queryKeys.event(event.id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.events });
-      navigate(`/event/${event.id}`);
     }
   });
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!event || !title.trim()) {
       addToast({ type: 'error', title: 'Title required' });
       return;
@@ -250,25 +255,7 @@ const EditEvent = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[hsl(var(--loom-bg))] safe-area-top">
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-[hsl(var(--loom-bg))] flex items-center justify-between px-3 py-2 border-b border-[hsl(var(--loom-border))]">
-        <button onClick={() => navigate(-1)} className="p-1.5 hover:bg-[hsl(var(--loom-border))] rounded-full">
-          <X className="w-5 h-5" />
-        </button>
-        <h1 className="text-base font-semibold">Edit Event</h1>
-        <SubmitButton
-          onClick={handleSubmit}
-          isLoading={isSubmitting}
-          disabled={isSubmitting || !title.trim()}
-          fullWidth={false}
-          className="px-4 py-1.5"
-        >
-          Save
-        </SubmitButton>
-      </div>
-
-      <div className="container py-6 space-y-6">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
         {/* Title */}
         <div className="loom-card">
           <label className="block text-sm font-medium mb-2">Title</label>
@@ -397,9 +384,8 @@ const EditEvent = () => {
             ))}
           </div>
         </div>
-      </div>
-    </div>
+    </form>
   );
 };
 
-export default EditEvent;
+export default EditEventFormContent;

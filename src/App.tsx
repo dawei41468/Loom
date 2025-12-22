@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
@@ -14,7 +14,6 @@ const Tasks = React.lazy(() => import('./pages/Tasks'));
 const Settings = React.lazy(() => import('./pages/Settings'));
 const Partner = React.lazy(() => import('./pages/Partner'));
 const EventDetail = React.lazy(() => import('./pages/EventDetail'));
-const EditEvent = React.lazy(() => import('./pages/EditEvent'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
 const Invite = React.lazy(() => import('./pages/Invite'));
 const Proposals = React.lazy(() => import('./pages/Proposals'));
@@ -88,6 +87,13 @@ const PageFallback = React.memo(() => (
 ));
 
 PageFallback.displayName = 'PageFallback';
+
+const EditRedirect = React.memo(() => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/event/${id}?edit=true`} replace />;
+});
+
+EditRedirect.displayName = 'EditRedirect';
 
 const PollingManager = React.memo(() => {
   const { isAuthenticated } = useAuthState();
@@ -169,14 +175,7 @@ const AppRoutes = React.memo(() => {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/event/:id/edit"
-          element={
-            <ProtectedRoute>
-              <EditEvent />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/event/:id/edit" element={<EditRedirect />} />
 
         {/* Not Found */}
         <Route path="*" element={<NotFound />} />

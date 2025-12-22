@@ -428,12 +428,14 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
             {/* Footer */}
             <div className="pt-3 pb-5 flex justify-center space-x-2">
               <button
+                type="button"
                 onClick={handleCancel}
                 className="px-3 py-2 text-sm rounded-[var(--loom-radius-md)] border border-[hsl(var(--loom-border))] hover:bg-[hsl(var(--loom-surface-hover))] flex-1 max-w-[120px]"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleConfirm}
                 className="px-3 py-2 text-sm rounded-[var(--loom-radius-md)] bg-[hsl(var(--loom-primary))] text-white hover:bg-[hsl(var(--loom-primary-dark))] flex-1 max-w-[120px]"
               >

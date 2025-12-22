@@ -1,6 +1,6 @@
 // Event Detail Page (iOS-style bottom sheet)
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { format, parseISO, isSameDay, differenceInDays, differenceInHours } from 'date-fns';
 import { 
   X, 
@@ -22,6 +22,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys, eventQueries, partnerQueries, userQueries } from '../api/queries';
 import { apiClient } from '../api/client';
 import { useUserColors } from '../hooks/useUserColors';
+import { Button } from '../components/ui/button';
+import SubmitButton from '../components/forms/SubmitButton';
+import EditEventFormContent from './EditEvent';
 const EventChat = React.lazy(() => import('../components/EventChat'));
 const EventChecklist = React.lazy(() => import('../components/EventChecklist'));
 
@@ -34,8 +37,11 @@ const EventDetail = () => {
 
   const [activeTab, setActiveTab] = useState<'details' | 'chat' | 'checklist'>('details');
   const [showFullDetails, setShowFullDetails] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const queryClient = useQueryClient();
   const isDev = import.meta.env.MODE !== 'production';
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Ensure partner info is available for rendering attendees
   const { data: partnerResponse } = useQuery({
@@ -72,6 +78,15 @@ const EventDetail = () => {
       setActiveTab('details');
     }
   }, [chatDisabled, activeTab]);
+
+  // Handle deep link to open edit sheet
+  useEffect(() => {
+    if (searchParams.get('edit')) {
+      setIsEditing(true);
+      searchParams.delete('edit');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Delete event mutation with optimistic update
   const deleteEventMutation = useMutation({
@@ -477,7 +492,7 @@ const EventDetail = () => {
             {isOwner && (
               <>
                 <button
-                  onClick={() => navigate(`/event/${event.id}/edit`)}
+                  onClick={() => setIsEditing(true)}
                   className="p-1.5 hover:bg-[hsl(var(--loom-border))] rounded-full"
                   title="Edit"
                 >
@@ -532,6 +547,32 @@ const EventDetail = () => {
         {activeTab === 'details' && renderDetailsTab()}
         {activeTab === 'chat' && renderChatTab()}
         {activeTab === 'checklist' && renderChecklistTab()}
+      </div>
+
+      {/* Edit Modal */}
+      <div className={`fixed inset-0 z-50 flex items-end justify-center p-0 transition-opacity duration-300 ease-out ${isEditing ? 'bg-black/50 opacity-100' : 'bg-transparent opacity-0 pointer-events-none'}`} onClick={() => setIsEditing(false)}>
+        <div className={`bg-[hsl(var(--loom-surface))] rounded-[var(--loom-radius-lg)] shadow-xl w-full flex flex-col h-[98vh] transform transition-transform duration-300 ease-out ${isEditing ? 'translate-y-0' : 'translate-y-full'}`} onClick={e => e.stopPropagation()}>
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-[hsl(var(--loom-border))]">
+            <Button variant="ghost" size="icon" onClick={() => setIsEditing(false)}>
+              <X className="w-5 h-5" />
+            </Button>
+            <h2 className="text-base font-semibold">Edit Event</h2>
+            <SubmitButton
+              onClick={() => formRef.current?.requestSubmit()}
+              isLoading={false}
+              disabled={false}
+              fullWidth={false}
+              className="px-4 py-1.5"
+            >
+              Save
+            </SubmitButton>
+          </div>
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <EditEventFormContent eventId={event.id} onSuccess={() => { setIsEditing(false); searchParams.delete('edit'); setSearchParams(searchParams, { replace: true }); }} formRef={formRef} />
+          </div>
+        </div>
       </div>
 
       {/* Actions (removed duplicate/edit bottom bar) */}
