@@ -44,16 +44,18 @@ const Partner = () => {
   });
 
   // Minimal overlap preview for next 7 days, 60-min duration
-  // NOTE: Disabled in dev to avoid noisy CORS errors when frontend (7100) and backend (7500) differ
-  // In production, it will be enabled as usual
-  const { data: overlapResp } = useQuery({
+  const overlapQuery = useQuery({
     queryKey: ['partner', 'overlap', 60, 7],
     queryFn: () => apiClient.findOverlap({ duration_minutes: 60, date_range_days: 7 }),
-    enabled: import.meta.env.DEV ? false : (!!user && !!partnerData?.data),
+    enabled: !!user && !!partnerData?.data,
     staleTime: 60_000,
     retry: false,
     refetchOnWindowFocus: false,
   });
+
+  const overlapResp = overlapQuery.data;
+  const overlapErrorMessage = overlapQuery.error instanceof Error ? overlapQuery.error.message : '';
+  const overlapHasNoPartnerError = overlapErrorMessage === 'No active partnership found';
 
   const nextSharedEvents = useMemo(() => {
     const list = eventsResp?.data || [];
@@ -286,7 +288,13 @@ const Partner = () => {
             <div className="loom-card-compact">
               <h4 className="font-medium mb-2">{t('findOverlap')}</h4>
               {/* Compact overlap strip (optional) */}
-              {Array.isArray(overlapResp?.data) && overlapResp!.data.length > 0 ? (
+              {overlapQuery.isLoading ? (
+                <p className="text-xs text-[hsl(var(--loom-text-muted))] mb-3">{t('loading')}</p>
+              ) : overlapHasNoPartnerError ? (
+                <p className="text-xs text-[hsl(var(--loom-text-muted))] mb-3">{t('connectPartnerToShare')}</p>
+              ) : overlapQuery.isError ? (
+                <p className="text-xs text-[hsl(var(--loom-text-muted))] mb-3">{t('failedToLoadData')}</p>
+              ) : Array.isArray(overlapResp?.data) && overlapResp!.data.length > 0 ? (
                 <div className="flex items-center gap-1 mb-3">
                   {overlapResp!.data.slice(0, 7).map((slot, idx) => (
                     <div
@@ -302,6 +310,21 @@ const Partner = () => {
                 </div>
               ) : (
                 <p className="text-xs text-[hsl(var(--loom-text-muted))] mb-3">{t('timeToGather')}</p>
+              )}
+              {!overlapQuery.isLoading && !overlapQuery.isError && Array.isArray(overlapResp?.data) && overlapResp.data.length > 0 && (
+                <div className="text-xs text-[hsl(var(--loom-text-muted))] mb-3 space-y-1">
+                  <p>
+                    {t('nextUp')}: {new Date(overlapResp.data[0].start_time).toLocaleString()} ({overlapResp.data.length})
+                  </p>
+                  {overlapResp.data.length > 1 && (
+                    <p>
+                      {overlapResp.data
+                        .slice(1, 3)
+                        .map((s) => new Date(s.start_time).toLocaleString())
+                        .join(' · ')}
+                    </p>
+                  )}
+                </div>
               )}
               <button
                 onClick={() => navigate('/add?type=proposal')}

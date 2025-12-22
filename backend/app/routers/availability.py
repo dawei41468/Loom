@@ -10,15 +10,31 @@ router = APIRouter(prefix="/availability", tags=["availability"])
 @router.post("/find-overlap", response_model=ApiResponse)
 async def find_overlap(
     request: AvailabilityRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db = Depends(get_database)
 ):
     """Find available time slots that work for both user and partner"""
-    db = get_database()
     if db is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Database connection not available"
         )
+
+    user_id = str(current_user.id)
+
+    partnership = await db.partnerships.find_one({
+        "$or": [
+            {"user1_id": user_id, "status": "accepted"},
+            {"user2_id": user_id, "status": "accepted"},
+        ]
+    })
+    if not partnership:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No active partnership found"
+        )
+
+    partner_id = partnership["user2_id"] if partnership["user1_id"] == user_id else partnership["user1_id"]
     
     # Calculate date range
     start_date = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -28,28 +44,31 @@ async def find_overlap(
     user_events = []
     async for event in db.events.find({
         "$or": [
-            {"created_by": str(current_user.id)},
-            {"attendees": {"$in": [str(current_user.id)]}}
+            {"created_by": user_id},
+            {"attendees": {"$in": [user_id]}}
         ],
-        "start_time": {"$gte": start_date, "$lt": end_date}
+        "start_time": {"$lt": end_date},
+        "end_time": {"$gt": start_date}
     }):
         user_events.append({
             "start_time": event["start_time"],
             "end_time": event["end_time"]
         })
     
-    # Get partner events (simplified - in real app you'd identify the specific partner)
+    # Get partner events
     partner_events = []
     async for event in db.events.find({
-        "created_by": {"$ne": str(current_user.id)},
-        "start_time": {"$gte": start_date, "$lt": end_date}
+        "$or": [
+            {"created_by": partner_id},
+            {"attendees": {"$in": [partner_id]}}
+        ],
+        "start_time": {"$lt": end_date},
+        "end_time": {"$gt": start_date}
     }):
-        # Only include events that are visible to partner
-        if event.get("visibility") in ["shared", "title_only"]:
-            partner_events.append({
-                "start_time": event["start_time"],
-                "end_time": event["end_time"]
-            })
+        partner_events.append({
+            "start_time": event["start_time"],
+            "end_time": event["end_time"]
+        })
     
     # Combine all busy times
     all_busy_times = user_events + partner_events
@@ -73,8 +92,9 @@ async def find_overlap(
         # Get busy times for this day
         day_busy_times = [
             event for event in all_busy_times
-            if event["start_time"].date() == current_day.date()
+            if event["start_time"] < day_end and event["end_time"] > day_start
         ]
+        day_busy_times.sort(key=lambda x: x["start_time"])
         
         # Find gaps between busy times
         current_time = day_start
@@ -127,10 +147,10 @@ async def find_overlap(
 async def get_user_busy_times(
     start_date: datetime,
     end_date: datetime,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db = Depends(get_database)
 ):
     """Get busy times for the current user in a date range"""
-    db = get_database()
     if db is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
