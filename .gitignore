@@ -59,6 +59,10 @@ env/
 .env.staging
 .env.development
 backend/.env.development
+backend/.env
+backend/.env.local
+backend/.env.production
+backend/.env.staging
 
 # Coverage
 .coverage

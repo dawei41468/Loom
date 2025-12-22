@@ -239,7 +239,6 @@ cd backend
 pip install -r requirements.txt
 # Backend selects env file based on APP_ENV:
 # - production -> backend/.env.production
-# - staging -> backend/.env.staging
 # - default -> backend/.env.development
 uvicorn app.main:app --reload --port 7500
 ```
@@ -254,7 +253,7 @@ npm run dev  # Runs on port 7100 (see vite.config.ts)
 ```env
 # Backend (.env.example)
 # NOTE:
-# - APP_ENV controls which env file is loaded (development/staging/production)
+# - APP_ENV controls which env file is loaded (development/production)
 # - ENV is the app's internal environment setting (often 'dev' in local)
 APP_ENV=development
 ENV=dev
@@ -286,18 +285,15 @@ VITE_API_URL=http://localhost:7500
   - Partner WS: `/api/partner/ws`
   - Event WS: `/api/events/{event_id}/ws`
 
-### Staging
-- **Domain**: `https://staging.studiodtw.net`
-- **Frontend**: served by nginx from `/var/www/staging-frontend`
-- **Backend**: bound to `127.0.0.1:4200` (see `nginx/staging.studiodtw.net`)
-
 ### Deploy scripts (repo)
 - **Backend**: `./deploy-backend.sh`
   - Copies `backend/` to server (excludes `venv` and `.env*` files)
   - Creates/updates `backend/venv`, installs `backend/requirements.txt`, restarts PM2 process
+
 - **Frontend**: `./deploy-frontend.sh`
   - Uploads a tarball of repo frontend files, builds on server, copies `dist/` to nginx web root
-- **nginx configs**: `nginx/loom.studiodtw.net`, `nginx/staging.studiodtw.net`
+- **nginx**: `./deploy-nginx-loom.sh`
+  - Uploads `nginx/loom.studiodtw.net` to `/etc/nginx/sites-available/`, symlinks into `sites-enabled`, tests config, reloads nginx
 
 ## Design / Implementation Notes (Consolidated)
 
@@ -313,7 +309,6 @@ VITE_API_URL=http://localhost:7500
 ### Known limitations / technical debt
 - **Service worker background sync** is not functional for authenticated requests (SW cannot access auth token without additional integration).
 - **Availability overlap** uses a simplified heuristic rather than the actual connected partner relationship.
-- **Health check mismatch**: nginx references `/api/health` but backend currently exposes `/health`.
 
 ## Feature Status (Condensed)
 
@@ -329,7 +324,6 @@ VITE_API_URL=http://localhost:7500
 - **Testing**: backend + frontend coverage.
 - **Observability**: structured logging and production monitoring.
 - **Correctness**: partner-aware availability.
-- **Ops polish**: align `/health` vs `/api/health`.
 
 ## Key Improvements Made
 
@@ -339,7 +333,7 @@ VITE_API_URL=http://localhost:7500
 3.  **Advanced Features Implemented**: Event chat, shared checklists, email utilities, reminders loop (feature-flagged).
 4.  **State Management Refined**: Context + UI-only state; React Query for server state; optimistic updates across CRUD.
 5.  **Codebase Refinements**: Service layer extracted; routers are thinner and more consistent.
-6.  **Deployment Enhancements**: PM2 + gunicorn configs, Nginx setups (staging + production), deploy scripts.
+6.  **Deployment Enhancements**: PM2 + gunicorn configs, Nginx setup, deploy scripts.
 
 ## Recommendations
 

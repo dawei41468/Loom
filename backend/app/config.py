@@ -11,10 +11,8 @@ env_file_path = Path(__file__).parent.parent
 
 if app_env == 'production':
     env_file = env_file_path / ".env.production"
-elif app_env == 'staging':
-    env_file = env_file_path / ".env.staging"
 else:
-    # Default to .env.development if not in production or staging
+    # Default to .env.development if not in production
     env_file = env_file_path / ".env.development"
 
 logger = logging.getLogger(__name__)
