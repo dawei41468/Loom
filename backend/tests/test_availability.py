@@ -21,6 +21,25 @@ class _FakeFindCursor:
             raise StopAsyncIteration
 
 
+def _normalize_dt(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _compare_dt(a, b, op: str) -> bool:
+    if isinstance(a, datetime) and isinstance(b, datetime):
+        a = _normalize_dt(a)
+        b = _normalize_dt(b)
+    if op == "$lt":
+        return a < b
+    if op == "$gt":
+        return a > b
+    if op == "$gte":
+        return a >= b
+    raise NotImplementedError(f"Unsupported operator: {op}")
+
+
 def _matches_condition(doc, cond):
     if not isinstance(cond, dict):
         return doc == cond
@@ -38,13 +57,13 @@ def _matches_condition(doc, cond):
                     if not isinstance(doc_val, list) or not any(x in doc_val for x in op_val):
                         return False
                 elif op == "$lt":
-                    if not (doc_val < op_val):
+                    if not _compare_dt(doc_val, op_val, op):
                         return False
                 elif op == "$gt":
-                    if not (doc_val > op_val):
+                    if not _compare_dt(doc_val, op_val, op):
                         return False
                 elif op == "$gte":
-                    if not (doc_val >= op_val):
+                    if not _compare_dt(doc_val, op_val, op):
                         return False
                 elif op == "$ne":
                     if not (doc_val != op_val):
@@ -156,3 +175,24 @@ def test_partner_private_event_blocks_time():
     data = resp.json()["data"]
     # No availability on day 0 because partner is busy all day.
     assert data == []
+
+
+def test_find_overlap_handles_naive_event_datetimes():
+    partnerships = [{"user1_id": "u1", "user2_id": "u2", "status": "accepted"}]
+
+    base_naive = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    start_naive = (base_naive + timedelta(days=0)).replace(hour=9, minute=0)
+    end_naive = (base_naive + timedelta(days=0)).replace(hour=10, minute=0)
+
+    # Partner has a naive datetime event; endpoint should not crash.
+    events = [
+        {"created_by": "u2", "attendees": [], "start_time": start_naive, "end_time": end_naive, "visibility": "private"},
+    ]
+
+    fake_db = _FakeDB(events=events, partnerships=partnerships)
+    app = _app_with_overrides(fake_db, _FakeUser("u1"))
+
+    client = TestClient(app)
+    resp = client.post("/api/availability/find-overlap", json={"duration_minutes": 60, "date_range_days": 1})
+    assert resp.status_code == 200
+    assert isinstance(resp.json()["data"], list)

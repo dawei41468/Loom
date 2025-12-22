@@ -46,6 +46,10 @@ wheels/
 *.egg
 MANIFEST
 
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+
 # Virtual environments
 .venv/
 venv/

@@ -7,6 +7,17 @@ from ..database import get_database
 router = APIRouter(prefix="/availability", tags=["availability"])
 
 
+def _to_utc_aware(dt: datetime) -> datetime:
+    """Normalize datetimes from MongoDB to timezone-aware UTC.
+
+    MongoDB dates are stored without timezone. Depending on driver configuration,
+    they may be returned as naive or aware. We treat naive as UTC.
+    """
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
 @router.post("/find-overlap", response_model=ApiResponse)
 async def find_overlap(
     request: AvailabilityRequest,
@@ -51,8 +62,8 @@ async def find_overlap(
         "end_time": {"$gt": start_date}
     }):
         user_events.append({
-            "start_time": event["start_time"],
-            "end_time": event["end_time"]
+            "start_time": _to_utc_aware(event["start_time"]),
+            "end_time": _to_utc_aware(event["end_time"])
         })
     
     # Get partner events
@@ -66,8 +77,8 @@ async def find_overlap(
         "end_time": {"$gt": start_date}
     }):
         partner_events.append({
-            "start_time": event["start_time"],
-            "end_time": event["end_time"]
+            "start_time": _to_utc_aware(event["start_time"]),
+            "end_time": _to_utc_aware(event["end_time"])
         })
     
     # Combine all busy times
@@ -103,11 +114,9 @@ async def find_overlap(
             busy_start = busy_event["start_time"]
             busy_end = busy_event["end_time"]
 
-            # Ensure busy times are timezone-aware (assume UTC if naive)
-            if busy_start.tzinfo is None:
-                busy_start = busy_start.replace(tzinfo=timezone.utc)
-            if busy_end.tzinfo is None:
-                busy_end = busy_end.replace(tzinfo=timezone.utc)
+            # Already normalized when building busy times, but keep defensive.
+            busy_start = _to_utc_aware(busy_start)
+            busy_end = _to_utc_aware(busy_end)
 
             # If there's a gap before this busy time
             if current_time + duration_delta <= busy_start:
