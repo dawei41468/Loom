@@ -1,7 +1,7 @@
 # Weave Your Days - Project Review
 
 ## Overview
-**Weave Your Days** (now called **Loom**) is a sophisticated full-stack web application designed for couples to coordinate their schedules and tasks together. The app features a modern React frontend with a FastAPI backend, using MongoDB for data persistence.
+**Weave Your Days** (now called **Loom**) is a full-stack web application designed for couples to coordinate schedules, proposals, and tasks together. It uses a React + TypeScript frontend, a FastAPI backend, and MongoDB for persistence.
 
 ## Architecture
 
@@ -11,12 +11,13 @@
 - **Framework**: React 18 with TypeScript
 - **Build Tool**: Vite
 - **Styling**: Tailwind CSS with shadcn/ui components
-- **State Management**: React Context + useReducer
+- **State Management**: TanStack React Query for server state; React Context for UI/auth state
 - **Routing**: React Router v6
 - **API Client**: Custom API client with token management
 - **Data Fetching**: TanStack React Query
 - **UI Components**: Radix UI primitives with custom styling
-- **PWA**: Service Worker and Web App Manifest
+- **PWA**: Service Worker + Web App Manifest (production-only SW registration)
+- **Offline Actions**: IndexedDB-backed offline action queue for event chat + checklist operations
 
 #### Backend
 - **Framework**: FastAPI with Python
@@ -25,8 +26,10 @@
 - **Validation**: Pydantic models
 - **CORS**: Configured for cross-origin requests
 - **Documentation**: Auto-generated OpenAPI/Swagger
-- **Reminders**: Background task for event reminders
-- **Service Layer**: Dedicated services for events, proposals, tasks, chat, checklists, partner
+- **Rate limiting**: slowapi (notably on auth endpoints)
+- **Caching**: Redis in production (optional) with in-memory fallback; Redis is intentionally disabled in development
+- **Reminders**: Background reminders loop exists but is gated by `FEATURE_PUSH_NOTIFICATIONS` (disabled by default)
+- **Service Layer**: Service layer modules under `backend/app/service_layer/` for events, proposals, tasks, chat, checklist, partner
 
 ## Current Implementation Status
 
@@ -47,26 +50,29 @@
 - Event chat and shared checklists.
 
 #### Partner & Availability
-- Complete partner invitation system via email.
 - Partner connection and disconnection handling.
-- Availability finder to identify overlapping free time between partners.
+- Invite-link flow for partner connection via invite tokens.
 
 #### Real-time System
-- **WebSocket Integration**: Replaced polling with a robust WebSocket system for instant, bidirectional communication.
-- Real-time notifications for proposals, events, and partner status changes.
+- **WebSocket Integration**: Real-time WebSockets for partner-level updates and per-event updates.
+- Real-time notifications for proposals and events.
 - Heartbeat mechanism to ensure stable connections.
-- Offline message queuing.
+- Client-side offline action queue (IndexedDB) for chat/checklist mutations.
+- Polling still exists as a fallback mechanism (30s) when authenticated.
 
 #### UI/UX & PWA
 - Fully responsive, mobile-first design with a consistent UI/UX.
 - Dark/light theme support.
 - Comprehensive toast notification system.
-- PWA capabilities with offline support via a service worker.
+- PWA capabilities with offline support via a service worker (cached app shell + cached GET API responses).
 - Full calendar implementation with multiple views and filters.
 
 ### ⚠️ Partially Implemented Features
 
-- None (all core features complete).
+- **Partner invite via email**: Email infrastructure exists, but the current partner flow is invite-links (token URLs). Email sending is not the primary/required invite mechanism in the current backend routes.
+- **Availability overlap**: Current `availability` endpoints use a simplified “partner events” heuristic rather than using the actual connected partner relationship.
+- **Service Worker background sync**: The service worker contains background sync scaffolding, but it cannot currently access auth tokens in the SW context, so background sync is not functional without additional integration.
+- **Health check routing**: Backend exposes `GET /health`, while the nginx configs reference `GET /api/health`.
 
 ### 📋 Planned or Future Enhancements
 
@@ -75,6 +81,8 @@
 - Advanced search and filtering capabilities.
 - Data export/import functionality.
 - Monitoring and analytics dashboard.
+- Comprehensive tests (backend + frontend).
+- Production observability (structured logs, error tracking, metrics).
 
 ## File Structure
 
@@ -86,22 +94,23 @@
 │   │   ├── config.py            # Configuration settings
 │   │   ├── database.py          # MongoDB connection
 │   │   ├── models.py            # Pydantic models
-│   │   ├── websocket.py         # WebSocket utilities
-│   │   ├── email.py             # Email utilities (invite email)
-│   │   ├── services.py          # Service helpers
-│   │   ├── cache.py             # In-memory cache (dev) / pluggable
-│   │   ├── reminders.py         # Background reminders task
+│   │   ├── websocket.py         # WebSocket connection manager + handlers
+│   │   ├── email.py             # Email utilities
+│   │   ├── services.py          # Notification helpers
+│   │   ├── cache.py             # Redis (prod) / in-memory (dev) cache manager
+│   │   ├── reminders.py         # Background reminders loop (feature-flagged)
 │   │   ├── middleware.py        # Custom middleware
 │   │   ├── security.py          # Security utilities
 │   │   ├── utils.py             # Shared utilities
-│   │   └── routers/
-│   │       ├── auth.py          # Authentication & profile
-│   │       ├── events.py        # Event CRUD + chat/checklist routes
-│   │       ├── tasks.py         # Task CRUD
-│   │       ├── proposals.py     # Proposal system
-│   │       ├── partner.py       # Partner connect/disconnect, invites
-│   │       ├── availability.py  # Availability finding
-│   │       └── websockets.py    # WebSocket endpoints
+│   │   ├── routers/
+│   │   │   ├── auth.py          # Authentication & profile
+│   │   │   ├── events.py        # Event CRUD + chat/checklist routes + event WS
+│   │   │   ├── tasks.py         # Task CRUD
+│   │   │   ├── proposals.py     # Proposal system
+│   │   │   ├── partner.py       # Partner connect/disconnect + invite tokens
+│   │   │   ├── availability.py  # Availability finding
+│   │   │   └── websockets.py    # Partner WebSocket endpoint
+│   │   └── service_layer/       # Business logic + DB interaction layer
 │   └── requirements.txt         # Python dependencies
 ├── src/
 │   ├── components/
@@ -111,7 +120,7 @@
 │   │   ├── EventChat.tsx        # Event chat UI
 │   │   ├── EventChecklist.tsx   # Event checklist UI
 │   │   ├── Layout.tsx           # Main layout
-│   │   ├── OfflineIndicator.tsx # Offline status
+│   │   ├── OfflineIndicator.tsx # Offline status + pending queue indicator
 │   │   ├── QRCodeModal.tsx      # QR code utilities
 │   │   └── ...
 │   ├── contexts/
@@ -124,7 +133,7 @@
 │   │   ├── Login.tsx
 │   │   ├── Register.tsx
 │   │   ├── Calendar.tsx
-│   │   ├── Add/                 # Event/Proposal forms (AddPage.tsx, EventForm.tsx, ProposalForm.tsx)
+│   │   ├── Add/                 # Event/Proposal forms
 │   │   ├── Partner.tsx
 │   │   ├── Invite.tsx
 │   │   ├── Settings.tsx
@@ -135,19 +144,18 @@
 │   │   ├── client.ts            # API client with token refresh
 │   │   └── queries.ts           # React Query keys and wrappers
 │   ├── hooks/
-│   │   ├── useWebSocket.ts      # WebSocket setup
+│   │   ├── useWebSocket.ts      # Per-event WebSocket
 │   │   ├── usePartnerWebSocket.ts
-│   │   ├── useOfflineQueue.ts   # Offline queueing for chat/checklist
-│   │   ├── usePolling.ts        # Fallback polling (secondary to WS)
-│   │   ├── useAsyncOperation.ts # Async helpers
+│   │   ├── useOfflineQueue.ts   # IndexedDB offline action queue
+│   │   ├── usePolling.ts        # Fallback polling
 │   │   └── ...
 │   ├── types.ts                 # TypeScript definitions
 │   ├── i18n/                    # Internationalization
-│   └── index.css                # Tailwind CSS v4
+│   └── index.css                # Tailwind CSS
 ├── public/                      # Static assets (icons, sw.js, sounds)
-├── docs/                        # Documentation (reviews, guides, plans)
-├── nginx/                       # Nginx configs for staging/production
-├── scripts/                     # Build scripts (e.g., generate-icons.mjs)
+├── docs/                        # Documentation
+├── nginx/                       # Nginx configs
+├── scripts/                     # Build scripts
 └── package.json                 # Frontend dependencies
 ```
 
@@ -175,6 +183,7 @@
 - `POST /api/events/{id}/checklist` - Create checklist item
 - `PUT /api/events/{id}/checklist/{itemId}` - Update checklist item
 - `DELETE /api/events/{id}/checklist/{itemId}` - Delete checklist item
+- `WS /api/events/{id}/ws?token=...` - Event WebSocket (real-time updates)
 
 ### Tasks
 - `GET /api/tasks` - Get user's tasks
@@ -197,21 +206,25 @@
 
 ### Partner
 - `GET /api/partner` - Get partner info
-- `POST /api/partner/invite` - Invite partner
-- `POST /api/partner/accept/{id}` - Accept partnership
-- `POST /api/partner/decline/{id}` - Decline partnership
-
+- `POST /api/partner/generate-invite` - Generate invite token + invite URL
+- `GET /api/partner/check-invite/{token}` - Validate invite token + inviter info
+- `POST /api/partner/connect` - Connect using invite token
+- `DELETE /api/partner` - Disconnect from current partner
+- `GET /api/partner/check-email/{email}` - Check if email is registered
+- `WS /api/partner/ws?token=...` - Partner WebSocket (partner + proposal + event notifications)
 
 ## Critical Gaps to Address
 
-The core feature set is robust, stable, and production-ready. Remaining gaps focus on testing, monitoring, and enhancements.
+The core feature set is robust and usable end-to-end. Remaining gaps are primarily correctness (availability), operational hardening (tests/observability), and clarifying/finishing some “almost there” features.
 
 ### High Priority
-1.  **Comprehensive Testing**: Add unit/integration tests for backend (pytest) and frontend (React Testing Library, Vitest) to cover services, components, and API flows.
+1.  **Comprehensive Testing**: Add unit/integration tests for backend (pytest) and frontend (e.g., React Testing Library + a test runner) to cover services, components, and API flows.
+2.  **Availability Correctness**: Update availability computation to use the *actual connected partner* instead of the current heuristic.
+3.  **Health Check Consistency**: Align backend route(s) and nginx configuration (`/health` vs `/api/health`).
 
 ### Medium Priority
-1.  **Monitoring & Logging**: Implement structured logging (e.g., structlog) and metrics (Prometheus) for production observability.
-2.  **Error Boundaries & Resilience**: Add global error handling in frontend and retry logic for WebSocket failures.
+1.  **Monitoring & Logging**: Implement structured logging and production observability.
+2.  **Offline/Background Sync**: If background sync is desired, implement a secure token handoff mechanism between app and service worker.
 
 ### Low Priority (Future Enhancements)
 1.  **Recurring Events**: Support repeating events with scheduling rules.
@@ -224,7 +237,10 @@ The core feature set is robust, stable, and production-ready. Remaining gaps foc
 ```bash
 cd backend
 pip install -r requirements.txt
-# Use .env.development (see backend/.env.example)
+# Backend selects env file based on APP_ENV:
+# - production -> backend/.env.production
+# - staging -> backend/.env.staging
+# - default -> backend/.env.development
 uvicorn app.main:app --reload --port 7500
 ```
 
@@ -237,6 +253,10 @@ npm run dev  # Runs on port 7100 (see vite.config.ts)
 ### Environment Variables
 ```env
 # Backend (.env.example)
+# NOTE:
+# - APP_ENV controls which env file is loaded (development/staging/production)
+# - ENV is the app's internal environment setting (often 'dev' in local)
+APP_ENV=development
 ENV=dev
 PROJECT_NAME=Loom
 API_V1_STR=/api
@@ -247,20 +267,79 @@ MONGO_URI=mongodb://127.0.0.1:27017
 MONGO_DB=loom
 CORS_ORIGINS=["http://localhost:7100","http://localhost:7500"]
 
+# Optional: used to generate invite URLs
+FRONTEND_BASE_URL=http://localhost:7100
+
 # Frontend (.env.example)
 VITE_API_BASE_URL=http://localhost:7500/api
-VITE_USE_REAL_API=false
+# Optional: origin-only base (used to build ws:// URLs). If omitted, VITE_API_BASE_URL is used.
+VITE_API_URL=http://localhost:7500
 ```
+## Deployment (Current)
+
+### Production
+- **Domain**: `https://loom.studiodtw.net`
+- **Frontend**: served by nginx from `/var/www/loom-frontend`
+- **Backend**: `gunicorn` (uvicorn worker) via PM2, bound to `127.0.0.1:4100` (see `ecosystem.config.js`)
+- **API proxy**: nginx proxies `/api/` to `http://127.0.0.1:4100` (preserves the `/api` prefix)
+- **WebSockets**:
+  - Partner WS: `/api/partner/ws`
+  - Event WS: `/api/events/{event_id}/ws`
+
+### Staging
+- **Domain**: `https://staging.studiodtw.net`
+- **Frontend**: served by nginx from `/var/www/staging-frontend`
+- **Backend**: bound to `127.0.0.1:4200` (see `nginx/staging.studiodtw.net`)
+
+### Deploy scripts (repo)
+- **Backend**: `./deploy-backend.sh`
+  - Copies `backend/` to server (excludes `venv` and `.env*` files)
+  - Creates/updates `backend/venv`, installs `backend/requirements.txt`, restarts PM2 process
+- **Frontend**: `./deploy-frontend.sh`
+  - Uploads a tarball of repo frontend files, builds on server, copies `dist/` to nginx web root
+- **nginx configs**: `nginx/loom.studiodtw.net`, `nginx/staging.studiodtw.net`
+
+## Design / Implementation Notes (Consolidated)
+
+### What is already implemented
+- **Backend service layer**: routers delegate to `backend/app/service_layer/*`.
+- **React Query server state**: queries are the source of truth for server-derived lists/details; mutations use optimistic cache updates + invalidation.
+- **Forms primitives**: shared inputs in `src/components/forms/` are used across Add flows and event chat/checklist.
+- **Real-time updates**: WebSocket hooks update caches for partner/proposal/event updates.
+- **Offline support**:
+  - In-app IndexedDB offline action queue for chat/checklist mutations.
+  - Service worker caching for app shell + GET API responses.
+
+### Known limitations / technical debt
+- **Service worker background sync** is not functional for authenticated requests (SW cannot access auth token without additional integration).
+- **Availability overlap** uses a simplified heuristic rather than the actual connected partner relationship.
+- **Health check mismatch**: nginx references `/api/health` but backend currently exposes `/health`.
+
+## Feature Status (Condensed)
+
+### Implemented
+- **Auth**: register/login/refresh/me/update profile/change password/delete account.
+- **Events**: CRUD + visibility + attendees.
+- **Proposals**: create/list/accept/decline + event creation.
+- **Event collaboration**: chat + checklist + real-time updates.
+- **Partner**: invite tokens + connect/disconnect + partner WebSocket.
+- **PWA + offline**: SW caching + IndexedDB offline action queue.
+
+### Next (high-value)
+- **Testing**: backend + frontend coverage.
+- **Observability**: structured logging and production monitoring.
+- **Correctness**: partner-aware availability.
+- **Ops polish**: align `/health` vs `/api/health`.
 
 ## Key Improvements Made
 
 ### Since Original Review
 1.  **Real-time System Overhaul**: Replaced polling with WebSocket integration for instant updates.
 2.  **Data Persistence Corrected**: Resolved loading issues; full React Query adoption for server state.
-3.  **Advanced Features Implemented**: Event chat, shared checklists, email invites, event reminders (background task).
-4.  **State Management Refined**: Context + useReducer for UI; React Query for data; optimistic updates across CRUD.
-5.  **Codebase Refinements**: Service layer extracted (events, proposals, tasks, chat, checklists); large components broken down (AddPage, forms); many improvements from `docs/CODEBASE_IMPROVEMENT_SUGGESTIONS.md` implemented.
-6.  **Deployment Enhancements**: PM2 configs, Nginx setups, staging/production envs, deploy scripts.
+3.  **Advanced Features Implemented**: Event chat, shared checklists, email utilities, reminders loop (feature-flagged).
+4.  **State Management Refined**: Context + UI-only state; React Query for server state; optimistic updates across CRUD.
+5.  **Codebase Refinements**: Service layer extracted; routers are thinner and more consistent.
+6.  **Deployment Enhancements**: PM2 + gunicorn configs, Nginx setups (staging + production), deploy scripts.
 
 ## Recommendations
 
@@ -272,8 +351,8 @@ VITE_USE_REAL_API=false
 
 ## Conclusion
 
-The project has matured considerably. Reminders and code refactors (service layer, optimistic updates) are now complete. Core features are stable and production-ready.
+The project has matured considerably. Core scheduling/proposals/tasks + chat/checklists are implemented with a clean service-layer backend and a React Query driven frontend.
 
-The codebase follows modern practices: async FastAPI backend with service abstraction, React Query for data, Context for UI state, and full PWA support.
+The codebase follows modern practices: async FastAPI backend with service abstraction, React Query for data, Context for UI state, and PWA support.
 
-**Current Status**: Fully functional for core scheduling/coordination. Next: testing suite and monitoring for sustained production use.
+**Current Status**: Functional for core scheduling/coordination. Next: testing suite, production observability, and addressing the identified partial areas (availability correctness, SW background sync token integration, and health check alignment).
