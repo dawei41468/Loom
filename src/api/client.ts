@@ -27,9 +27,16 @@ class ApiClient {
   private isRefreshing = false;
   private refreshPromise: Promise<Token> | null = null;
   private onTokensRefreshed?: (tokens: Token) => void;
+  private onAuthError?: (error: Error) => void;
+  private lastRefreshAttempt = 0;
+  private refreshCooldownMs = 5000; // 5 second cooldown after rate limit
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
+  }
+
+  public setOnAuthError(callback: (error: Error) => void) {
+    this.onAuthError = callback;
   }
 
   public setOnTokensRefreshed(callback: (tokens: Token) => void) {
@@ -96,6 +103,13 @@ class ApiClient {
   }
 
   private refreshTokens = async (): Promise<Token> => {
+    // Rate limit: don't try to refresh if we recently got a 429
+    const now = Date.now();
+    if (now - this.lastRefreshAttempt < this.refreshCooldownMs) {
+      throw new Error('Rate limited. Please wait before retrying.');
+    }
+    this.lastRefreshAttempt = now;
+
     if (!this.refreshToken) {
       throw new Error('No refresh token available');
     }
@@ -109,11 +123,25 @@ class ApiClient {
     });
 
     if (!response.ok) {
+      // Handle rate limiting - increase cooldown
+      if (response.status === 429) {
+        this.refreshCooldownMs = Math.min(this.refreshCooldownMs * 2, 60000); // max 60s
+        throw new Error('Too many requests. Please wait.');
+      }
       if (response.status === 401) {
+        // Reset cooldown on auth failure
+        this.refreshCooldownMs = 5000;
+        // Trigger logout
+        if (this.onAuthError) {
+          this.onAuthError(new Error('Session expired. Please login again.'));
+        }
         throw new Error('Refresh token expired. Please login again.');
       }
       throw new Error('Failed to refresh token');
     }
+
+    // Reset cooldown on success
+    this.refreshCooldownMs = 5000;
 
     const tokenData: Token = await response.json();
     this.token = tokenData.access_token;
@@ -194,6 +222,10 @@ class ApiClient {
           } catch (refreshError) {
             this.isRefreshing = false;
             this.refreshPromise = null;
+            // Trigger logout on auth failure
+            if (this.onAuthError) {
+              this.onAuthError(new Error('Authentication failed. Please login again.'));
+            }
             throw new Error('Authentication failed. Please login again.');
           }
         } else if (response.status === 401) {

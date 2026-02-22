@@ -156,7 +156,9 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Handle static files with cache-first strategy
-  event.respondWith(
+  // Skip non-http(s) requests (chrome-extension, etc.) - Cache API doesn't support them
+  if (request.url.startsWith('http://') || request.url.startsWith('https://')) {
+    event.respondWith(
     caches.match(request)
       .then((cachedResponse) => {
         if (cachedResponse) {
@@ -197,4 +199,8 @@ self.addEventListener('fetch', (event) => {
           });
       })
   );
+  } else {
+    // Pass through non-http(s) requests (chrome-extension, etc.)
+    event.respondWith(fetch(request));
+  }
 });

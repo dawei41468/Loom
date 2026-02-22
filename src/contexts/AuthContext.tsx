@@ -158,6 +158,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         payload: { token: tokens.access_token, refreshToken: tokens.refresh_token }
       });
     });
+
+    // Set up auth error callback to trigger logout
+    apiClient.setOnAuthError((error: Error) => {
+      console.error('Auth error:', error.message);
+      dispatch({ type: 'LOGOUT' });
+    });
   }, []);
 
   useEffect(() => {
